@@ -1,0 +1,87 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0B0F17; /* Deep sport dark blue-black */
+  --foreground: #F3F4F6;
+  
+  --primary: #10B981; /* Neon green */
+  --secondary: #06B6D4; /* Neon cyan */
+  --accent: #F59E0B; /* Gold */
+  
+  --card-bg: #151E2E; /* Card background */
+  --card-border: #223147; /* Card border */
+}
+
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
+  --color-card: var(--card-bg);
+  --color-card-border: var(--card-border);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0B0F17;
+}
+::-webkit-scrollbar-thumb {
+  background: #223147;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #10B981;
+}
+
+/* Custom visual utilities */
+.glass-panel {
+  background: rgba(21, 30, 46, 0.65);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(34, 49, 71, 0.6);
+}
+
+.glow-green {
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.25);
+}
+
+.glow-cyan {
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.25);
+}
+
+.glow-gold {
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.25);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #10B981 0%, #06B6D4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Pulse animation for live indicators */
+@keyframes pulse-light {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.1);
+  }
+}
+
+.live-indicator {
+  animation: pulse-light 2s infinite ease-in-out;
+}
