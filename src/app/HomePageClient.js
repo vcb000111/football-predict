@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { saveLastUsedModel, formatModelName } from '@/lib/models-client';
+
 
 const countryCodes = {
   "Mexico": "mx", "South Africa": "za", "South Korea": "kr", "Czechia": "cz",
@@ -59,6 +61,71 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
   const [modalData, setModalData] = useState(null);
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState(null);
+  const [localHistoryCounts, setLocalHistoryCounts] = useState(historyCounts);
+  const [localFixtures, setLocalFixtures] = useState(initialData.fixtures);
+  const [updatingAutoList, setUpdatingAutoList] = useState({});
+
+  // Sync state with props when parent updates
+  useEffect(() => {
+    setLocalHistoryCounts(historyCounts);
+  }, [historyCounts]);
+
+  useEffect(() => {
+    setLocalFixtures(initialData.fixtures);
+  }, [initialData.fixtures]);
+
+
+  // Load persisted states from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const persistedTab = localStorage.getItem('homepage_active_tab');
+      if (persistedTab) setActiveTab(persistedTab);
+
+      const persistedLayout = localStorage.getItem('homepage_layout');
+      if (persistedLayout) setLayout(persistedLayout);
+
+      const persistedSortBy = localStorage.getItem('homepage_sort_by');
+      if (persistedSortBy) setSortBy(persistedSortBy);
+
+      const persistedGroupFilter = localStorage.getItem('homepage_group_filter');
+      if (persistedGroupFilter) setSelectedGroupFilter(persistedGroupFilter);
+
+      const persistedSearch = localStorage.getItem('homepage_search_query');
+      if (persistedSearch) setSearchQuery(persistedSearch);
+    }
+  }, []);
+
+  // Save states to localStorage when they change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('homepage_active_tab', activeTab);
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('homepage_layout', layout);
+    }
+  }, [layout]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('homepage_sort_by', sortBy);
+    }
+  }, [sortBy]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('homepage_group_filter', selectedGroupFilter);
+    }
+  }, [selectedGroupFilter]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('homepage_search_query', searchQuery);
+    }
+  }, [searchQuery]);
+
 
   const handleQuickPredict = async (fixture) => {
     if (quickPredicting[fixture.id]) return;
@@ -75,15 +142,87 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Lỗi phân tích trận đấu');
+      if (data.modelUsed) {
+        saveLastUsedModel(data.modelUsed);
+      }
+      
       
       setModalData({
         fixture,
         prediction: data
       });
+
+      // Update history counts instantly on the client side
+      setLocalHistoryCounts(prev => ({
+        ...prev,
+        [fixture.id]: (prev[fixture.id] || 0) + 1
+      }));
     } catch (err) {
       alert(`Lỗi phân tích nhanh: ${err.message}`);
     } finally {
       setQuickPredicting(prev => ({ ...prev, [fixture.id]: false }));
+    }
+  };
+
+  const handleAutoUpdate = async (fixture) => {
+    if (updatingAutoList[fixture.id]) return;
+    setUpdatingAutoList(prev => ({ ...prev, [fixture.id]: true }));
+    try {
+      const historyCount = localHistoryCounts[fixture.id] || 0;
+      if (historyCount === 0) {
+        // Run predict first to save prediction row in SQLite
+        const predRes = await fetch('/api/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            homeTeam: fixture.homeTeam,
+            awayTeam: fixture.awayTeam,
+            matchId: fixture.id
+          })
+        });
+        const predData = await predRes.json();
+        if (!predRes.ok) throw new Error(predData.error || 'Lỗi khi dự đoán tự động');
+        
+        setLocalHistoryCounts(prev => ({
+          ...prev,
+          [fixture.id]: 1
+        }));
+      }
+
+      const res = await fetch('/api/results/auto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          homeTeam: fixture.homeTeam,
+          awayTeam: fixture.awayTeam,
+          matchId: fixture.id
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Lỗi khi tự động lấy kết quả');
+
+      if (data.success && data.actualScore) {
+        setLocalFixtures(prev => 
+          prev.map(f => {
+            if (f.id === fixture.id) {
+              return {
+                ...f,
+                actualHomeScore: data.actualScore.home,
+                actualAwayScore: data.actualScore.away
+              };
+            }
+            return f;
+          })
+        );
+        alert(`🤖 Tự động cập nhật thành công!\nTrận đấu kết thúc với tỷ số thực tế: ${data.actualScore.home}-${data.actualScore.away}.\n${data.summary || ''}`);
+      } else {
+        alert(`⚠️ Trạng thái: ${data.message || 'Không tìm thấy kết quả thực tế trực tuyến.'}`);
+      }
+    } catch (err) {
+      alert(`Lỗi tự động cập nhật: ${err.message}`);
+    } finally {
+      setUpdatingAutoList(prev => ({ ...prev, [fixture.id]: false }));
     }
   };
 
@@ -97,6 +236,10 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Lỗi đồng bộ lịch thi đấu');
+      if (data.modelUsed) {
+        saveLastUsedModel(data.modelUsed);
+      }
+      
       
       setSyncMessage({ success: true, text: data.message });
       setTimeout(() => {
@@ -109,12 +252,12 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
     }
   };
 
-  const { groups, fixtures } = initialData;
+  const { groups } = initialData;
 
   // Phân chia trận đấu chính thức và trận thử nghiệm
   const displayFixtures = activeTab === 'test-matches' 
-    ? fixtures.filter(f => f.isTest) 
-    : fixtures.filter(f => !f.isTest);
+    ? localFixtures.filter(f => f.isTest) 
+    : localFixtures.filter(f => !f.isTest);
 
   // Lọc lịch thi đấu dựa trên tìm kiếm và bảng đấu
   const filteredFixtures = displayFixtures.filter(fixture => {
@@ -133,8 +276,8 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
     if (sortBy === 'group') {
       return a.group.localeCompare(b.group);
     } else if (sortBy === 'history') {
-      const countA = historyCounts[a.id] || 0;
-      const countB = historyCounts[b.id] || 0;
+      const countA = localHistoryCounts[a.id] || 0;
+      const countB = localHistoryCounts[b.id] || 0;
       if (countB !== countA) {
         return countB - countA; // Sắp xếp giảm dần theo số lượt dự đoán
       }
@@ -373,7 +516,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
               layout === 'grid' ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {sortedAndFilteredFixtures.map((fixture) => {
-                    const historyCount = historyCounts[fixture.id] || 0;
+                    const historyCount = localHistoryCounts[fixture.id] || 0;
                     return (
                       <div 
                         key={fixture.id}
@@ -393,13 +536,27 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                                 {getTeamFlag(fixture.homeTeam, "w-7 h-5")}
                                 <span className="font-bold text-sm text-white">{fixture.homeTeam}</span>
                               </div>
+                              {fixture.actualHomeScore !== undefined && fixture.actualHomeScore !== null && (
+                                <span className="text-sm font-black text-white bg-card-border/40 px-2 py-0.5 rounded">
+                                  {fixture.actualHomeScore}
+                                </span>
+                              )}
                             </div>
-                            <div className="text-[10px] text-gray-600 font-extrabold pl-3">VS</div>
+                            {fixture.actualHomeScore !== undefined && fixture.actualHomeScore !== null ? (
+                              <div className="text-[9px] font-black text-primary bg-primary/10 border border-primary/20 rounded px-1.5 py-0.2 w-fit ml-3 select-none">FT</div>
+                            ) : (
+                              <div className="text-[10px] text-gray-600 font-extrabold pl-3">VS</div>
+                            )}
                             <div className="flex items-center justify-between">
                               <div className="flex items-center space-x-2">
                                 {getTeamFlag(fixture.awayTeam, "w-7 h-5")}
                                 <span className="font-bold text-sm text-white">{fixture.awayTeam}</span>
                               </div>
+                              {fixture.actualAwayScore !== undefined && fixture.actualAwayScore !== null && (
+                                <span className="text-sm font-black text-white bg-card-border/40 px-2 py-0.5 rounded">
+                                  {fixture.actualAwayScore}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -411,10 +568,10 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                             <span className="truncate">{fixture.venue}</span>
                           </div>
                           
-                          <div className="flex space-x-2">
+                          <div className="flex space-x-1.5">
                             <Link 
                               href={`/match/${fixture.id}`}
-                              className="flex-1 bg-card-border hover:bg-primary/20 border border-card-border hover:border-primary/50 text-white font-bold py-2 px-2.5 rounded-lg text-center text-xs transition-all duration-150 flex items-center justify-center space-x-1"
+                              className="flex-1 bg-card-border hover:bg-primary/20 border border-card-border hover:border-primary/50 text-white font-bold py-2 px-1.5 rounded-lg text-center text-xs transition-all duration-150 flex items-center justify-center space-x-1"
                               title="Xem chi tiết & lịch sử dự đoán"
                             >
                               <span>🔍 Chi Tiết</span>
@@ -423,13 +580,26 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                             <button
                               onClick={() => handleQuickPredict(fixture)}
                               disabled={quickPredicting[fixture.id]}
-                              className={`flex-1 text-white font-bold py-2 px-2.5 rounded-lg text-center text-xs transition-all duration-150 flex items-center justify-center space-x-1 active:scale-[0.98] cursor-pointer ${
+                              className={`flex-1 text-white font-bold py-2 px-1.5 rounded-lg text-center text-xs transition-all duration-150 flex items-center justify-center space-x-1 active:scale-[0.98] cursor-pointer ${
                                 quickPredicting[fixture.id]
                                   ? 'bg-[#151E2E] text-gray-500 border border-card-border'
                                   : 'bg-gradient-to-r from-primary/80 to-secondary/80 hover:from-primary hover:to-secondary border border-primary/20 hover:border-primary/40'
                               }`}
                             >
                               <span>{quickPredicting[fixture.id] ? '⏳ Chạy...' : '⚡ Nhanh'}</span>
+                            </button>
+
+                            <button
+                              onClick={() => handleAutoUpdate(fixture)}
+                              disabled={updatingAutoList[fixture.id] || quickPredicting[fixture.id]}
+                              className={`flex-1 text-white font-bold py-2 px-1.5 rounded-lg text-center text-[10px] transition-all duration-150 flex items-center justify-center space-x-0.5 active:scale-[0.98] cursor-pointer ${
+                                updatingAutoList[fixture.id]
+                                  ? 'bg-[#151E2E] text-gray-500 border border-card-border'
+                                  : 'bg-[#1E293B]/70 hover:bg-primary/25 border border-card-border hover:border-primary/40'
+                              }`}
+                              title="Tự động cập nhật kết quả (AI & Google Search)"
+                            >
+                              <span>🤖 {updatingAutoList[fixture.id] ? 'Cập nhật...' : 'Cập nhật'}</span>
                             </button>
                           </div>
                           
@@ -451,7 +621,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
               ) : (
                 <div className="space-y-2">
                   {sortedAndFilteredFixtures.map((fixture) => {
-                    const historyCount = historyCounts[fixture.id] || 0;
+                    const historyCount = localHistoryCounts[fixture.id] || 0;
                     return (
                       <div 
                         key={fixture.id}
@@ -475,7 +645,15 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                             {getTeamFlag(fixture.homeTeam, "w-6.5 h-4.5")}
                           </div>
 
-                          <span className="text-[9px] font-black text-gray-600 bg-background/50 px-1.5 py-0.5 rounded select-none">VS</span>
+                          {fixture.actualHomeScore !== undefined && fixture.actualHomeScore !== null ? (
+                            <div className="flex items-center space-x-1.5 bg-card-border/30 border border-card-border/50 px-2 py-0.5 rounded-lg select-none">
+                              <span className="font-mono font-black text-white text-xs">{fixture.actualHomeScore}</span>
+                              <span className="text-[8px] font-bold text-gray-500">-</span>
+                              <span className="font-mono font-black text-white text-xs">{fixture.actualAwayScore}</span>
+                            </div>
+                          ) : (
+                            <span className="text-[9px] font-black text-gray-600 bg-background/50 px-1.5 py-0.5 rounded select-none">VS</span>
+                          )}
 
                           {/* Away Team */}
                           <div className="flex items-center space-x-2.5 sm:w-5/12 justify-start">
@@ -509,6 +687,19 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                               }`}
                             >
                               <span>{quickPredicting[fixture.id] ? '⏳ Chạy...' : '⚡ Nhanh'}</span>
+                            </button>
+                            
+                            <button
+                              onClick={() => handleAutoUpdate(fixture)}
+                              disabled={updatingAutoList[fixture.id] || quickPredicting[fixture.id]}
+                              className={`flex-1 sm:flex-none text-white font-semibold py-1 px-2 rounded text-[10px] transition-all duration-150 flex items-center justify-center space-x-0.5 active:scale-[0.98] cursor-pointer ${
+                                updatingAutoList[fixture.id]
+                                  ? 'bg-[#151E2E] text-gray-500 border border-card-border'
+                                  : 'bg-[#1E293B]/70 hover:bg-primary/25 border border-card-border hover:border-primary/40'
+                              }`}
+                              title="Tự động cập nhật kết quả (AI)"
+                            >
+                              <span>🤖 {updatingAutoList[fixture.id] ? 'Cập nhật...' : 'Cập nhật'}</span>
                             </button>
 
                             {historyCount > 0 && (
@@ -597,9 +788,15 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
 
             {/* Teams Matchup Header */}
             <div className="bg-[#0B0F17]/50 rounded-xl p-3.5 border border-card-border/50 text-center mb-4 relative overflow-hidden">
-              <div className="absolute top-0 right-0 text-[8px] text-gray-500 font-bold bg-card-border/40 px-2 py-0.5 rounded-bl">
+              <div className="absolute top-0 right-0 text-[8px] text-gray-550 font-bold bg-card-border/40 px-2 py-0.5 rounded-bl">
                 {modalData.fixture.date} • {modalData.fixture.time}
               </div>
+              
+              {modalData.prediction.modelUsed && (
+                <div className="absolute top-0 left-0 text-[7px] text-gray-400 font-bold bg-card-border/40 px-2 py-0.5 rounded-br uppercase tracking-wide">
+                  Model: {formatModelName(modalData.prediction.modelUsed)}
+                </div>
+              )}
               
               <div className="flex items-center justify-center space-x-4 mt-1">
                 <div className="flex items-center space-x-2 w-5/12 justify-end">

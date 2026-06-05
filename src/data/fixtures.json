@@ -1,17 +1,113 @@
 {
   "groups": [
-    { "name": "Group A", "teams": ["Mexico", "South Africa", "South Korea", "Czechia"] },
-    { "name": "Group B", "teams": ["Canada", "Bosnia and Herzegovina", "Qatar", "Switzerland"] },
-    { "name": "Group C", "teams": ["Brazil", "Haiti", "Morocco", "Scotland"] },
-    { "name": "Group D", "teams": ["USA", "Paraguay", "Australia", "Türkiye"] },
-    { "name": "Group E", "teams": ["Germany", "Curaçao", "Côte d'Ivoire", "Ecuador"] },
-    { "name": "Group F", "teams": ["Japan", "Netherlands", "Sweden", "Tunisia"] },
-    { "name": "Group G", "teams": ["Belgium", "Egypt", "Iran", "New Zealand"] },
-    { "name": "Group H", "teams": ["Cape Verde", "Saudi Arabia", "Spain", "Uruguay"] },
-    { "name": "Group I", "teams": ["France", "Iraq", "Norway", "Senegal"] },
-    { "name": "Group J", "teams": ["Algeria", "Argentina", "Austria", "Jordan"] },
-    { "name": "Group K", "teams": ["Colombia", "DR Congo", "Portugal", "Uzbekistan"] },
-    { "name": "Group L", "teams": ["Croatia", "England", "Ghana", "Panama"] }
+    {
+      "name": "Group A",
+      "teams": [
+        "Mexico",
+        "South Africa",
+        "South Korea",
+        "Czechia"
+      ]
+    },
+    {
+      "name": "Group B",
+      "teams": [
+        "Canada",
+        "Bosnia and Herzegovina",
+        "Qatar",
+        "Switzerland"
+      ]
+    },
+    {
+      "name": "Group C",
+      "teams": [
+        "Brazil",
+        "Haiti",
+        "Morocco",
+        "Scotland"
+      ]
+    },
+    {
+      "name": "Group D",
+      "teams": [
+        "USA",
+        "Paraguay",
+        "Australia",
+        "Türkiye"
+      ]
+    },
+    {
+      "name": "Group E",
+      "teams": [
+        "Germany",
+        "Curaçao",
+        "Côte d'Ivoire",
+        "Ecuador"
+      ]
+    },
+    {
+      "name": "Group F",
+      "teams": [
+        "Japan",
+        "Netherlands",
+        "Sweden",
+        "Tunisia"
+      ]
+    },
+    {
+      "name": "Group G",
+      "teams": [
+        "Belgium",
+        "Egypt",
+        "Iran",
+        "New Zealand"
+      ]
+    },
+    {
+      "name": "Group H",
+      "teams": [
+        "Cape Verde",
+        "Saudi Arabia",
+        "Spain",
+        "Uruguay"
+      ]
+    },
+    {
+      "name": "Group I",
+      "teams": [
+        "France",
+        "Iraq",
+        "Norway",
+        "Senegal"
+      ]
+    },
+    {
+      "name": "Group J",
+      "teams": [
+        "Algeria",
+        "Argentina",
+        "Austria",
+        "Jordan"
+      ]
+    },
+    {
+      "name": "Group K",
+      "teams": [
+        "Colombia",
+        "DR Congo",
+        "Portugal",
+        "Uzbekistan"
+      ]
+    },
+    {
+      "name": "Group L",
+      "teams": [
+        "Croatia",
+        "England",
+        "Ghana",
+        "Panama"
+      ]
+    }
   ],
   "fixtures": [
     {
@@ -25,6 +121,15 @@
     },
     {
       "id": "m2",
+      "homeTeam": "South Korea",
+      "awayTeam": "Czechia",
+      "date": "2026-06-11",
+      "time": "20:30",
+      "group": "Group A",
+      "venue": "Estadio Akron, Guadalajara"
+    },
+    {
+      "id": "m3",
       "homeTeam": "Canada",
       "awayTeam": "Bosnia and Herzegovina",
       "date": "2026-06-12",
@@ -33,7 +138,7 @@
       "venue": "BMO Field, Toronto"
     },
     {
-      "id": "m3",
+      "id": "m4",
       "homeTeam": "USA",
       "awayTeam": "Paraguay",
       "date": "2026-06-12",
@@ -42,144 +147,255 @@
       "venue": "SoFi Stadium, Los Angeles"
     },
     {
-      "id": "m4",
-      "homeTeam": "Brazil",
+      "id": "m5",
+      "homeTeam": "Haiti",
       "awayTeam": "Scotland",
+      "date": "2026-06-13",
+      "time": "15:00",
+      "group": "Group C",
+      "venue": "Gillette Stadium, Foxborough"
+    },
+    {
+      "id": "m6",
+      "homeTeam": "Australia",
+      "awayTeam": "Türkiye",
+      "date": "2026-06-13",
+      "time": "21:00",
+      "group": "Group D",
+      "venue": "BC Place, Vancouver"
+    },
+    {
+      "id": "m7",
+      "homeTeam": "Brazil",
+      "awayTeam": "Morocco",
       "date": "2026-06-13",
       "time": "15:00",
       "group": "Group C",
       "venue": "MetLife Stadium, East Rutherford"
     },
     {
-      "id": "m5",
-      "homeTeam": "Argentina",
-      "awayTeam": "Algeria",
+      "id": "m8",
+      "homeTeam": "Qatar",
+      "awayTeam": "Switzerland",
       "date": "2026-06-13",
       "time": "18:00",
-      "group": "Group J",
-      "venue": "Hard Rock Stadium, Miami"
-    },
-    {
-      "id": "m6",
-      "homeTeam": "Germany",
-      "awayTeam": "Ecuador",
-      "date": "2026-06-14",
-      "time": "14:00",
-      "group": "Group E",
-      "venue": "Mercedes-Benz Stadium, Atlanta"
-    },
-    {
-      "id": "m7",
-      "homeTeam": "France",
-      "awayTeam": "Senegal",
-      "date": "2026-06-14",
-      "time": "17:00",
-      "group": "Group I",
-      "venue": "Lincoln Financial Field, Philadelphia"
-    },
-    {
-      "id": "m8",
-      "homeTeam": "Spain",
-      "awayTeam": "Uruguay",
-      "date": "2026-06-15",
-      "time": "16:00",
-      "group": "Group H",
+      "group": "Group B",
       "venue": "Levi's Stadium, Santa Clara"
     },
     {
       "id": "m9",
-      "homeTeam": "Portugal",
-      "awayTeam": "Colombia",
-      "date": "2026-06-15",
-      "time": "19:00",
-      "group": "Group K",
-      "venue": "Gillette Stadium, Foxborough"
+      "homeTeam": "Côte d'Ivoire",
+      "awayTeam": "Ecuador",
+      "date": "2026-06-14",
+      "time": "14:00",
+      "group": "Group E",
+      "venue": "Lincoln Financial Field, Philadelphia"
     },
     {
       "id": "m10",
-      "homeTeam": "Netherlands",
-      "awayTeam": "Japan",
-      "date": "2026-06-16",
-      "time": "15:00",
-      "group": "Group F",
-      "venue": "Lumen Field, Seattle"
-    },
-    {
-      "id": "m11",
-      "homeTeam": "Croatia",
-      "awayTeam": "England",
-      "date": "2026-06-16",
-      "time": "18:00",
-      "group": "Group L",
+      "homeTeam": "Germany",
+      "awayTeam": "Curaçao",
+      "date": "2026-06-14",
+      "time": "17:00",
+      "group": "Group E",
       "venue": "NRG Stadium, Houston"
     },
     {
-      "id": "m12",
-      "homeTeam": "Belgium",
-      "awayTeam": "Egypt",
-      "date": "2026-06-17",
-      "time": "16:00",
-      "group": "Group G",
+      "id": "m11",
+      "homeTeam": "Netherlands",
+      "awayTeam": "Japan",
+      "date": "2026-06-14",
+      "time": "17:00",
+      "group": "Group F",
       "venue": "AT&T Stadium, Arlington"
     },
     {
+      "id": "m12",
+      "homeTeam": "Sweden",
+      "awayTeam": "Tunisia",
+      "date": "2026-06-14",
+      "time": "20:00",
+      "group": "Group F",
+      "venue": "Estadio Monterrey, Guadalupe"
+    },
+    {
       "id": "t1",
-      "homeTeam": "Argentina",
-      "awayTeam": "Honduras",
-      "date": "2026-06-07",
-      "time": "18:00",
+      "homeTeam": "Germany",
+      "awayTeam": "Ukraine",
+      "date": "2026-06-03",
+      "time": "19:45",
       "group": "Warm-up Friendly",
-      "venue": "Sun Life Stadium, Miami",
+      "venue": "Max-Morlock-Stadion, Nuremberg",
       "isTest": true
     },
     {
       "id": "t2",
-      "homeTeam": "Croatia",
-      "awayTeam": "Slovenia",
-      "date": "2026-06-07",
-      "time": "20:00",
+      "homeTeam": "England",
+      "awayTeam": "Bosnia and Herzegovina",
+      "date": "2026-06-03",
+      "time": "19:45",
       "group": "Warm-up Friendly",
-      "venue": "Stadion Maksimir, Zagreb",
+      "venue": "St James' Park, Newcastle",
       "isTest": true
     },
     {
       "id": "t3",
-      "homeTeam": "Morocco",
-      "awayTeam": "Norway",
-      "date": "2026-06-07",
-      "time": "21:00",
+      "homeTeam": "Croatia",
+      "awayTeam": "North Macedonia",
+      "date": "2026-06-03",
+      "time": "20:00",
       "group": "Warm-up Friendly",
-      "venue": "Stade Mohammed V, Casablanca",
+      "venue": "Stadion HNK Rijeka, Rijeka",
       "isTest": true
     },
     {
       "id": "t4",
-      "homeTeam": "France",
-      "awayTeam": "Northern Ireland",
-      "date": "2026-06-08",
-      "time": "19:00",
+      "homeTeam": "Italy",
+      "awayTeam": "Türkiye",
+      "date": "2026-06-04",
+      "time": "20:00",
       "group": "Warm-up Friendly",
-      "venue": "Stade de France, Saint-Denis",
+      "venue": "Stadio Renato Dall'Ara, Bologna",
       "isTest": true
     },
     {
       "id": "t5",
-      "homeTeam": "Netherlands",
-      "awayTeam": "Uzbekistan",
-      "date": "2026-06-08",
-      "time": "20:00",
+      "homeTeam": "Portugal",
+      "awayTeam": "Finland",
+      "date": "2026-06-04",
+      "time": "19:45",
       "group": "Warm-up Friendly",
-      "venue": "Johan Cruyff Arena, Amsterdam",
+      "venue": "Estádio José Alvalade, Lisbon",
       "isTest": true
     },
     {
       "id": "t6",
-      "homeTeam": "Colombia",
-      "awayTeam": "Jordan",
+      "homeTeam": "Austria",
+      "awayTeam": "Serbia",
+      "date": "2026-06-04",
+      "time": "20:45",
+      "group": "Warm-up Friendly",
+      "venue": "Ernst-Happel-Stadion, Vienna",
+      "isTest": true
+    },
+    {
+      "id": "t7",
+      "homeTeam": "France",
+      "awayTeam": "Luxembourg",
+      "date": "2026-06-05",
+      "time": "20:00",
+      "group": "Warm-up Friendly",
+      "venue": "Stade Saint-Symphorien, Metz",
+      "isTest": true
+    },
+    {
+      "id": "t8",
+      "homeTeam": "Spain",
+      "awayTeam": "Andorra",
+      "date": "2026-06-05",
+      "time": "20:30",
+      "group": "Warm-up Friendly",
+      "venue": "Estadio Nuevo Vivero, Badajoz",
+      "isTest": true
+    },
+    {
+      "id": "t9",
+      "homeTeam": "Denmark",
+      "awayTeam": "Sweden",
+      "date": "2026-06-05",
+      "time": "19:00",
+      "group": "Warm-up Friendly",
+      "venue": "Parken Stadium, Copenhagen",
+      "isTest": true
+    },
+    {
+      "id": "t10",
+      "homeTeam": "Germany",
+      "awayTeam": "Greece",
+      "date": "2026-06-06",
+      "time": "19:45",
+      "group": "Warm-up Friendly",
+      "venue": "Borussia-Park, Mönchengladbach",
+      "isTest": true
+    },
+    {
+      "id": "t11",
+      "homeTeam": "England",
+      "awayTeam": "Iceland",
+      "date": "2026-06-06",
+      "time": "19:45",
+      "group": "Warm-up Friendly",
+      "venue": "Wembley Stadium, London",
+      "isTest": true
+    },
+    {
+      "id": "t12",
+      "homeTeam": "Poland",
+      "awayTeam": "Ukraine",
+      "date": "2026-06-06",
+      "time": "19:45",
+      "group": "Warm-up Friendly",
+      "venue": "National Stadium, Warsaw",
+      "isTest": true
+    },
+    {
+      "id": "t13",
+      "homeTeam": "Spain",
+      "awayTeam": "Northern Ireland",
+      "date": "2026-06-07",
+      "time": "20:30",
+      "group": "Warm-up Friendly",
+      "venue": "Estadi Mallorca Son Moix, Palma",
+      "isTest": true
+    },
+    {
+      "id": "t14",
+      "homeTeam": "Belgium",
+      "awayTeam": "Luxembourg",
+      "date": "2026-06-07",
+      "time": "19:00",
+      "group": "Warm-up Friendly",
+      "venue": "King Baudouin Stadium, Brussels",
+      "isTest": true
+    },
+    {
+      "id": "t15",
+      "homeTeam": "Portugal",
+      "awayTeam": "Croatia",
+      "date": "2026-06-08",
+      "time": "17:45",
+      "group": "Warm-up Friendly",
+      "venue": "Estádio Nacional, Oeiras",
+      "isTest": true
+    },
+    {
+      "id": "t16",
+      "homeTeam": "France",
+      "awayTeam": "Canada",
+      "date": "2026-06-08",
+      "time": "20:15",
+      "group": "Warm-up Friendly",
+      "venue": "Matmut Atlantique, Bordeaux",
+      "isTest": true
+    },
+    {
+      "id": "t17",
+      "homeTeam": "Brazil",
+      "awayTeam": "Mexico",
+      "date": "2026-06-08",
+      "time": "19:00",
+      "group": "Warm-up Friendly",
+      "venue": "Kyle Field, College Station",
+      "isTest": true
+    },
+    {
+      "id": "t18",
+      "homeTeam": "Argentina",
+      "awayTeam": "Ecuador",
       "date": "2026-06-08",
       "time": "18:00",
       "group": "Warm-up Friendly",
-      "venue": "Estadio Metropolitano, Barranquilla",
+      "venue": "Soldier Field, Chicago",
       "isTest": true
     }
   ]

@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getDB } from '@/lib/db';
+import fs from 'fs';
+import path from 'path';
 
 export async function POST(request) {
   try {
@@ -148,6 +150,26 @@ export async function POST(request) {
         predictionRecord.id
       ]
     );
+
+    // Cập nhật fixtures.json
+    try {
+      const fixturesFilePath = path.join(process.cwd(), 'src', 'data', 'fixtures.json');
+      if (fs.existsSync(fixturesFilePath)) {
+        const fileData = JSON.parse(fs.readFileSync(fixturesFilePath, 'utf8'));
+        const fixtureIndex = fileData.fixtures.findIndex(
+          (f) => f.id === predictionRecord.match_id || (f.homeTeam === homeTeam && f.awayTeam === awayTeam)
+        );
+        if (fixtureIndex !== -1) {
+          fileData.fixtures[fixtureIndex].actualHomeScore = aHome;
+          fileData.fixtures[fixtureIndex].actualAwayScore = aAway;
+          fs.writeFileSync(fixturesFilePath, JSON.stringify(fileData, null, 2), 'utf8');
+          console.log(`🟢 [fixtures.json - MANUAL] Đã cập nhật tỉ số cho trận đấu ${homeTeam} vs ${awayTeam}: ${aHome}-${aAway}`);
+        }
+      }
+    } catch (fsError) {
+      console.error('Lỗi khi cập nhật fixtures.json:', fsError);
+    }
+
 
     return NextResponse.json({
       success: true,

@@ -103,50 +103,6 @@ export default function MatchClient({ match }) {
     }
   };
 
-  const handleUpdateResult = async (e) => {
-    e.preventDefault();
-    if (actHome === '' || actAway === '') {
-      alert('Vui lòng nhập đầy đủ tỷ số thực tế!');
-      return;
-    }
-    setSubmitting(true);
-    setResMessage(null);
-    try {
-      const res = await fetch('/api/results', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          homeTeam: match.homeTeam,
-          awayTeam: match.awayTeam,
-          actualHomeScore: parseInt(actHome, 10),
-          actualAwayScore: parseInt(actAway, 10),
-          matchId: match.id
-        })
-      });
-
-      if (!res.ok) throw new Error('Lỗi cập nhật kết quả từ API');
-      const data = await res.json();
-      
-      setResMessage({
-        success: true,
-        text: `Cập nhật thành công! AI đoán ${data.isCorrect ? 'ĐÚNG' : 'SAI'} (Dự đoán: ${data.predictedScore.home}-${data.predictedScore.away}, Thực tế: ${data.actualScore.home}-${data.actualScore.away}). AI sẽ rút kinh nghiệm ở lần dự đoán kế tiếp.`
-      });
-
-      // Reload history to get updated results
-      const histRes = await fetch(`/api/history?matchId=${match.id}`);
-      if (histRes.ok) {
-        const histData = await histRes.json();
-        setHistoryList(histData.history);
-        // Cập nhật bản ghi hiển thị hiện tại
-        const updatedPred = histData.history.find(h => h.id === prediction.id);
-        if (updatedPred) setPrediction(updatedPred);
-      }
-    } catch (err) {
-      setResMessage({ success: false, text: err.message });
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   const handleAutoUpdateResult = async () => {
     setUpdatingAuto(true);
@@ -615,7 +571,7 @@ export default function MatchClient({ match }) {
                 <div>
                   <h3 className="text-gray-400 font-bold text-xs mb-1 uppercase tracking-wider">Cập Nhật Kết Quả Thực Tế</h3>
                   <p className="text-[10px] text-gray-500 leading-normal">
-                    AI sẽ tự động tra cứu tỉ số thực tế trực tuyến hoặc bạn có thể nhập thủ công để cập nhật kết quả và chấm điểm AI.
+                    AI sẽ tự động tra cứu tỉ số thực tế trực tuyến thông qua Google Search để cập nhật kết quả và chấm điểm các dự đoán.
                   </p>
                 </div>
                 
@@ -629,48 +585,6 @@ export default function MatchClient({ match }) {
                   <span>🤖</span>
                   <span>{updatingAuto ? 'Đang tìm kiếm & chấm điểm...' : 'TỰ ĐỘNG CẬP NHẬT (AI & GOOGLE SEARCH)'}</span>
                 </button>
-
-                {/* Divider */}
-                <div className="flex items-center text-[8px] text-gray-600 font-bold tracking-widest uppercase py-1 select-none">
-                  <div className="flex-1 h-px bg-card-border/40"></div>
-                  <span className="px-2">HOẶC NHẬP THỦ CÔNG</span>
-                  <div className="flex-1 h-px bg-card-border/40"></div>
-                </div>
-
-                <form onSubmit={handleUpdateResult} className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="flex flex-col space-y-0.5">
-                      <label className="text-[9px] font-bold text-gray-450 uppercase truncate">{match.homeTeam}</label>
-                      <input 
-                        type="number" 
-                        min="0"
-                        value={actHome}
-                        onChange={(e) => setActHome(e.target.value)}
-                        placeholder="Bàn thắng"
-                        className="bg-background/40 border border-card-border rounded-xl py-1.5 px-3 text-xs text-white text-center font-bold focus:outline-none focus:border-secondary transition-all"
-                      />
-                    </div>
-                    <div className="flex flex-col space-y-0.5">
-                      <label className="text-[9px] font-bold text-gray-455 uppercase truncate">{match.awayTeam}</label>
-                      <input 
-                        type="number" 
-                        min="0"
-                        value={actAway}
-                        onChange={(e) => setActAway(e.target.value)}
-                        placeholder="Bàn thắng"
-                        className="bg-background/40 border border-card-border rounded-xl py-1.5 px-3 text-xs text-white text-center font-bold focus:outline-none focus:border-secondary transition-all"
-                      />
-                    </div>
-                  </div>
-                  
-                  <button
-                    type="submit"
-                    disabled={submitting || updatingAuto}
-                    className="w-full bg-gradient-to-r from-secondary to-primary/80 hover:from-secondary hover:to-primary text-white font-bold py-2 px-3 rounded-lg text-xs tracking-wider transition-all"
-                  >
-                    {submitting ? 'Đang cập nhật...' : '💾 GỬI KẾT QUẢ & CHẤM ĐIỂM'}
-                  </button>
-                </form>
 
                 {resMessage && (
                   <div className={`mt-3 p-2.5 rounded-lg border text-xs leading-relaxed ${

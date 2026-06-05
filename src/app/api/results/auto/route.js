@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { getDB } from '@/lib/db';
 import fixturesData from '@/data/fixtures.json';
+import fs from 'fs';
+import path from 'path';
 
 const MODELS = ['gemini-3.5-flash', 'gemini-3-flash-preview', 'gemini-3.1-flash-lite', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'];
 
@@ -77,7 +79,7 @@ export async function POST(request) {
 
     // 4. CHẾ ĐỘ GIẢ LẬP (MOCK MODE) khi không có API Key
     if (apiKeys.length === 0) {
-      console.warn('Chạy Auto-Update ở chế độ giả lập (Mock Mode) do thiếu API Key.');
+      console.log(`\n💡 [MOCK MODE - AUTO UPDATE] Không có GEMINI_API_KEY. Chạy giả lập chấm điểm cho: ${homeTeam} vs ${awayTeam}`);
 
       const currentTime = new Date('2026-06-05T23:42:17+07:00'); // Lấy mốc thời gian hệ thống cung cấp
       let isFuture = false;
@@ -164,7 +166,8 @@ export async function POST(request) {
           outcome: isCorrect_cards === 1 ? 'correct' : 'incorrect',
           reason: `Tổng số thẻ phạt thực tế: ${mockCards} thẻ. Dự đoán của bạn: ${predictionRecord.recommendation_cards || 'N/A'}.`
         },
-        summary: `[Mock AI Grounding] Trận đấu kết thúc với tỷ số ${mockHomeScore}-${mockAwayScore}, phạt góc ${mockCorners} quả, thẻ phạt ${mockCards} thẻ. AI đã chấm điểm các kèo tự động thành công.`
+        summary: `[Mock AI Grounding] Trận đấu kết thúc với tỷ số ${mockHomeScore}-${mockAwayScore}, phạt góc ${mockCorners} quả, thẻ phạt ${mockCards} thẻ. AI đã chấm điểm các kèo tự động thành công.`,
+        modelUsed: 'Dự phòng / Mock'
       };
 
       await db.run(
@@ -193,12 +196,33 @@ export async function POST(request) {
         ]
       );
 
+      // Cập nhật fixtures.json
+      try {
+        const fixturesFilePath = path.join(process.cwd(), 'src', 'data', 'fixtures.json');
+        if (fs.existsSync(fixturesFilePath)) {
+          const fileData = JSON.parse(fs.readFileSync(fixturesFilePath, 'utf8'));
+          const fixtureIndex = fileData.fixtures.findIndex(
+            (f) => f.id === predictionRecord.match_id || (f.homeTeam === homeTeam && f.awayTeam === awayTeam)
+          );
+          if (fixtureIndex !== -1) {
+            fileData.fixtures[fixtureIndex].actualHomeScore = mockHomeScore;
+            fileData.fixtures[fixtureIndex].actualAwayScore = mockAwayScore;
+            fs.writeFileSync(fixturesFilePath, JSON.stringify(fileData, null, 2), 'utf8');
+            console.log(`🟢 [fixtures.json - MOCK] Đã cập nhật tỉ số cho trận đấu ${homeTeam} vs ${awayTeam}: ${mockHomeScore}-${mockAwayScore}`);
+          }
+        }
+      } catch (fsError) {
+        console.error('Lỗi khi cập nhật fixtures.json:', fsError);
+      }
+
+
       return NextResponse.json({
         success: true,
         status: 'finished',
         actualScore: { home: mockHomeScore, away: mockAwayScore },
         betEvaluations: evalDetails,
         isMock: true,
+        modelUsed: 'Dự phòng / Mock',
         message: 'Đã tự động giả lập kết quả thực tế và chấm điểm AI thành công.'
       });
     }
@@ -207,8 +231,12 @@ export async function POST(request) {
     const prompt = `Hãy tìm kiếm kết quả tỷ số thực tế và trạng thái của trận đấu bóng đá giữa:
 Đội nhà (Home Team): ${homeTeam}
 Đội khách (Away Team): ${awayTeam}
-${matchDate ? `Ngày diễn ra dự kiến: ${matchDate}` : ''}
+${matchDate ? `Ngày diễn ra dự kiến trong hệ thống: ${matchDate}` : ''}
 ${matchVenue ? `Địa điểm/Sân vận động: ${matchVenue}` : ''}
+
+CHÚ Ý QUAN TRỌNG VỀ THỜI GIAN:
+Ngày thi đấu dự kiến trong hệ thống được đặt ở năm 2026 để phục vụ mục đích giả lập World Cup 2026. Tuy nhiên, đây là trận giao hữu hoặc trận đấu đã diễn ra ở thế giới thực (ví dụ: Bồ Đào Nha vs Croatia đã đá giao hữu vào ngày 8 tháng 6 năm 2024, Pháp vs Canada đã đá giao hữu ngày 9 tháng 6 năm 2024).
+Hãy sử dụng công cụ Tìm kiếm để tra cứu kết quả của TRẬN ĐẤU GẦN ĐÂY NHẤT thực tế giữa hai đội tuyển này (thường diễn ra vào năm 2024 hoặc 2025). Hãy lấy kết quả thực tế của trận đấu đó (tỉ số, phạt góc, thẻ phạt) để chấm điểm và trả về trạng thái "finished".
 
 Nhiệm vụ của bạn:
 1. Sử dụng công cụ Tìm kiếm Google (Google Search) để quét kết quả từ các nguồn chính thức và uy tín nhất như FIFA.com, ESPN, Livescore, Flashscore, v.v.
@@ -263,12 +291,17 @@ Chú ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
     let callResult = null;
     let lastError = null;
 
-    for (let modelIdx = 0; modelIdx < MODELS.length; modelIdx++) {
+        for (let modelIdx = 0; modelIdx < MODELS.length; modelIdx++) {
       const currentModel = MODELS[modelIdx];
       for (let keyIdx = 0; keyIdx < apiKeys.length; keyIdx++) {
         const currentKey = apiKeys[keyIdx];
+        const startTime = Date.now();
         try {
-          console.log(`[Auto-Update] Gọi model ${currentModel} bằng API Key #${keyIdx + 1}/${apiKeys.length}...`);
+          console.log(`\n🤖 [AI REQUEST - AUTO UPDATE] Tra cứu kết quả trận đấu: ${homeTeam} vs ${awayTeam}`);
+          console.log(`   - Model: ${currentModel}`);
+          console.log(`   - API Key: #${keyIdx + 1}/${apiKeys.length}`);
+          console.log(`   - Google Search Grounding: Bật (Timeout: 5m)`);
+          
           const ai = new GoogleGenAI({ apiKey: currentKey });
 
           const response = await ai.models.generateContent({
@@ -280,6 +313,12 @@ Chú ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
             },
           });
 
+          const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+          console.log(`🟢 [AI RESPONSE - AUTO UPDATE] Thành công!`);
+          console.log(`   - Model đã trả lời: ${currentModel}`);
+          console.log(`   - Thời gian phản hồi: ${duration}s`);
+          console.log(`   - Độ dài phản hồi: ${response.text?.length || 0} ký tự`);
+
           callResult = {
             response,
             modelUsed: currentModel,
@@ -287,7 +326,8 @@ Chú ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
           };
           break;
         } catch (err) {
-          console.warn(`[Auto-Update] Lỗi khi gọi model ${currentModel} với Key #${keyIdx + 1}:`, err.message);
+          const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+          console.warn(`🔴 [AI ERROR - AUTO UPDATE] Thất bại với model ${currentModel} bằng Key #${keyIdx + 1} (sau ${duration}s):`, err.message);
           lastError = err;
         }
       }
@@ -303,12 +343,34 @@ Chú ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
     let updateResultData;
 
     const cleanJsonText = (rawText) => {
+      if (!rawText) return '';
       let cleaned = rawText.trim();
-      if (cleaned.startsWith('```')) {
-        cleaned = cleaned.replace(/^```(?:json)?\n/, '');
-        cleaned = cleaned.replace(/\n```$/, '');
+      
+      // Try to extract content inside markdown code block if present
+      const codeBlockMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+      if (codeBlockMatch && codeBlockMatch[1]) {
+        cleaned = codeBlockMatch[1].trim();
       }
-      return cleaned.trim();
+      
+      // Find the first and last structural characters matching {} or []
+      const firstBrace = cleaned.indexOf('{');
+      const firstBracket = cleaned.indexOf('[');
+      let start = -1;
+      let end = -1;
+      
+      if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+        start = firstBrace;
+        end = cleaned.lastIndexOf('}');
+      } else if (firstBracket !== -1) {
+        start = firstBracket;
+        end = cleaned.lastIndexOf(']');
+      }
+      
+      if (start !== -1 && end !== -1 && end > start) {
+        return cleaned.substring(start, end + 1);
+      }
+      
+      return cleaned;
     };
 
     try {
@@ -361,11 +423,32 @@ Chú ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
             btts: evalData.btts || { outcome: 'n/a', reason: '' },
             corners: evalData.corners || { outcome: 'n/a', reason: '' },
             cards: evalData.cards || { outcome: 'n/a', reason: '' },
-            summary: updateResultData.summary || ''
+            summary: updateResultData.summary || '',
+            modelUsed: modelUsed || 'Dự phòng / Mock'
           }),
           predictionRecord.id
         ]
       );
+
+      // Cập nhật fixtures.json
+      try {
+        const fixturesFilePath = path.join(process.cwd(), 'src', 'data', 'fixtures.json');
+        if (fs.existsSync(fixturesFilePath)) {
+          const fileData = JSON.parse(fs.readFileSync(fixturesFilePath, 'utf8'));
+          const fixtureIndex = fileData.fixtures.findIndex(
+            (f) => f.id === predictionRecord.match_id || (f.homeTeam === homeTeam && f.awayTeam === awayTeam)
+          );
+          if (fixtureIndex !== -1) {
+            fileData.fixtures[fixtureIndex].actualHomeScore = aHome;
+            fileData.fixtures[fixtureIndex].actualAwayScore = aAway;
+            fs.writeFileSync(fixturesFilePath, JSON.stringify(fileData, null, 2), 'utf8');
+            console.log(`🟢 [fixtures.json - REAL] Đã cập nhật tỉ số cho trận đấu ${homeTeam} vs ${awayTeam}: ${aHome}-${aAway}`);
+          }
+        }
+      } catch (fsError) {
+        console.error('Lỗi khi cập nhật fixtures.json:', fsError);
+      }
+
 
       return NextResponse.json({
         success: true,

@@ -1,6 +1,8 @@
 import { Outfit, Inter } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
+import ModelBadge from "@/components/ModelBadge";
+
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -61,10 +63,8 @@ export default function RootLayout({ children }) {
               </nav>
 
               {/* Badge */}
-              <div className="hidden sm:flex items-center space-x-2 bg-card-border/50 border border-card-border rounded-full py-1 px-3">
-                <span className="h-2 w-2 rounded-full bg-primary live-indicator"></span>
-                <span className="text-xs font-semibold text-gray-300">Google Gemini 2.5</span>
-              </div>
+              <ModelBadge />
+
 
             </div>
           </div>

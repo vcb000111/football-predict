@@ -36,7 +36,7 @@ export async function POST(request) {
 
     // 2. Chế độ Giả lập (Mock Mode) khi không có API Key
     if (apiKeys.length === 0) {
-      console.warn('[Sync Fixtures] Không tìm thấy API Key. Chạy chế độ giả lập Mock Sync.');
+      console.log(`\n💡 [MOCK MODE - SYNC FIXTURES] Không tìm thấy API Key. Chạy giả lập đồng bộ lịch thi đấu.`);
 
       // Bổ sung thêm 12 trận đấu mới (lượt 2 vòng bảng + vòng Knockout) vào danh sách hiện tại
       const mockNewFixtures = [
@@ -173,6 +173,7 @@ export async function POST(request) {
         isMock: true,
         addedCount: mergedFixtures.length - currentData.fixtures.length,
         totalCount: mergedFixtures.length,
+        modelUsed: 'Dự phòng / Mock',
         message: 'Đã giả lập đồng bộ thêm 12 trận đấu mới (gồm cả các trận Vòng 32 đội).'
       });
     }
@@ -207,8 +208,13 @@ Chú ý: Chỉ trả về chuỗi JSON thô, không chứa markdown, không có 
       const currentModel = MODELS[modelIdx];
       for (let keyIdx = 0; keyIdx < apiKeys.length; keyIdx++) {
         const currentKey = apiKeys[keyIdx];
+        const startTime = Date.now();
         try {
-          console.log(`[Sync AI] Gọi model ${currentModel} bằng API Key #${keyIdx + 1}/${apiKeys.length}...`);
+          console.log(`\n🤖 [AI REQUEST - SYNC FIXTURES] Gọi AI đồng bộ lịch thi đấu World Cup 2026`);
+          console.log(`   - Model: ${currentModel}`);
+          console.log(`   - API Key: #${keyIdx + 1}/${apiKeys.length}`);
+          console.log(`   - Google Search Grounding: Bật (Timeout: 45s)`);
+          
           const ai = new GoogleGenAI({ apiKey: currentKey });
           
           const response = await ai.models.generateContent({
@@ -220,10 +226,17 @@ Chú ý: Chỉ trả về chuỗi JSON thô, không chứa markdown, không có 
             },
           });
           
+          const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+          console.log(`🟢 [AI RESPONSE - SYNC FIXTURES] Thành công!`);
+          console.log(`   - Model đã trả lời: ${currentModel}`);
+          console.log(`   - Thời gian phản hồi: ${duration}s`);
+          console.log(`   - Độ dài phản hồi: ${response.text?.length || 0} ký tự`);
+          
           callResult = { response, modelUsed: currentModel };
           break;
         } catch (err) {
-          console.warn(`[Sync AI] Lỗi khi gọi model ${currentModel} với Key #${keyIdx + 1}:`, err.message);
+          const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+          console.warn(`🔴 [AI ERROR - SYNC FIXTURES] Thất bại với model ${currentModel} bằng Key #${keyIdx + 1} (sau ${duration}s):`, err.message);
           lastError = err;
         }
       }
@@ -239,12 +252,34 @@ Chú ý: Chỉ trả về chuỗi JSON thô, không chứa markdown, không có 
     let syncData;
 
     const cleanJsonText = (rawText) => {
+      if (!rawText) return '';
       let cleaned = rawText.trim();
-      if (cleaned.startsWith('```')) {
-        cleaned = cleaned.replace(/^```(?:json)?\n/, '');
-        cleaned = cleaned.replace(/\n```$/, '');
+      
+      // Try to extract content inside markdown code block if present
+      const codeBlockMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+      if (codeBlockMatch && codeBlockMatch[1]) {
+        cleaned = codeBlockMatch[1].trim();
       }
-      return cleaned.trim();
+      
+      // Find the first and last structural characters matching {} or []
+      const firstBrace = cleaned.indexOf('{');
+      const firstBracket = cleaned.indexOf('[');
+      let start = -1;
+      let end = -1;
+      
+      if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+        start = firstBrace;
+        end = cleaned.lastIndexOf('}');
+      } else if (firstBracket !== -1) {
+        start = firstBracket;
+        end = cleaned.lastIndexOf(']');
+      }
+      
+      if (start !== -1 && end !== -1 && end > start) {
+        return cleaned.substring(start, end + 1);
+      }
+      
+      return cleaned;
     };
 
     try {
@@ -294,6 +329,7 @@ Chú ý: Chỉ trả về chuỗi JSON thô, không chứa markdown, không có 
       isMock: false,
       addedCount: mergedFixtures.length - currentData.fixtures.length,
       totalCount: mergedFixtures.length,
+      modelUsed: callResult.modelUsed,
       message: `Đồng bộ thành công! Đã chèn thêm ${mergedFixtures.length - currentData.fixtures.length} trận đấu chính thức mới từ Internet.`
     });
 
