@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { getDB } from '@/lib/db';
 
-const MODELS = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash', 'gemini-2.0-flash-lite'];
+const MODELS = ['gemini-3.5-flash', 'gemini-3-flash-preview', 'gemini-3.1-flash-lite', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'];
 
 export async function POST(request) {
   try {
@@ -105,13 +105,17 @@ Chú ý: Nếu trước đây bạn từng đánh giá quá cao/thấp đội b�
               match_id, home_team, away_team, 
               predicted_home_score, predicted_away_score, 
               win_prob_home, win_prob_draw, win_prob_away,
-              recommendation_1x2, recommendation_ou, recommendation_handicap
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              recommendation_1x2, recommendation_ou, recommendation_handicap,
+              recommendation_btts, recommendation_corners, recommendation_cards,
+              raw_prediction_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               matchId || null, homeTeam, awayTeam,
               mockData.predictedScore.home, mockData.predictedScore.away,
               mockData.winProbability.home, mockData.winProbability.draw, mockData.winProbability.away,
-              mockData.bets.oneXTwo.recommendation, mockData.bets.overUnder.recommendation, mockData.bets.handicap.recommendation
+              mockData.bets.oneXTwo.recommendation, mockData.bets.overUnder.recommendation, mockData.bets.handicap.recommendation,
+              mockData.bets.btts.recommendation, mockData.bets.corners.recommendation, mockData.bets.cards.recommendation,
+              JSON.stringify(mockData)
             ]
           );
         } catch (saveError) {
@@ -161,6 +165,18 @@ Yêu cầu phân tích và trả về kết quả dưới định dạng JSON du
     "handicap": {
       "recommendation": "<Dự đoán kèo châu Á: Ví dụ '${homeTeam} -0.5' hoặc '${awayTeam} +0.5'>",
       "reason": "<Lý giải ngắn gọn tại sao chọn kèo chấp này>"
+    },
+    "btts": {
+      "recommendation": "<Dự đoán cả hai đội ghi bàn: Chọn 'Yes' hoặc 'No'>",
+      "reason": "<Lý giải ngắn gọn tại sao chọn kèo này>"
+    },
+    "corners": {
+      "recommendation": "<Dự đoán phạt góc: Chọn 'Over 8.5 Corners' hoặc 'Under 8.5 Corners'>",
+      "reason": "<Lý giải ngắn gọn tại sao chọn kèo phạt góc này dựa trên lối chơi cánh hay trung lộ>"
+    },
+    "cards": {
+      "recommendation": "<Dự đoán thẻ phạt: Chọn 'Over 3.5 Cards' hoặc 'Under 3.5 Cards'>",
+      "reason": "<Lý giải ngắn gọn tại sao chọn kèo thẻ phạt này dựa trên mức độ tranh chấp quyết liệt>"
     }
   }
 }
@@ -184,7 +200,7 @@ Chú ý: Tổng phần trăm trong "winProbability" (home + draw + away) phải 
             contents: prompt,
             config: {
               tools: [{ googleSearch: {} }],
-              abortSignal: AbortSignal.timeout(15000), // Timeout sau 15 giây để tăng khả năng hoàn thành Search Grounding
+              abortSignal: AbortSignal.timeout(45000), // Timeout sau 45 giây để tăng khả năng hoàn thành Search Grounding
             },
           });
           
@@ -257,6 +273,15 @@ Chú ý: Tổng phần trăm trong "winProbability" (home + draw + away) phải 
       console.error('Lỗi lấy nguồn từ metadata:', sourceError);
     }
 
+    const responsePayload = {
+      ...predictionData,
+      sources,
+      isMock: false,
+      modelUsed,
+      keyIndexUsed,
+      historicalAccuracy
+    };
+
     // 7. Lưu dự đoán thành công vào SQLite
     if (db) {
       try {
@@ -265,13 +290,17 @@ Chú ý: Tổng phần trăm trong "winProbability" (home + draw + away) phải 
             match_id, home_team, away_team, 
             predicted_home_score, predicted_away_score, 
             win_prob_home, win_prob_draw, win_prob_away,
-            recommendation_1x2, recommendation_ou, recommendation_handicap
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            recommendation_1x2, recommendation_ou, recommendation_handicap,
+            recommendation_btts, recommendation_corners, recommendation_cards,
+            raw_prediction_json
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             matchId || null, homeTeam, awayTeam,
             predictionData.predictedScore.home, predictionData.predictedScore.away,
             predictionData.winProbability.home, predictionData.winProbability.draw, predictionData.winProbability.away,
-            predictionData.bets.oneXTwo.recommendation, predictionData.bets.overUnder.recommendation, predictionData.bets.handicap.recommendation
+            predictionData.bets.oneXTwo.recommendation, predictionData.bets.overUnder.recommendation, predictionData.bets.handicap.recommendation,
+            predictionData.bets.btts?.recommendation || 'No', predictionData.bets.corners?.recommendation || 'Under 8.5 Corners', predictionData.bets.cards?.recommendation || 'Under 3.5 Cards',
+            JSON.stringify(responsePayload)
           ]
         );
       } catch (saveError) {
@@ -279,14 +308,7 @@ Chú ý: Tổng phần trăm trong "winProbability" (home + draw + away) phải 
       }
     }
 
-    return NextResponse.json({
-      ...predictionData,
-      sources,
-      isMock: false,
-      modelUsed,
-      keyIndexUsed,
-      historicalAccuracy
-    });
+    return NextResponse.json(responsePayload);
   } catch (error) {
     console.error('Lỗi máy chủ trong API dự đoán:', error);
     return NextResponse.json(
@@ -336,6 +358,24 @@ function getMockPrediction(homeTeam, awayTeam, isMissingKey = false, customReaso
       handicap: {
         recommendation: winProb.home > winProb.away ? `${homeTeam} -0.25` : `${awayTeam} +0.25`,
         reason: 'Đánh giá tỷ lệ chấp tối thiểu tương ứng phong độ.'
+      },
+      btts: {
+        recommendation: (score.home > 0 && score.away > 0) ? 'Yes' : 'No',
+        reason: (score.home > 0 && score.away > 0)
+          ? 'Cả hai hàng công đều đang nổ súng đều đặn.'
+          : 'Có ít nhất một đội bóng sẽ chơi phòng ngự lùi sâu và giữ sạch lưới.'
+      },
+      corners: {
+        recommendation: hash === 0 ? 'Over 8.5 Corners' : 'Under 8.5 Corners',
+        reason: hash === 0
+          ? 'Lối chơi tập trung đánh biên nhiều sẽ tạo ra nhiều quả phạt góc.'
+          : 'Trận đấu chậm và bóng chủ yếu luân chuyển khu vực trung lộ.'
+      },
+      cards: {
+        recommendation: hash === 1 ? 'Over 3.5 Cards' : 'Under 3.5 Cards',
+        reason: hash === 1
+          ? 'Trận đấu quyết định gay cấn khiến hai bên có nhiều pha phạm lỗi chiến thuật.'
+          : 'Lối chơi đẹp mắt, tôn trọng kỷ luật và ít tranh chấp quá tay.'
       }
     },
     sources: [

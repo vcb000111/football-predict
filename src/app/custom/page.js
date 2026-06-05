@@ -505,6 +505,48 @@ export default function CustomPredictor() {
                         <p className="text-gray-300 leading-relaxed text-[11px]">{prediction.bets?.handicap?.reason || 'Đánh giá kèo châu Á tương thích phong độ.'}</p>
                       </div>
 
+                      {/* Kèo Cả Hai Đội Ghi Bàn (BTTS) */}
+                      <div className="p-3 rounded-lg bg-card-border/20 border border-card-border/50 text-xs">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="font-bold text-gray-450 text-[10px]">CẢ HAI ĐỘI GHI BÀN (BTTS)</span>
+                          <div className="flex items-center space-x-1.5">
+                            <span className="bg-[#1D4ED8]/25 text-blue-400 font-bold px-2 py-0.5 rounded-md text-[10px]">
+                              {prediction.recommendation_btts ?? prediction.bets?.btts?.recommendation}
+                            </span>
+                            {renderBetOutcomeBadge('btts')}
+                          </div>
+                        </div>
+                        <p className="text-gray-300 leading-relaxed text-[11px]">{prediction.bets?.btts?.reason || 'Phân tích khả năng ghi bàn từ cả hai câu lạc bộ.'}</p>
+                      </div>
+
+                      {/* Kèo Phạt Góc */}
+                      <div className="p-3 rounded-lg bg-card-border/20 border border-card-border/50 text-xs">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="font-bold text-gray-450 text-[10px]">KÈO PHẠT GÓC (O/U 8.5)</span>
+                          <div className="flex items-center space-x-1.5">
+                            <span className="bg-[#581C87]/25 text-purple-400 font-bold px-2 py-0.5 rounded-md text-[10px]">
+                              {prediction.recommendation_corners ?? prediction.bets?.corners?.recommendation}
+                            </span>
+                            {renderBetOutcomeBadge('corners')}
+                          </div>
+                        </div>
+                        <p className="text-gray-300 leading-relaxed text-[11px]">{prediction.bets?.corners?.reason || 'Tỷ lệ phạt góc dựa trên nhịp độ trận đấu và thói quen đá biên.'}</p>
+                      </div>
+
+                      {/* Kèo Thẻ Phạt */}
+                      <div className="p-3 rounded-lg bg-card-border/20 border border-card-border/50 text-xs">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="font-bold text-gray-450 text-[10px]">KÈO THẺ PHẠT (O/U 3.5)</span>
+                          <div className="flex items-center space-x-1.5">
+                            <span className="bg-[#D97706]/20 text-[#F59E0B] font-bold px-2 py-0.5 rounded-md text-[10px]">
+                              {prediction.recommendation_cards ?? prediction.bets?.cards?.recommendation}
+                            </span>
+                            {renderBetOutcomeBadge('cards')}
+                          </div>
+                        </div>
+                        <p className="text-gray-300 leading-relaxed text-[11px]">{prediction.bets?.cards?.reason || 'Đánh giá số lượng thẻ phạt từ mức độ quyết liệt và lịch sử phạm lỗi.'}</p>
+                      </div>
+
                     </div>
 
                     {showOutcome && evalDetails && evalDetails.summary && (

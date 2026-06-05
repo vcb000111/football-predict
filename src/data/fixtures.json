@@ -121,6 +121,66 @@
       "time": "16:00",
       "group": "Group G",
       "venue": "AT&T Stadium, Arlington"
+    },
+    {
+      "id": "t1",
+      "homeTeam": "Argentina",
+      "awayTeam": "Honduras",
+      "date": "2026-06-07",
+      "time": "18:00",
+      "group": "Warm-up Friendly",
+      "venue": "Sun Life Stadium, Miami",
+      "isTest": true
+    },
+    {
+      "id": "t2",
+      "homeTeam": "Croatia",
+      "awayTeam": "Slovenia",
+      "date": "2026-06-07",
+      "time": "20:00",
+      "group": "Warm-up Friendly",
+      "venue": "Stadion Maksimir, Zagreb",
+      "isTest": true
+    },
+    {
+      "id": "t3",
+      "homeTeam": "Morocco",
+      "awayTeam": "Norway",
+      "date": "2026-06-07",
+      "time": "21:00",
+      "group": "Warm-up Friendly",
+      "venue": "Stade Mohammed V, Casablanca",
+      "isTest": true
+    },
+    {
+      "id": "t4",
+      "homeTeam": "France",
+      "awayTeam": "Northern Ireland",
+      "date": "2026-06-08",
+      "time": "19:00",
+      "group": "Warm-up Friendly",
+      "venue": "Stade de France, Saint-Denis",
+      "isTest": true
+    },
+    {
+      "id": "t5",
+      "homeTeam": "Netherlands",
+      "awayTeam": "Uzbekistan",
+      "date": "2026-06-08",
+      "time": "20:00",
+      "group": "Warm-up Friendly",
+      "venue": "Johan Cruyff Arena, Amsterdam",
+      "isTest": true
+    },
+    {
+      "id": "t6",
+      "homeTeam": "Colombia",
+      "awayTeam": "Jordan",
+      "date": "2026-06-08",
+      "time": "18:00",
+      "group": "Warm-up Friendly",
+      "venue": "Estadio Metropolitano, Barranquilla",
+      "isTest": true
     }
   ]
 }

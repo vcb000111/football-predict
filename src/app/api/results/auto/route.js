@@ -3,7 +3,7 @@ import { GoogleGenAI } from '@google/genai';
 import { getDB } from '@/lib/db';
 import fixturesData from '@/data/fixtures.json';
 
-const MODELS = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash', 'gemini-2.0-flash-lite'];
+const MODELS = ['gemini-3.5-flash', 'gemini-3-flash-preview', 'gemini-3.1-flash-lite', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'];
 
 export async function POST(request) {
   try {
@@ -78,7 +78,7 @@ export async function POST(request) {
     // 4. CHẾ ĐỘ GIẢ LẬP (MOCK MODE) khi không có API Key
     if (apiKeys.length === 0) {
       console.warn('Chạy Auto-Update ở chế độ giả lập (Mock Mode) do thiếu API Key.');
-      
+
       const currentTime = new Date('2026-06-05T23:42:17+07:00'); // Lấy mốc thời gian hệ thống cung cấp
       let isFuture = false;
       if (matchDate) {
@@ -100,15 +100,15 @@ export async function POST(request) {
       // Giả lập kết quả cho trận đấu đã qua hoặc trận đấu tự do
       const mockHomeScore = (homeTeam.length + 2) % 4; // Bán ngẫu nhiên từ tên đội
       const mockAwayScore = (awayTeam.length + 1) % 3;
-      
+
       const pHome = predictionRecord.predicted_home_score;
       const pAway = predictionRecord.predicted_away_score;
-      
+
       const predictedOutcome = pHome > pAway ? 'home' : pHome < pAway ? 'away' : 'draw';
       const actualOutcome = mockHomeScore > mockAwayScore ? 'home' : mockHomeScore < mockAwayScore ? 'away' : 'draw';
-      
+
       const isCorrect_1x2 = predictedOutcome === actualOutcome ? 1 : 0;
-      
+
       // Đánh giá Tài Xỉu
       const totalGoals = mockHomeScore + mockAwayScore;
       const recOu = (predictionRecord.recommendation_ou || '').toLowerCase();
@@ -116,9 +116,28 @@ export async function POST(request) {
       if (recOu.includes('over 2.5') && totalGoals > 2.5) isCorrect_ou = 1;
       if (recOu.includes('under 2.5') && totalGoals < 2.5) isCorrect_ou = 1;
 
-      // Đánh giá Chấp (Kèo Châu Á)
+      // Đánh giá Kèo Chấp (Kèo Châu Á)
       let isCorrect_handicap = 0; // Đơn giản hóa trong mock
       if (isCorrect_1x2) isCorrect_handicap = 1;
+
+      // Giả lập phạt góc, thẻ phạt và BTTS
+      const mockCorners = (homeTeam.length * 3 + awayTeam.length * 2) % 6 + 6;
+      const mockCards = (homeTeam.length + awayTeam.length) % 5 + 1;
+      const actualBtts = (mockHomeScore > 0 && mockAwayScore > 0) ? 'yes' : 'no';
+
+      const recBtts = (predictionRecord.recommendation_btts || '').toLowerCase();
+      let isCorrect_btts = 0;
+      if (recBtts.includes(actualBtts)) isCorrect_btts = 1;
+
+      const recCorners = (predictionRecord.recommendation_corners || '').toLowerCase();
+      let isCorrect_corners = 0;
+      if (recCorners.includes('over') && mockCorners > 8.5) isCorrect_corners = 1;
+      if (recCorners.includes('under') && mockCorners < 8.5) isCorrect_corners = 1;
+
+      const recCards = (predictionRecord.recommendation_cards || '').toLowerCase();
+      let isCorrect_cards = 0;
+      if (recCards.includes('over') && mockCards > 3.5) isCorrect_cards = 1;
+      if (recCards.includes('under') && mockCards < 3.5) isCorrect_cards = 1;
 
       const evalDetails = {
         oneXTwo: {
@@ -133,7 +152,19 @@ export async function POST(request) {
           outcome: isCorrect_handicap === 1 ? 'correct' : 'incorrect',
           reason: `Đánh giá kèo chấp dựa trên kết quả ${mockHomeScore}-${mockAwayScore}.`
         },
-        summary: `[Mock AI Grounding] Trận đấu kết thúc với tỷ số ${mockHomeScore}-${mockAwayScore}. AI đã chấm điểm các kèo tự động thành công.`
+        btts: {
+          outcome: isCorrect_btts === 1 ? 'correct' : 'incorrect',
+          reason: `Cả hai đội ghi bàn thực tế: ${actualBtts === 'yes' ? 'Có' : 'Không'}. Dự đoán của bạn: ${predictionRecord.recommendation_btts || 'N/A'}.`
+        },
+        corners: {
+          outcome: isCorrect_corners === 1 ? 'correct' : 'incorrect',
+          reason: `Tổng số phạt góc thực tế: ${mockCorners} quả. Dự đoán của bạn: ${predictionRecord.recommendation_corners || 'N/A'}.`
+        },
+        cards: {
+          outcome: isCorrect_cards === 1 ? 'correct' : 'incorrect',
+          reason: `Tổng số thẻ phạt thực tế: ${mockCards} thẻ. Dự đoán của bạn: ${predictionRecord.recommendation_cards || 'N/A'}.`
+        },
+        summary: `[Mock AI Grounding] Trận đấu kết thúc với tỷ số ${mockHomeScore}-${mockAwayScore}, phạt góc ${mockCorners} quả, thẻ phạt ${mockCards} thẻ. AI đã chấm điểm các kèo tự động thành công.`
       };
 
       await db.run(
@@ -143,6 +174,9 @@ export async function POST(request) {
              is_correct = ?, 
              is_correct_ou = ?, 
              is_correct_handicap = ?, 
+             is_correct_btts = ?,
+             is_correct_corners = ?,
+             is_correct_cards = ?,
              bet_evaluation_details = ? 
          WHERE id = ?`,
         [
@@ -151,6 +185,9 @@ export async function POST(request) {
           isCorrect_1x2,
           isCorrect_ou,
           isCorrect_handicap,
+          isCorrect_btts,
+          isCorrect_corners,
+          isCorrect_cards,
           JSON.stringify(evalDetails),
           predictionRecord.id
         ]
@@ -175,10 +212,13 @@ ${matchVenue ? `Địa điểm/Sân vận động: ${matchVenue}` : ''}
 
 Nhiệm vụ của bạn:
 1. Sử dụng công cụ Tìm kiếm Google (Google Search) để quét kết quả từ các nguồn chính thức và uy tín nhất như FIFA.com, ESPN, Livescore, Flashscore, v.v.
-2. Trả về kết quả thực tế của trận đấu (tỷ số thực tế) và chấm điểm tự động các dự đoán kèo sau:
+2. Trả về kết quả thực tế của trận đấu (tỷ số thực tế, số quả phạt góc, số thẻ phạt) và chấm điểm tự động các dự đoán kèo sau:
    - Kèo châu Âu (1X2) dự đoán: "${predictionRecord.recommendation_1x2}"
    - Kèo tài xỉu 2.5 dự đoán: "${predictionRecord.recommendation_ou}"
    - Kèo chấp châu Á dự đoán: "${predictionRecord.recommendation_handicap}"
+   - Kèo cả hai đội ghi bàn (BTTS) dự đoán: "${predictionRecord.recommendation_btts || 'N/A'}"
+   - Kèo phạt góc dự đoán: "${predictionRecord.recommendation_corners || 'N/A'}"
+   - Kèo thẻ phạt dự đoán: "${predictionRecord.recommendation_cards || 'N/A'}"
 
 Dự đoán tỷ số ban đầu của AI: ${predictionRecord.predicted_home_score} - ${predictionRecord.predicted_away_score}
 
@@ -201,9 +241,21 @@ Trả về một chuỗi JSON thô duy nhất có dạng cấu trúc sau:
     "handicap": {
       "outcome": "<'correct' nếu dự đoán kèo chấp đúng, 'incorrect' nếu sai, 'refund' nếu hòa tiền kèo chấp, 'n/a' nếu không có dữ liệu>",
       "reason": "<giải thích lý do thắng/thua kèo chấp dựa trên tỉ số thực tế và tỷ lệ chấp>"
+    },
+    "btts": {
+      "outcome": "<'correct' nếu dự đoán đúng cả hai đội cùng ghi bàn hay không, 'incorrect' nếu sai, 'n/a' nếu không có dữ liệu>",
+      "reason": "<giải thích lý do đúng/sai dựa trên bàn thắng hai đội>"
+    },
+    "corners": {
+      "outcome": "<'correct' nếu dự đoán đúng tổng phạt góc Over/Under, 'incorrect' nếu sai, 'n/a' nếu không có dữ liệu>",
+      "reason": "<giải thích lý do đúng/sai dựa trên tổng số quả phạt góc thực tế quét được>"
+    },
+    "cards": {
+      "outcome": "<'correct' nếu dự đoán đúng tổng thẻ phạt Over/Under, 'incorrect' nếu sai, 'n/a' nếu không có dữ liệu>",
+      "reason": "<giải thích lý do đúng/sai dựa trên tổng số thẻ phạt thực tế quét được>"
     }
   },
-  "summary": "<Tóm tắt so sánh ngắn gọn giữa các dự đoán của AI và kết quả diễn ra thực tế của trận đấu>"
+  "summary": "<Tóm tắt so sánh ngắn gọn giữa các dự đoán của AI và kết quả diễn ra thực tế của trận đấu (gồm tỉ số, phạt góc, thẻ phạt)>"
 }
 
 Chú ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code markdown hay ký tự thừa.`;
@@ -218,16 +270,16 @@ Chú ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
         try {
           console.log(`[Auto-Update] Gọi model ${currentModel} bằng API Key #${keyIdx + 1}/${apiKeys.length}...`);
           const ai = new GoogleGenAI({ apiKey: currentKey });
-          
+
           const response = await ai.models.generateContent({
             model: currentModel,
             contents: prompt,
             config: {
               tools: [{ googleSearch: {} }],
-              abortSignal: AbortSignal.timeout(15000), // 15s timeout
+              abortSignal: AbortSignal.timeout(300000), // 5 minutes timeout
             },
           });
-          
+
           callResult = {
             response,
             modelUsed: currentModel,
@@ -273,9 +325,9 @@ Chú ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
     if (updateResultData.status === 'finished' && updateResultData.actualScore) {
       const aHome = parseInt(updateResultData.actualScore.home, 10);
       const aAway = parseInt(updateResultData.actualScore.away, 10);
-      
+
       const evalData = updateResultData.betEvaluations || {};
-      
+
       const isCorrect_1x2 = evalData.oneXTwo?.outcome === 'correct' ? 1 : 0;
       const isCorrect_ou = evalData.overUnder?.outcome === 'correct' ? 1 : 0;
       const isCorrect_handicap = evalData.handicap?.outcome === 'correct' ? 1 : (evalData.handicap?.outcome === 'refund' ? 2 : 0);
@@ -288,6 +340,9 @@ Chú ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
              is_correct = ?, 
              is_correct_ou = ?, 
              is_correct_handicap = ?, 
+             is_correct_btts = ?,
+             is_correct_corners = ?,
+             is_correct_cards = ?,
              bet_evaluation_details = ? 
          WHERE id = ?`,
         [
@@ -296,10 +351,16 @@ Chú ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
           isCorrect_1x2,
           isCorrect_ou,
           isCorrect_handicap,
+          evalData.btts?.outcome === 'correct' ? 1 : 0,
+          evalData.corners?.outcome === 'correct' ? 1 : 0,
+          evalData.cards?.outcome === 'correct' ? 1 : 0,
           JSON.stringify({
             oneXTwo: evalData.oneXTwo || { outcome: 'n/a', reason: '' },
             overUnder: evalData.overUnder || { outcome: 'n/a', reason: '' },
             handicap: evalData.handicap || { outcome: 'n/a', reason: '' },
+            btts: evalData.btts || { outcome: 'n/a', reason: '' },
+            corners: evalData.corners || { outcome: 'n/a', reason: '' },
+            cards: evalData.cards || { outcome: 'n/a', reason: '' },
             summary: updateResultData.summary || ''
           }),
           predictionRecord.id

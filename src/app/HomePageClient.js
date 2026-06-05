@@ -50,16 +50,74 @@ export function getTeamFlag(teamName, className = "w-6 h-4.5") {
 }
 
 export default function HomePageClient({ initialData, isKeyConfigured, historyCounts = {} }) {
-  const [activeTab, setActiveTab] = useState('fixtures'); // 'fixtures' or 'groups'
+  const [activeTab, setActiveTab] = useState('fixtures'); // 'fixtures', 'test-matches' or 'groups'
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGroupFilter, setSelectedGroupFilter] = useState('All');
   const [layout, setLayout] = useState('grid'); // 'grid' or 'list'
   const [sortBy, setSortBy] = useState('date'); // 'date' | 'group' | 'history'
+  const [quickPredicting, setQuickPredicting] = useState({});
+  const [modalData, setModalData] = useState(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState(null);
+
+  const handleQuickPredict = async (fixture) => {
+    if (quickPredicting[fixture.id]) return;
+    setQuickPredicting(prev => ({ ...prev, [fixture.id]: true }));
+    try {
+      const res = await fetch('/api/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          homeTeam: fixture.homeTeam,
+          awayTeam: fixture.awayTeam,
+          matchId: fixture.id
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Lỗi phân tích trận đấu');
+      
+      setModalData({
+        fixture,
+        prediction: data
+      });
+    } catch (err) {
+      alert(`Lỗi phân tích nhanh: ${err.message}`);
+    } finally {
+      setQuickPredicting(prev => ({ ...prev, [fixture.id]: false }));
+    }
+  };
+
+  const handleSyncFixtures = async () => {
+    setSyncing(true);
+    setSyncMessage(null);
+    try {
+      const res = await fetch('/api/fixtures/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Lỗi đồng bộ lịch thi đấu');
+      
+      setSyncMessage({ success: true, text: data.message });
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (err) {
+      setSyncMessage({ success: false, text: err.message });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const { groups, fixtures } = initialData;
 
+  // Phân chia trận đấu chính thức và trận thử nghiệm
+  const displayFixtures = activeTab === 'test-matches' 
+    ? fixtures.filter(f => f.isTest) 
+    : fixtures.filter(f => !f.isTest);
+
   // Lọc lịch thi đấu dựa trên tìm kiếm và bảng đấu
-  const filteredFixtures = fixtures.filter(fixture => {
+  const filteredFixtures = displayFixtures.filter(fixture => {
     const matchesSearch = 
       fixture.homeTeam.toLowerCase().includes(searchQuery.toLowerCase()) ||
       fixture.awayTeam.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -146,10 +204,10 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
         
         {/* Navigation Tabs */}
         <div className="flex items-center justify-between border-b border-card-border pb-2.5 mb-6">
-          <div className="flex space-x-4">
+          <div className="flex space-x-4 flex-wrap">
             <button
               onClick={() => setActiveTab('fixtures')}
-              className={`pb-2.5 text-base font-bold border-b-2 transition-all duration-200 px-1 ${
+              className={`pb-2.5 text-sm sm:text-base font-bold border-b-2 transition-all duration-200 px-1 cursor-pointer ${
                 activeTab === 'fixtures' 
                   ? 'border-primary text-primary' 
                   : 'border-transparent text-gray-400 hover:text-gray-200'
@@ -158,8 +216,18 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
               📅 Lịch Thi Đấu & Dự Đoán
             </button>
             <button
+              onClick={() => setActiveTab('test-matches')}
+              className={`pb-2.5 text-sm sm:text-base font-bold border-b-2 transition-all duration-200 px-1 cursor-pointer ${
+                activeTab === 'test-matches' 
+                  ? 'border-accent text-accent' 
+                  : 'border-transparent text-gray-400 hover:text-gray-200'
+              }`}
+            >
+              🧪 Trận Đấu Thử Nghiệm
+            </button>
+            <button
               onClick={() => setActiveTab('groups')}
-              className={`pb-2.5 text-base font-bold border-b-2 transition-all duration-200 px-1 ${
+              className={`pb-2.5 text-sm sm:text-base font-bold border-b-2 transition-all duration-200 px-1 cursor-pointer ${
                 activeTab === 'groups' 
                   ? 'border-secondary text-secondary' 
                   : 'border-transparent text-gray-400 hover:text-gray-200'
@@ -171,7 +239,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
         </div>
 
         {/* Tab CONTENT: FIXTURES */}
-        {activeTab === 'fixtures' && (
+        {(activeTab === 'fixtures' || activeTab === 'test-matches') && (
           <div>
             {/* Search, Group, Sorting & Layout Controls */}
             <div className="glass-panel border border-card-border/60 rounded-xl p-3.5 mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 text-xs">
@@ -271,8 +339,34 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                     </button>
                   </div>
                 </div>
+
+                {/* Sync Button */}
+                <div className="flex items-center">
+                  <button
+                    onClick={handleSyncFixtures}
+                    disabled={syncing}
+                    className={`px-3 py-1.5 rounded-lg border font-bold text-[10px] tracking-wider transition-all duration-150 flex items-center space-x-1.5 active:scale-[0.98] cursor-pointer ${
+                      syncing 
+                        ? 'bg-[#151E2E] border-card-border text-gray-400' 
+                        : 'bg-primary/10 hover:bg-primary/20 border-primary/30 hover:border-primary/50 text-primary hover:text-white'
+                    }`}
+                    title="Đồng bộ lịch thi đấu & Vòng đấu từ Internet (AI)"
+                  >
+                    <span>{syncing ? '🔄 Đang đồng bộ...' : '🔄 Đồng bộ lịch (AI)'}</span>
+                  </button>
+                </div>
               </div>
             </div>
+
+            {syncMessage && (
+              <div className={`mb-4 p-2.5 rounded-lg border text-[11px] leading-relaxed text-center animate-fade-in ${
+                syncMessage.success 
+                  ? 'border-primary/30 bg-primary/5 text-primary' 
+                  : 'border-red-500/30 bg-red-950/10 text-red-400'
+              }`}>
+                {syncMessage.text}
+              </div>
+            )}
 
             {/* Fixtures List/Grid */}
             {sortedAndFilteredFixtures.length > 0 ? (
@@ -320,21 +414,34 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                           <div className="flex space-x-2">
                             <Link 
                               href={`/match/${fixture.id}`}
-                              className="flex-1 bg-card-border hover:bg-primary/20 border border-card-border hover:border-primary/50 text-white font-bold py-2 px-3 rounded-lg text-center text-xs transition-all duration-150 flex items-center justify-center space-x-1.5"
+                              className="flex-1 bg-card-border hover:bg-primary/20 border border-card-border hover:border-primary/50 text-white font-bold py-2 px-2.5 rounded-lg text-center text-xs transition-all duration-150 flex items-center justify-center space-x-1"
+                              title="Xem chi tiết & lịch sử dự đoán"
                             >
-                              <span>🧠 Dự Đoán AI</span>
+                              <span>🔍 Chi Tiết</span>
                             </Link>
-                            {historyCount > 0 && (
-                              <Link 
-                                href={`/match/${fixture.id}?tab=history`}
-                                className="bg-card-border/60 hover:bg-secondary/20 border border-card-border/50 hover:border-secondary/50 text-gray-300 hover:text-white font-bold py-2 px-3 rounded-lg text-xs transition-all duration-150 flex items-center justify-center space-x-1"
-                                title={`Xem lịch sử (${historyCount} lần dự đoán)`}
-                              >
-                                <span>📜</span>
-                                <span className="text-[10px] bg-secondary/20 px-1.5 py-0.5 rounded-full text-secondary">{historyCount}</span>
-                              </Link>
-                            )}
+                            
+                            <button
+                              onClick={() => handleQuickPredict(fixture)}
+                              disabled={quickPredicting[fixture.id]}
+                              className={`flex-1 text-white font-bold py-2 px-2.5 rounded-lg text-center text-xs transition-all duration-150 flex items-center justify-center space-x-1 active:scale-[0.98] cursor-pointer ${
+                                quickPredicting[fixture.id]
+                                  ? 'bg-[#151E2E] text-gray-500 border border-card-border'
+                                  : 'bg-gradient-to-r from-primary/80 to-secondary/80 hover:from-primary hover:to-secondary border border-primary/20 hover:border-primary/40'
+                              }`}
+                            >
+                              <span>{quickPredicting[fixture.id] ? '⏳ Chạy...' : '⚡ Nhanh'}</span>
+                            </button>
                           </div>
+                          
+                          {historyCount > 0 && (
+                            <Link 
+                              href={`/match/${fixture.id}?tab=history`}
+                              className="w-full bg-[#151E2E]/60 hover:bg-secondary/15 border border-card-border/60 hover:border-secondary/40 text-gray-300 hover:text-white py-1.5 px-3 rounded-lg text-[10px] font-bold transition-all duration-150 flex items-center justify-center space-x-1"
+                            >
+                              <span>📜 Lịch sử phân tích:</span>
+                              <span className="bg-secondary/20 px-1.5 py-0.5 rounded-full text-secondary text-[9px]">{historyCount} lần</span>
+                            </Link>
+                          )}
                         </div>
 
                       </div>
@@ -386,10 +493,24 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                           <div className="flex space-x-1.5 w-full sm:w-auto">
                             <Link 
                               href={`/match/${fixture.id}`}
-                              className="flex-1 sm:flex-none bg-card-border hover:bg-primary/20 border border-card-border hover:border-primary/50 text-white font-semibold py-1 px-3 rounded text-[10px] transition-all duration-150 flex items-center justify-center space-x-1"
+                              className="flex-1 sm:flex-none bg-card-border hover:bg-primary/20 border border-card-border hover:border-primary/50 text-white font-semibold py-1 px-2 rounded text-[10px] transition-all duration-150 flex items-center justify-center space-x-0.5"
+                              title="Xem chi tiết & lịch sử dự đoán"
                             >
-                              <span>🧠 Dự Đoán</span>
+                              <span>🔍 Chi Tiết</span>
                             </Link>
+                            
+                            <button
+                              onClick={() => handleQuickPredict(fixture)}
+                              disabled={quickPredicting[fixture.id]}
+                              className={`flex-1 sm:flex-none text-white font-semibold py-1 px-2 rounded text-[10px] transition-all duration-150 flex items-center justify-center space-x-0.5 active:scale-[0.98] cursor-pointer ${
+                                quickPredicting[fixture.id]
+                                  ? 'bg-[#151E2E] text-gray-500 border border-card-border'
+                                  : 'bg-gradient-to-r from-primary/80 to-secondary/80 hover:from-primary hover:to-secondary border border-primary/20 hover:border-primary/40'
+                              }`}
+                            >
+                              <span>{quickPredicting[fixture.id] ? '⏳ Chạy...' : '⚡ Nhanh'}</span>
+                            </button>
+
                             {historyCount > 0 && (
                               <Link 
                                 href={`/match/${fixture.id}?tab=history`}
@@ -448,6 +569,166 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
         )}
 
       </section>
+
+      {/* QUICK PREDICT MODAL */}
+      {modalData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-fade-in">
+          {/* Backdrop click closes modal */}
+          <div className="absolute inset-0" onClick={() => setModalData(null)}></div>
+          
+          <div className="glass-panel border border-card-border/80 rounded-2xl w-full max-w-lg p-5 relative z-10 shadow-2xl glow-cyan animate-scale-in max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex justify-between items-start border-b border-card-border pb-3 mb-4">
+              <div>
+                <span className="bg-[#151E2E] border border-card-border text-[9px] font-bold text-gray-400 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                  {modalData.fixture.group}
+                </span>
+                <h2 className="text-sm font-extrabold text-white mt-1.5 flex items-center space-x-2">
+                  <span>⚡ Phân Tích Nhanh Dự Đoán AI</span>
+                </h2>
+              </div>
+              <button 
+                onClick={() => setModalData(null)}
+                className="text-gray-400 hover:text-white font-bold text-base p-1 transition-colors leading-none cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Teams Matchup Header */}
+            <div className="bg-[#0B0F17]/50 rounded-xl p-3.5 border border-card-border/50 text-center mb-4 relative overflow-hidden">
+              <div className="absolute top-0 right-0 text-[8px] text-gray-500 font-bold bg-card-border/40 px-2 py-0.5 rounded-bl">
+                {modalData.fixture.date} • {modalData.fixture.time}
+              </div>
+              
+              <div className="flex items-center justify-center space-x-4 mt-1">
+                <div className="flex items-center space-x-2 w-5/12 justify-end">
+                  <span className="font-extrabold text-xs text-white truncate">{modalData.fixture.homeTeam}</span>
+                  {getTeamFlag(modalData.fixture.homeTeam, "w-6.5 h-4.5")}
+                </div>
+                <span className="text-[10px] font-bold text-gray-650 bg-card-border/30 px-2 py-0.5 rounded-full">VS</span>
+                <div className="flex items-center space-x-2 w-5/12 justify-start">
+                  {getTeamFlag(modalData.fixture.awayTeam, "w-6.5 h-4.5")}
+                  <span className="font-extrabold text-xs text-white truncate">{modalData.fixture.awayTeam}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Prediction Summary: Score & Win probabilities */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              {/* Score card */}
+              <div className="bg-card-border/20 rounded-xl p-3 border border-card-border/60 text-center flex flex-col justify-center">
+                <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-2.5">Tỷ Số Dự Kiến</span>
+                <div className="flex items-center justify-center space-x-4">
+                  <div className="flex flex-col items-center">
+                    <span className="text-[10px] text-gray-400 truncate max-w-[80px]">{modalData.fixture.homeTeam}</span>
+                    <span className="text-2xl font-black text-white">{modalData.prediction.predictedScore?.home ?? modalData.prediction.predicted_home_score}</span>
+                  </div>
+                  <span className="text-gray-600 font-bold text-lg">-</span>
+                  <div className="flex flex-col items-center">
+                    <span className="text-[10px] text-gray-400 truncate max-w-[80px]">{modalData.fixture.awayTeam}</span>
+                    <span className="text-2xl font-black text-white">{modalData.prediction.predictedScore?.away ?? modalData.prediction.predicted_away_score}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Win probabilities */}
+              <div className="bg-card-border/20 rounded-xl p-3 border border-card-border/60 flex flex-col justify-center">
+                <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-2">Xác Suất Thắng</span>
+                {(() => {
+                  const prob = {
+                    home: modalData.prediction.winProbability?.home ?? modalData.prediction.win_prob_home ?? 33,
+                    draw: modalData.prediction.winProbability?.draw ?? modalData.prediction.win_prob_draw ?? 34,
+                    away: modalData.prediction.winProbability?.away ?? modalData.prediction.win_prob_away ?? 33
+                  };
+                  return (
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-[9px] text-gray-400 font-semibold">
+                        <span>{prob.home}%</span>
+                        <span>{prob.draw}%</span>
+                        <span>{prob.away}%</span>
+                      </div>
+                      <div className="h-2 w-full rounded-full overflow-hidden flex bg-card-border">
+                        <div className="h-full bg-primary" style={{ width: `${prob.home}%` }}></div>
+                        <div className="h-full bg-gray-500" style={{ width: `${prob.draw}%` }}></div>
+                        <div className="h-full bg-secondary" style={{ width: `${prob.away}%` }}></div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* Recommended Bets Panel */}
+            <div className="space-y-2 mb-4.5">
+              <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider block pl-0.5">Các Kèo AI Khuyến Nghị</span>
+              
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                {/* 1X2 & OU */}
+                <div className="p-2.5 rounded-lg bg-[#0E1321] border border-card-border/50">
+                  <div className="text-[9px] text-gray-550 font-bold uppercase">Châu Âu (1X2)</div>
+                  <div className="text-[11px] font-bold text-primary mt-0.5">
+                    {modalData.prediction.bets?.oneXTwo?.recommendation ?? modalData.prediction.recommendation_1x2}
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-lg bg-[#0E1321] border border-card-border/50">
+                  <div className="text-[9px] text-gray-550 font-bold uppercase">Tài Xỉu 2.5</div>
+                  <div className="text-[11px] font-bold text-secondary mt-0.5">
+                    {modalData.prediction.bets?.overUnder?.recommendation ?? modalData.prediction.recommendation_ou}
+                  </div>
+                </div>
+
+                {/* Handicap & BTTS */}
+                <div className="p-2.5 rounded-lg bg-[#0E1321] border border-card-border/50">
+                  <div className="text-[9px] text-gray-550 font-bold uppercase">Chấp Châu Á</div>
+                  <div className="text-[11px] font-bold text-accent mt-0.5 truncate" title={modalData.prediction.bets?.handicap?.recommendation ?? modalData.prediction.recommendation_handicap}>
+                    {modalData.prediction.bets?.handicap?.recommendation ?? modalData.prediction.recommendation_handicap}
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-lg bg-[#0E1321] border border-card-border/50">
+                  <div className="text-[9px] text-gray-550 font-bold uppercase">Ghi Bàn (BTTS)</div>
+                  <div className="text-[11px] font-bold text-blue-400 mt-0.5">
+                    {modalData.prediction.bets?.btts?.recommendation ?? modalData.prediction.recommendation_btts}
+                  </div>
+                </div>
+
+                {/* Corners & Cards */}
+                <div className="p-2.5 rounded-lg bg-[#0E1321] border border-card-border/50">
+                  <div className="text-[9px] text-gray-550 font-bold uppercase">Phạt Góc (O/U 8.5)</div>
+                  <div className="text-[11px] font-bold text-purple-400 mt-0.5 truncate" title={modalData.prediction.bets?.corners?.recommendation ?? modalData.prediction.recommendation_corners}>
+                    {modalData.prediction.bets?.corners?.recommendation ?? modalData.prediction.recommendation_corners}
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-lg bg-[#0E1321] border border-card-border/50">
+                  <div className="text-[9px] text-gray-550 font-bold uppercase">Thẻ Phạt (O/U 3.5)</div>
+                  <div className="text-[11px] font-bold text-[#F59E0B] mt-0.5 truncate" title={modalData.prediction.bets?.cards?.recommendation ?? modalData.prediction.recommendation_cards}>
+                    {modalData.prediction.bets?.cards?.recommendation ?? modalData.prediction.recommendation_cards}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex space-x-3 pt-3 border-t border-card-border">
+              <Link
+                href={`/match/${modalData.fixture.id}`}
+                className="flex-1 bg-gradient-to-r from-primary to-secondary text-white font-bold py-2 px-4 rounded-xl text-center text-xs transition-all active:scale-[0.98]"
+              >
+                🔍 Xem Nhận Định Chi Tiết
+              </Link>
+              <button
+                onClick={() => setModalData(null)}
+                className="bg-card-border hover:bg-card-border/80 border border-card-border text-white font-bold py-2 px-5 rounded-xl text-xs transition-all active:scale-[0.98] cursor-pointer"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

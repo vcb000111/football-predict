@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import currentData from '@/data/fixtures.json';
 
-const MODELS = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash', 'gemini-2.0-flash-lite'];
+const MODELS = ['gemini-3.5-flash', 'gemini-3-flash-preview', 'gemini-3.1-flash-lite', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'];
 const FIXTURES_FILE_PATH = path.join(process.cwd(), 'src', 'data', 'fixtures.json');
 
 export async function POST(request) {
@@ -216,7 +216,7 @@ Chú ý: Chỉ trả về chuỗi JSON thô, không chứa markdown, không có 
             contents: prompt,
             config: {
               tools: [{ googleSearch: {} }],
-              abortSignal: AbortSignal.timeout(20000), // 20s timeout
+              abortSignal: AbortSignal.timeout(45000), // 45s timeout
             },
           });
           

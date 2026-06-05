@@ -68,6 +68,7 @@ export default function MatchClient({ match }) {
 
   const handleRunNewPrediction = async () => {
     setPredicting(true);
+    setLoading(false); // Hide general loading spinner when predicting starts
     setResMessage(null);
     setLoadingStep(0);
     try {
@@ -248,7 +249,7 @@ export default function MatchClient({ match }) {
         </div>
 
         {/* LOADING STATE */}
-        {loading && (
+        {loading && !predicting && (
           <div className="glass-panel rounded-2xl p-8 text-center border border-card-border flex flex-col items-center justify-center min-h-[250px]">
             <div className="h-10 w-10 mb-4 relative">
               <div className="absolute inset-0 rounded-full border-3 border-card-border border-t-primary animate-spin"></div>
@@ -496,6 +497,48 @@ export default function MatchClient({ match }) {
                           </div>
                         </div>
                         <p className="text-gray-300 leading-relaxed text-[11px]">{prediction.bets?.handicap?.reason || 'Đánh giá tỷ lệ chấp kèo châu Á tương quan lực lượng.'}</p>
+                      </div>
+
+                      {/* Kèo Cả Hai Đội Ghi Bàn (BTTS) */}
+                      <div className="p-3 rounded-lg bg-card-border/20 border border-card-border/50">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[10px] font-bold text-gray-500 uppercase">Cả Hai Đội Ghi Bàn (BTTS)</span>
+                          <div className="flex items-center space-x-1.5">
+                            <span className="bg-[#1D4ED8]/25 text-blue-400 border border-[#1D4ED8]/30 font-bold px-1.5 py-0.5 rounded text-[10px]">
+                              {prediction.recommendation_btts ?? prediction.bets?.btts?.recommendation}
+                            </span>
+                            {renderBetOutcomeBadge('btts')}
+                          </div>
+                        </div>
+                        <p className="text-gray-300 leading-relaxed text-[11px]">{prediction.bets?.btts?.reason || 'Phân tích khả năng ghi bàn từ cả hai câu lạc bộ.'}</p>
+                      </div>
+
+                      {/* Kèo Phạt Góc */}
+                      <div className="p-3 rounded-lg bg-card-border/20 border border-card-border/50">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[10px] font-bold text-gray-500 uppercase">Kèo Phạt Góc (O/U 8.5)</span>
+                          <div className="flex items-center space-x-1.5">
+                            <span className="bg-[#581C87]/25 text-purple-400 border border-[#581C87]/30 font-bold px-1.5 py-0.5 rounded text-[10px]">
+                              {prediction.recommendation_corners ?? prediction.bets?.corners?.recommendation}
+                            </span>
+                            {renderBetOutcomeBadge('corners')}
+                          </div>
+                        </div>
+                        <p className="text-gray-300 leading-relaxed text-[11px]">{prediction.bets?.corners?.reason || 'Tỷ lệ phạt góc dựa trên nhịp độ trận đấu và thói quen đá biên.'}</p>
+                      </div>
+
+                      {/* Kèo Thẻ Phạt */}
+                      <div className="p-3 rounded-lg bg-card-border/20 border border-card-border/50">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[10px] font-bold text-gray-500 uppercase">Kèo Thẻ Phạt (O/U 3.5)</span>
+                          <div className="flex items-center space-x-1.5">
+                            <span className="bg-[#D97706]/20 text-[#F59E0B] border border-[#D97706]/35 font-bold px-1.5 py-0.5 rounded text-[10px]">
+                              {prediction.recommendation_cards ?? prediction.bets?.cards?.recommendation}
+                            </span>
+                            {renderBetOutcomeBadge('cards')}
+                          </div>
+                        </div>
+                        <p className="text-gray-300 leading-relaxed text-[11px]">{prediction.bets?.cards?.reason || 'Đánh giá số lượng thẻ phạt từ mức độ quyết liệt và lịch sử phạm lỗi.'}</p>
                       </div>
                     </div>
 

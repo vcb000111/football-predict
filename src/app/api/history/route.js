@@ -21,9 +21,34 @@ export async function GET(request) {
             console.error("Lỗi parse bet_evaluation_details:", e);
           }
         }
+        
+        // Parse raw prediction JSON thô
+        let rawPrediction = {};
+        if (item.raw_prediction_json) {
+          try {
+            rawPrediction = JSON.parse(item.raw_prediction_json);
+          } catch (e) {
+            console.error("Lỗi parse raw_prediction_json:", e);
+          }
+        }
+
         return {
           ...item,
-          bet_evaluation_details: parsedDetails
+          ...rawPrediction,
+          id: item.id, // Giữ nguyên ID từ bản ghi DB thực tế
+          match_id: item.match_id,
+          home_team: item.home_team,
+          away_team: item.away_team,
+          actual_home_score: item.actual_home_score,
+          actual_away_score: item.actual_away_score,
+          is_correct: item.is_correct,
+          is_correct_ou: item.is_correct_ou,
+          is_correct_handicap: item.is_correct_handicap,
+          is_correct_btts: item.is_correct_btts,
+          is_correct_corners: item.is_correct_corners,
+          is_correct_cards: item.is_correct_cards,
+          bet_evaluation_details: parsedDetails,
+          created_at: item.created_at
         };
       });
     };

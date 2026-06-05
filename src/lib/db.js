@@ -54,5 +54,29 @@ export async function getDB() {
     // Cột đã tồn tại, bỏ qua lỗi
   }
   
+  // Migrations cho các kèo phụ dễ ăn
+  try {
+    await dbInstance.exec(`ALTER TABLE predictions ADD COLUMN recommendation_btts TEXT DEFAULT NULL`);
+  } catch (e) {}
+  try {
+    await dbInstance.exec(`ALTER TABLE predictions ADD COLUMN recommendation_corners TEXT DEFAULT NULL`);
+  } catch (e) {}
+  try {
+    await dbInstance.exec(`ALTER TABLE predictions ADD COLUMN recommendation_cards TEXT DEFAULT NULL`);
+  } catch (e) {}
+  try {
+    await dbInstance.exec(`ALTER TABLE predictions ADD COLUMN is_correct_btts INTEGER DEFAULT NULL`);
+  } catch (e) {}
+  try {
+    await dbInstance.exec(`ALTER TABLE predictions ADD COLUMN is_correct_corners INTEGER DEFAULT NULL`);
+  } catch (e) {}
+  try {
+    await dbInstance.exec(`ALTER TABLE predictions ADD COLUMN is_correct_cards INTEGER DEFAULT NULL`);
+  } catch (e) {}
+  
+  try {
+    await dbInstance.exec(`ALTER TABLE predictions ADD COLUMN raw_prediction_json TEXT DEFAULT NULL`);
+  } catch (e) {}
+  
   return dbInstance;
 }

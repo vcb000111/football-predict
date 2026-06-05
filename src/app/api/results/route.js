@@ -81,6 +81,18 @@ export async function POST(request) {
       }
     }
 
+    // Đánh giá Kèo Cả hai đội ghi bàn (BTTS)
+    let isCorrectBtts = null;
+    const recBtts = (predictionRecord.recommendation_btts || '').toLowerCase();
+    const actualBtts = (aHome > 0 && aAway > 0) ? 'yes' : 'no';
+    if (recBtts) {
+      if (recBtts.includes(actualBtts)) {
+        isCorrectBtts = 1;
+      } else {
+        isCorrectBtts = 0;
+      }
+    }
+
     // Tạo chi tiết đánh giá
     const evalDetails = {
       oneXTwo: {
@@ -95,6 +107,18 @@ export async function POST(request) {
         outcome: isCorrectHandicap === null ? 'n/a' : (isCorrectHandicap === 1 ? 'correct' : (isCorrectHandicap === 2 ? 'refund' : 'incorrect')),
         reason: `Tỷ số ${aHome}-${aAway}. AI khuyến nghị: ${predictionRecord.recommendation_handicap || 'N/A'}.`
       },
+      btts: {
+        outcome: isCorrectBtts === null ? 'n/a' : (isCorrectBtts === 1 ? 'correct' : 'incorrect'),
+        reason: `Cả hai đội ghi bàn thực tế: ${actualBtts === 'yes' ? 'Có' : 'Không'}. AI khuyến nghị: ${predictionRecord.recommendation_btts || 'N/A'}.`
+      },
+      corners: {
+        outcome: 'n/a',
+        reason: 'Cập nhật thủ công không có dữ liệu phạt góc.'
+      },
+      cards: {
+        outcome: 'n/a',
+        reason: 'Cập nhật thủ công không có dữ liệu thẻ phạt.'
+      },
       summary: `Cập nhật thủ công: Trận đấu kết thúc với tỷ số ${aHome}-${aAway}.`
     };
 
@@ -106,6 +130,9 @@ export async function POST(request) {
            is_correct = ?, 
            is_correct_ou = ?, 
            is_correct_handicap = ?, 
+           is_correct_btts = ?,
+           is_correct_corners = ?,
+           is_correct_cards = ?,
            bet_evaluation_details = ? 
        WHERE id = ?`,
       [
@@ -114,6 +141,9 @@ export async function POST(request) {
         isCorrect, 
         isCorrectOu, 
         isCorrectHandicap, 
+        isCorrectBtts,
+        null,
+        null,
         JSON.stringify(evalDetails), 
         predictionRecord.id
       ]
