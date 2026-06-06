@@ -4,6 +4,37 @@ Tất cả những thay đổi nổi bật đối với dự án **FIFA World Cu
 
 ---
 
+## [1.4.0] - 2026-06-06
+
+### Added (Thêm mới)
+* **Cơ chế Caching thông minh (SQLite):** Tự động lưu trữ kết quả dự đoán của trận đấu trong SQLite. Phản hồi tức thì (< 50ms) cho các lượt dự đoán sau nếu trận đấu diễn ra trong 24 giờ qua và các chỉ số (ELO, Rank, phong độ...) của 2 đội tuyển chưa bị thay đổi.
+* **Mô phỏng Monte Carlo 10,000 lần:** Sử dụng mô hình toán học Poisson chạy giả lập trận đấu 10,000 lần để tính toán xác suất 1X2 động (có số thập phân chính xác), xác suất cả hai đội ghi bàn (BTTS), xác suất Tài Xỉu 2.5, và xếp hạng 5 tỉ số khả thi nhất.
+* **Tích hợp Monte Carlo vào Prompt AI:** Cung cấp trực tiếp kết quả giả lập Monte Carlo làm thông tin định lượng đầu vào cho Gemini AI để tăng độ chính xác trong phân tích chiều sâu.
+* **Giao diện Modal Dự Đoán Nâng Cao:**
+  - Hiển thị Panel "Siêu máy tính Monte Carlo (10,000 lần)" trực quan, thiết kế Glassmorphism premium với thanh tiến trình 3 màu và xếp hạng tỉ số.
+  - Hiển thị nhãn trạng thái Cache rõ ràng: **"⚡ Dữ liệu tải từ bộ nhớ đệm..."** để tăng tính minh bạch.
+  - Bổ sung nút bấm **"🔄 Phân tích lại"** cho phép người dùng ép hệ thống bỏ qua bộ nhớ đệm, chạy AI và RAG Search mới nhất.
+
+### Changed (Thay đổi)
+* **Tối ưu hóa các API call:** Phòng tránh lỗi treo API khi tìm kiếm RAG bằng cách tích hợp mô phỏng Monte Carlo kết quả toán học cục bộ.
+
+---
+
+## [1.3.0] - 2026-06-06
+
+### Added (Thêm mới)
+* **API Cập nhật Chỉ số Đội tuyển bằng AI/Search:** Xây dựng API `/api/admin/teams/ai-update` tự động tìm kiếm ELO, FIFA rank, phong độ gần đây, bàn thắng/thua trung bình, cầu thủ ngôi sao, phân tích chiến thuật và lưu vào SQLite.
+* **Giao diện trang Stats cập nhật AI/Search:** Bổ sung Panel "Đồng bộ Stats bằng AI & Search" cho phép chọn nhanh một đội tuyển để chạy cập nhật.
+* **Đồng bộ Stats nhanh ở Trang chủ:** Tích hợp nút bấm **"⚡ Stats AI"** (trong Grid View) và **📊** (trong List View) trên mỗi Card trận đấu để tự động cập nhật Stats của cả 2 đội bóng song song.
+* **Toast Notification Glassmorphism:** Hiển thị thông báo Toast góc dưới bên phải màn hình thông báo trạng thái đồng bộ thành công/thất bại sinh động.
+
+### Changed (Thay đổi)
+* **Hệ thống Dự Đoán Hybrid AI + Poisson:** Tích hợp mô hình Poisson Expected Goals (xG) làm baseline định lượng cho AI, cộng thêm hệ số sân nhà (+0.3 xG) cho các nước đồng chủ nhà (Mexico, Canada, USA).
+* **Consensus Engine:** Triển khai Multi-Model Consensus Engine tự động gọi song song các AI models đang bật để tính trung bình cộng xác suất thắng/hòa/thua. Nâng cấp prompt Few-Shot và Chain-of-Thought.
+* **Tab Quản Lý Đội Tuyển trong Admin:** Thêm tab quản lý đội tuyển trong `/admin` hỗ trợ tìm kiếm, lọc bảng đấu và Modal Glassmorphism chỉnh sửa thủ công (Manual Update). Loại bỏ hoàn toàn cơ chế tự động cập nhật AI ngầm (AI auto-update) không mong muốn.
+
+---
+
 ## [1.2.1] - 2026-06-06
 
 ### Added (Thêm mới)

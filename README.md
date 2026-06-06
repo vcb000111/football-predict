@@ -28,7 +28,7 @@ Hệ thống dự đoán kết quả bóng đá và phân tích kèo đấu thô
   * Tự động fallback về DuckDuckGo Scraper làm dự phòng cuối cùng.
 
 ### 3. Trang Quản Trị Cấu Hình Tập Trung (`/admin`)
-* Cho phép cấu hình trực tiếp các API Keys của Google Gemini.
+* Giao diện quản trị cấu hình AI & RAG trực quan.
 * Quản lý danh sách AI Models hoạt động, sắp xếp thứ tự ưu tiên bằng nút di chuyển (Up/Down) và bật/tắt linh hoạt.
 * Quản lý thứ tự ưu tiên của các Search Engines (Tavily, Brave, Serper) và thêm/xóa/bật/tắt API Keys của từng Engine.
 * Toàn bộ cấu hình được lưu trữ bền vững vào **SQLite Database** (`worldcup_predictions.db`), hoàn toàn loại bỏ việc sử dụng biến môi trường cứng trong mã nguồn.
@@ -38,14 +38,31 @@ Hệ thống dự đoán kết quả bóng đá và phân tích kèo đấu thô
 * Đối chiếu kết quả và chấm điểm (Đúng/Sai/Hòa tiền) cho toàn bộ các kèo dự đoán trước đó.
 * Đồng bộ hóa tỉ số trực tuyến ngược vào file dữ liệu cấu trúc [fixtures.json](file:///d:/Projects/Football_Predict/src/data/fixtures.json) và hiển thị trực tiếp lên giao diện trang chủ với các nhãn màu sinh động.
 
+### 5. Hệ Thống Dự Đoán Hybrid Chuyên Sâu (Poisson + AI Consensus)
+* **Mô hình Phân phối Poisson:** Tự động tính số bàn thắng kỳ vọng (xG) và xác suất Thắng - Hòa - Thua (1X2) của 2 đội làm baseline định lượng. Áp dụng hệ số lợi thế sân nhà (+0.3 xG) cho 3 nước chủ nhà (Mexico, Canada, USA) khi thi đấu tại nước họ.
+* **Consensus Engine (Đồng thuận đa mô hình):** Gửi prompt dự đoán song song đến 2 AI Models hàng đầu đang bật để lấy trung bình cộng xác suất thắng/hòa/thua, tối ưu độ tin cậy.
+* **Prompting Nâng Cao:** Sử dụng Few-Shot mẫu nhận định, ép AI suy luận chiến thuật logic chi tiết (Chain of Thought - CoT) trước khi đưa ra kết luận tỷ số.
+
+### 6. Quản Lý Thực Lực 48 Đội Tuyển & Đồng Bộ Stats (AI/Search)
+* **Cơ sở dữ liệu Đội tuyển:** Lưu trữ FIFA Rank, ELO Rating, phong độ gần đây, bàn thắng/thua trung bình 10 trận, danh sách ngôi sao, phân tích chiến thuật của 48 đội tuyển World Cup 2026.
+* **Chỉnh sửa thủ công (Manual Update):** Tab quản lý đội tuyển trong trang `/admin` cho phép tìm kiếm, lọc theo bảng đấu và chỉnh sửa nhanh chỉ số bằng Modal Glassmorphism.
+* **Đồng bộ tự động bằng AI/Search:**
+  - Trên trang `/stats`: Panel chọn nhanh đội tuyển và click cập nhật chỉ số tự động từ Internet bằng RAG Search và AI Gemini.
+  - Trên Trang chủ: Nút **"⚡ Stats AI"** (Grid View) và icon **📊** (List View) trên Card trận đấu cho phép đồng bộ song song chỉ số thực lực của 2 đội bóng, đi kèm Toast thông báo glassmorphism.
+
+### 7. Caching Kết Quả & Mô Phỏng Monte Carlo 10,000 Lần
+* **Cơ chế Caching 24 giờ:** Tự động lưu trữ kết quả dự đoán vào SQLite và trả về tức thì ở những lần gọi sau. Tự động vô hiệu hóa cache nếu chỉ số thực lực của bất kỳ đội tuyển nào thay đổi.
+* **Mô phỏng Monte Carlo 10,000 lần:** Giả lập trận đấu 10,000 lần trực tuyến bằng toán học Poisson để tính xác suất động (thập phân), tỷ lệ BTTS, Tài Xỉu, và xếp hạng 5 tỷ số dễ xảy ra nhất.
+* **Giao diện trực quan cao cấp:** Hiển thị biểu đồ phân phối Monte Carlo, nhãn trạng thái Cache rõ ràng và nút làm mới dự đoán bằng AI.
+
 ---
 
 ## 💻 Công Nghệ Sử Dụng
 
 * **Frontend/Backend:** Next.js (App Router), React, TailwindCSS.
-* **Database:** SQLite (sqlite3 & open) lưu trữ cấu hình hệ thống và lịch sử dự đoán.
-* **AI Model:** Google Gemini API (hỗ trợ xoay vòng gemini-2.5-flash, gemini-3.5-flash, ...).
-* **RAG Search APIs:** Tavily API, Brave Search API, Serper API.
+* **Database:** SQLite (sqlite3 & open) lưu trữ cấu hình hệ thống, thông tin đội tuyển và lịch sử dự đoán.
+* **AI Model:** Google Gemini API (hỗ trợ xoay vòng và đồng thuận gemini-3.5-flash, gemini-3-flash-preview, ...).
+* **RAG Search APIs:** Tavily API, Brave Search API, Serper API, DuckDuckGo Web Scraper.
 
 ---
 
@@ -57,7 +74,7 @@ npm install
 ```
 
 ### 2. Thiết lập cơ sở dữ liệu và seed dữ liệu ban đầu:
-Hệ thống sẽ tự động khởi tạo file database `worldcup_predictions.db`, chạy các migrations và nhập (seeding) dữ liệu cấu hình mặc định (bao gồm các keys lấy từ `.env.local` nếu có) trong lần khởi chạy đầu tiên.
+Hệ thống sẽ tự động khởi tạo file database `worldcup_predictions.db`, chạy các migrations và nhập (seeding) dữ liệu cấu hình và 48 đội tuyển mặc định trong lần khởi chạy đầu tiên.
 
 ### 3. Chạy môi trường phát triển:
 ```bash
@@ -66,4 +83,29 @@ npm run dev
 
 ### 4. Truy cập giao diện:
 * Trang chủ: [http://localhost:3000](http://localhost:3000)
-* Trang quản trị: [http://localhost:3000/admin](http://localhost:3000/admin)
+* Trang thống kê & gợi ý kèo (BA): [http://localhost:3000/stats](http://localhost:3000/stats)
+* Trang quản trị & cấu hình: [http://localhost:3000/admin](http://localhost:3000/admin)
+
+---
+
+## 🛠️ Nhật Ký Thay Đổi (Changelog)
+
+### [2026-06-06] - Cập nhật Cache dự đoán & Mô phỏng Monte Carlo 10,000 lần
+* **Cơ chế Caching thông minh (SQLite):** Lưu trữ kết quả dự đoán trận đấu, tự động bypass cache nếu quá 24h hoặc nếu chỉ số của 2 đội bóng thay đổi trong database.
+* **Mô phỏng Monte Carlo:** Triển khai thuật toán Knuth ngẫu nhiên Poisson chạy 10,000 lần để tính toán xác suất 1X2 động, BTTS, Tài Xỉu, và top 5 tỉ số khả thi nhất. Tích hợp dữ liệu mô phỏng này vào Prompt AI làm thông tin định lượng đầu vào.
+* **Giao diện Modal Dự Đoán Nâng Cao:** Thiết kế Panel Monte Carlo trực quan cao cấp, hiển thị nhãn cache rõ ràng và thêm nút bấm **"🔄 Phân tích lại"** để người dùng làm mới dự đoán AI bất cứ lúc nào.
+* **Tài liệu hóa:** Cập nhật CHANGELOG.md và README.md lên phiên bản 1.4.0.
+
+### [2026-06-06] - Cập nhật đồng bộ Stats AI/Search & Thống kê
+* **Tính năng mới:** Phát triển API `/api/admin/teams/ai-update` cho phép cập nhật chỉ số đội tuyển từ Internet (FIFA Rank, ELO, Goals, Form, Stars, Tactics) bằng AI Gemini kết hợp Search RAG.
+* **Giao diện trang Stats:** Bổ sung Panel "Đồng bộ Stats bằng AI & Search" cho phép chọn nhanh đội tuyển từ danh sách để chạy đồng bộ.
+* **Giao diện Trang chủ:** Bổ sung nút **"⚡ Stats AI"** (Grid view) và **📊** (List view) trên mỗi Card trận đấu giúp cập nhật stats nhanh của 2 đội bóng song song, đi kèm Toast thông báo glassmorphism cao cấp.
+* **Tài liệu:** Khởi tạo tài liệu [walkthrough.md](file:///C:/Users/Admin/.gemini/antigravity-ide/brain/057d7df7-a0a7-45e4-aee3-bf2a9fdf7082/walkthrough.md) và [task.md](file:///C:/Users/Admin/.gemini/antigravity-ide/brain/057d7df7-a0a7-45e4-aee3-bf2a9fdf7082/task.md) để theo dõi tiến độ và nghiệm thu.
+
+### [2026-06-05] - Cập nhật Hybrid AI Predictor & Quản lý đội tuyển SQLite
+* **SQLite teams Schema & Seeding:** Khởi tạo bảng `teams` trong SQLite và seed dữ liệu chi tiết cho 48 đội tuyển World Cup 2026.
+* **Poisson Model:** Xây dựng thuật toán phân phối Poisson tính xG và xác suất trận đấu làm baseline định lượng cho AI, áp dụng hệ số sân nhà (+0.3 xG) cho Mexico, Canada, USA.
+* **Consensus Engine:** Triển khai Multi-Model Consensus Engine gọi song song 2 models AI hàng đầu để lấy tỷ lệ xác suất đồng thuận.
+* **Admin nâng cấp:** Thêm Tab "Quản lý đội tuyển" trong `/admin` và Modal Glassmorphism cho phép chỉnh sửa thủ công (Manual Update).
+* **Đồng bộ lịch thi đấu:** Đồng bộ 48 trận đấu vòng bảng chính thức vào [fixtures.json](file:///d:/Projects/Football_Predict/src/data/fixtures.json), sửa cờ Ivory Coast và khắc phục triệt để lỗi cờ trắng.
+* **Trang thống kê:** Xây dựng trang `/stats` thống kê hiệu suất dự đoán lịch sử của AI và gợi ý kèo ngon BA (Bet Analyst) tự động.

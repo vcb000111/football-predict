@@ -2,6 +2,32 @@ import { NextResponse } from 'next/server';
 import { getDB } from '@/lib/db';
 import fixturesData from '@/data/fixtures.json';
 
+export const dynamic = 'force-dynamic';
+
+function translateRecommendation(text) {
+  if (!text) return '';
+  const trimmed = text.trim();
+  const lower = trimmed.toLowerCase();
+
+  // Dịch kèo 1X2
+  if (lower === 'home') return 'Đội nhà';
+  if (lower === 'away') return 'Đội khách';
+  if (lower === 'draw') return 'Hòa';
+
+  // Dịch BTTS
+  if (lower === 'yes') return 'Có';
+  if (lower === 'no') return 'Không';
+
+  // Dịch Tài Xỉu / Phạt Góc / Thẻ Phạt (Over / Under)
+  let translated = trimmed;
+  translated = translated.replace(/over/gi, 'Tài');
+  translated = translated.replace(/under/gi, 'Xỉu');
+  translated = translated.replace(/corners/gi, 'Phạt góc');
+  translated = translated.replace(/cards/gi, 'Thẻ phạt');
+
+  return translated;
+}
+
 export async function GET() {
   try {
     const db = await getDB();
@@ -125,7 +151,7 @@ export async function GET() {
             recommendation: recOu,
             confidence: ouWinPct >= 75 ? 'Cực cao 🔥' : 'Cao ⭐',
             winPct: ouWinPct,
-            reason: `Kèo Tài Xỉu 2.5 được đánh giá có độ tin cậy cực kỳ ổn định với tỉ lệ thắng lịch sử của AI đạt ${ouWinPct}%. Ở trận này, AI dự báo kết quả tỷ số là ${pHome}-${pAway} (${isOver ? 'nhiều bàn thắng cởi mở' : 'chặt chẽ thực dụng'}), lựa chọn kèo "${recOu}" được khuyến nghị ưu tiên.`
+            reason: `Kèo Tài Xỉu 2.5 được đánh giá có độ tin cậy cực kỳ ổn định với tỉ lệ thắng lịch sử của AI đạt ${ouWinPct}%. Ở trận này, AI dự báo kết quả tỷ số là ${pHome}-${pAway} (${isOver ? 'nhiều bàn thắng cởi mở' : 'chặt chẽ thực dụng'}), lựa chọn kèo "${translateRecommendation(recOu)}" được khuyến nghị ưu tiên.`
           });
         }
 
@@ -141,7 +167,7 @@ export async function GET() {
             recommendation: recBtts,
             confidence: bttsWinPct >= 75 ? 'Cực cao 🔥' : 'Cao ⭐',
             winPct: bttsWinPct,
-            reason: `Kèo BTTS đạt độ chính xác lịch sử là ${bttsWinPct}%. AI nhận định sức mạnh tấn công và phòng ngự của hai đội ở trận này chỉ ra rằng khả năng ghi bàn từ cả hai bên là ${isYes ? 'rất cao' : 'khó xảy ra'}, khuyến nghị chọn kèo "${recBtts}".`
+            reason: `Kèo BTTS đạt độ chính xác lịch sử là ${bttsWinPct}%. AI nhận định sức mạnh tấn công và phòng ngự của hai đội ở trận này chỉ ra rằng khả năng ghi bàn từ cả hai bên là ${isYes ? 'rất cao' : 'khó xảy ra'}, khuyến nghị chọn kèo "${translateRecommendation(recBtts)}".`
           });
         }
 

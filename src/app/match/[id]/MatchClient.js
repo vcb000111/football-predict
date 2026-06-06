@@ -4,6 +4,56 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { getTeamFlag } from '@/lib/flags';
 
+function getPredictionStatus(predHome, predAway, actHome, actAway) {
+  if (actHome === null || actHome === undefined || actAway === null || actAway === undefined) {
+    return { status: 'pending', text: 'Chờ', colorClass: 'bg-gray-500/10 text-gray-400 border-gray-500/20' };
+  }
+  
+  const pHome = parseInt(predHome, 10);
+  const pAway = parseInt(predAway, 10);
+  const aHome = parseInt(actHome, 10);
+  const aAway = parseInt(actAway, 10);
+
+  if (pHome === aHome && pAway === aAway) {
+    return { status: 'correct', text: 'Đúng', colorClass: 'bg-emerald-500/20 text-primary border border-primary/20 shadow-sm' };
+  }
+  
+  const predDiff = pHome - pAway;
+  const actDiff = aHome - aAway;
+  const predOutcome = predDiff > 0 ? 1 : (predDiff < 0 ? -1 : 0);
+  const actOutcome = actDiff > 0 ? 1 : (actDiff < 0 ? -1 : 0);
+  
+  if (predOutcome === actOutcome) {
+    return { status: 'near', text: 'Gần đúng', colorClass: 'bg-amber-500/20 text-amber-400 border border-amber-500/20' };
+  }
+  
+  return { status: 'incorrect', text: 'Sai', colorClass: 'bg-rose-500/20 text-rose-400 border-rose-500/20' };
+}
+
+function translateRecommendation(text) {
+  if (!text) return '';
+  const trimmed = text.trim();
+  const lower = trimmed.toLowerCase();
+
+  // Dịch kèo 1X2
+  if (lower === 'home') return 'Đội nhà';
+  if (lower === 'away') return 'Đội khách';
+  if (lower === 'draw') return 'Hòa';
+
+  // Dịch BTTS
+  if (lower === 'yes') return 'Có';
+  if (lower === 'no') return 'Không';
+
+  // Dịch Tài Xỉu / Phạt Góc / Thẻ Phạt (Over / Under)
+  let translated = trimmed;
+  translated = translated.replace(/over/gi, 'Tài');
+  translated = translated.replace(/under/gi, 'Xỉu');
+  translated = translated.replace(/corners/gi, 'Phạt góc');
+  translated = translated.replace(/cards/gi, 'Thẻ phạt');
+
+  return translated;
+}
+
 export default function MatchClient({ match }) {
   const [loading, setLoading] = useState(true);
   const [predicting, setPredicting] = useState(false);
@@ -11,7 +61,6 @@ export default function MatchClient({ match }) {
   const [prediction, setPrediction] = useState(null);
   const [historyList, setHistoryList] = useState([]);
   const [loadingStep, setLoadingStep] = useState(0);
-  const fetchCalled = useRef(false);
 
   // States cho Form cập nhật kết quả thực tế
   const [actHome, setActHome] = useState('');
@@ -36,40 +85,53 @@ export default function MatchClient({ match }) {
     return () => clearInterval(interval);
   }, [loading, predicting]);
 
-  // Load history on mount
+  // Load history when match changes or on mount
   useEffect(() => {
-    if (fetchCalled.current) return;
-    fetchCalled.current = true;
-    loadMatchData();
-  }, [match]);
-
-  const loadMatchData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      // 1. Lấy lịch sử dự đoán từ SQLite
-      const res = await fetch(`/api/history?matchId=${match.id}`);
-      if (!res.ok) throw new Error('Không thể tải lịch sử dự đoán');
-      const data = await res.json();
+    let active = true;
+    
+    const initAndLoad = async () => {
+      setLoading(true);
+      setError(null);
+      setPrediction(null);
+      setHistoryList([]);
+      setResMessage(null);
+      setActHome('');
+      setActAway('');
       
-      if (data.history && data.history.length > 0) {
-        setHistoryList(data.history);
-        setPrediction(data.history[0]); // Lấy bản ghi mới nhất hiển thị
+      try {
+        const res = await fetch(`/api/history?matchId=${match.id}`);
+        if (!res.ok) throw new Error('Không thể tải lịch sử dự đoán');
+        const data = await res.json();
+        
+        if (!active) return;
+
+        if (data.history && data.history.length > 0) {
+          setHistoryList(data.history);
+          setPrediction(data.history[0]);
+          setLoading(false);
+        } else {
+          // Tự động kích hoạt dự đoán mới nếu chưa có lịch sử
+          await handleRunNewPrediction();
+        }
+      } catch (err) {
+        if (!active) return;
+        setError(err.message);
         setLoading(false);
-      } else {
-        // 2. Nếu chưa có lịch sử, tự động kích hoạt dự đoán mới
-        await handleRunNewPrediction();
       }
-    } catch (err) {
-      setError(err.message);
-      setLoading(false);
-    }
-  };
+    };
+
+    initAndLoad();
+
+    return () => {
+      active = false;
+    };
+  }, [match.id]);
 
   const handleRunNewPrediction = async () => {
+    const currentMatchId = match.id;
     setPredicting(true);
-    setLoading(false); // Hide general loading spinner when predicting starts
     setResMessage(null);
+    setError(null); // Xóa lỗi cũ trước khi chạy dự đoán mới
     setLoadingStep(0);
     try {
       const res = await fetch('/api/predict', {
@@ -78,7 +140,8 @@ export default function MatchClient({ match }) {
         body: JSON.stringify({
           homeTeam: match.homeTeam,
           awayTeam: match.awayTeam,
-          matchId: match.id
+          matchId: currentMatchId,
+          forceRefresh: true
         })
       });
 
@@ -87,19 +150,29 @@ export default function MatchClient({ match }) {
       }
 
       const newPred = await res.json();
+      
+      // Nếu người dùng đã chuyển sang trận đấu khác, bỏ qua cập nhật state
+      if (match.id !== currentMatchId) return;
+
       setPrediction(newPred);
       
       // Tải lại lịch sử sau khi dự đoán thành công
-      const histRes = await fetch(`/api/history?matchId=${match.id}`);
+      const histRes = await fetch(`/api/history?matchId=${currentMatchId}`);
       if (histRes.ok) {
         const histData = await histRes.json();
-        setHistoryList(histData.history);
+        if (match.id === currentMatchId) {
+          setHistoryList(histData.history);
+        }
       }
     } catch (err) {
-      setError(err.message);
+      if (match.id === currentMatchId) {
+        setError(err.message);
+      }
     } finally {
-      setPredicting(false);
-      setLoading(false);
+      if (match.id === currentMatchId) {
+        setPredicting(false);
+        setLoading(false);
+      }
     }
   };
 
@@ -205,7 +278,7 @@ export default function MatchClient({ match }) {
         </div>
 
         {/* LOADING STATE */}
-        {loading && !predicting && (
+        {loading && !prediction && (
           <div className="glass-panel rounded-2xl p-8 text-center border border-card-border flex flex-col items-center justify-center min-h-[250px]">
             <div className="h-10 w-10 mb-4 relative">
               <div className="absolute inset-0 rounded-full border-3 border-card-border border-t-primary animate-spin"></div>
@@ -218,8 +291,8 @@ export default function MatchClient({ match }) {
           </div>
         )}
 
-        {/* NEW PREDICTION PROGRESS */}
-        {predicting && (
+        {/* NEW PREDICTION PROGRESS (INITIAL ONLY) */}
+        {predicting && !prediction && (
           <div className="glass-panel rounded-2xl p-8 text-center border border-card-border/80 flex flex-col items-center justify-center min-h-[250px] mb-4">
             <div className="h-10 w-10 mb-4 relative">
               <div className="absolute inset-0 rounded-full border-3 border-card-border border-t-secondary animate-spin"></div>
@@ -232,15 +305,36 @@ export default function MatchClient({ match }) {
           </div>
         )}
 
-        {/* ERROR STATE */}
-        {error && !predicting && (
+        {/* ERROR STATE (INITIAL ONLY) */}
+        {error && !prediction && (
           <div className="glass-panel rounded-2xl p-6 text-center border border-red-500/30 bg-red-950/10 mb-4">
             <span className="text-3xl block mb-2">❌</span>
             <h3 className="text-red-400 font-bold text-sm mb-1">Đã xảy ra lỗi khi lấy nhận định</h3>
             <p className="text-gray-400 text-xs mb-4">{error}</p>
             <button 
-              onClick={() => loadMatchData()}
-              className="bg-card-border hover:bg-card-border/80 border border-card-border text-white font-bold py-1.5 px-4 rounded-xl text-xs transition-all"
+              onClick={() => {
+                setError(null);
+                setLoading(true);
+                fetch(`/api/history?matchId=${match.id}`)
+                  .then(res => {
+                    if (!res.ok) throw new Error('Không thể tải lịch sử');
+                    return res.json();
+                  })
+                  .then(data => {
+                    if (data.history && data.history.length > 0) {
+                      setHistoryList(data.history);
+                      setPrediction(data.history[0]);
+                      setLoading(false);
+                    } else {
+                      handleRunNewPrediction();
+                    }
+                  })
+                  .catch(err => {
+                    setError(err.message);
+                    setLoading(false);
+                  });
+              }}
+              className="bg-card-border hover:bg-card-border/80 border border-card-border text-white font-bold py-1.5 px-4 rounded-xl text-xs transition-all cursor-pointer"
             >
               Thử lại
             </button>
@@ -248,8 +342,34 @@ export default function MatchClient({ match }) {
         )}
 
         {/* PREDICTION CONTENT (LOADED) */}
-        {!loading && !predicting && !error && prediction && (
+        {prediction && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            
+            {/* Inline Notifications (Error / Progress) */}
+            {error && (
+              <div className="lg:col-span-12 p-3 rounded-xl border border-rose-500/30 bg-rose-500/10 text-[11px] text-rose-400 leading-relaxed flex items-center justify-between animate-fade-in shadow-lg">
+                <span className="flex items-center space-x-1.5">
+                  <span>🔴</span>
+                  <span><strong>Yêu cầu dự đoán mới thất bại:</strong> {error}</span>
+                </span>
+                <button 
+                  onClick={() => setError(null)} 
+                  className="text-gray-400 hover:text-white font-bold px-2 py-0.5 rounded border border-card-border/60 hover:bg-card-border/20 text-[10px] cursor-pointer"
+                >
+                  Đóng
+                </button>
+              </div>
+            )}
+
+            {predicting && (
+              <div className="lg:col-span-12 p-3 rounded-xl border border-secondary/30 bg-secondary/5 text-[11px] text-secondary leading-relaxed flex items-center space-x-2 animate-pulse shadow-lg">
+                <span>🧠</span>
+                <div>
+                  <strong>Tiến trình AI:</strong>{' '}
+                  <span className="text-gray-300">{loadingSteps[loadingStep]}</span>
+                </div>
+              </div>
+            )}
             
             {/* Left Column: Match Predictions & Bets & Runs History (5 Cols) */}
             <div className="lg:col-span-5 space-y-4">
@@ -276,9 +396,21 @@ export default function MatchClient({ match }) {
                 <button
                   onClick={handleRunNewPrediction}
                   disabled={predicting}
-                  className="bg-gradient-to-r from-primary to-secondary hover:scale-[1.01] active:scale-[0.99] text-white font-bold py-2 px-4 rounded-xl text-xs tracking-wider transition-all duration-150"
+                  className={`bg-gradient-to-r from-primary to-secondary text-white font-bold py-2 px-4 rounded-xl text-xs tracking-wider transition-all duration-150 flex items-center space-x-1.5 shadow-md shadow-primary/10 ${
+                    predicting ? 'opacity-50 cursor-not-allowed scale-100' : 'hover:scale-[1.01] active:scale-[0.99] cursor-pointer'
+                  }`}
                 >
-                  🧠 DỰ ĐOÁN MỚI
+                  {predicting ? (
+                    <>
+                      <span className="animate-spin inline-block">🔄</span>
+                      <span>ĐANG DỰ ĐOÁN...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>🧠</span>
+                      <span>DỰ ĐOÁN MỚI</span>
+                    </>
+                  )}
                 </button>
               </div>
 
@@ -361,15 +493,14 @@ export default function MatchClient({ match }) {
                             <span className="font-mono font-extrabold text-sm text-gray-200 bg-card-border/30 px-2 py-0.5 rounded border border-card-border/30">
                               Dự đoán: {pHome}-{pAway}
                             </span>
-                            {hasActualResult && (
-                              <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${
-                                run.is_correct === 1 
-                                  ? 'bg-primary/20 text-primary border border-primary/20' 
-                                  : 'bg-red-500/20 text-red-400 border border-red-500/20'
-                              }`}>
-                                {run.is_correct === 1 ? 'Đúng' : 'Sai'} ({actualHome}-{actualAway})
-                              </span>
-                            )}
+                            {hasActualResult && (() => {
+              const status = getPredictionStatus(pHome, pAway, actualHome, actualAway);
+              return (
+                <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${status.colorClass}`}>
+                  {status.text} ({actualHome}-{actualAway})
+                </span>
+              );
+            })()}
                           </div>
                         </div>
                       );
@@ -419,7 +550,7 @@ export default function MatchClient({ match }) {
                           <span className="text-[10px] font-bold text-gray-500 uppercase">Kèo Châu Âu (1X2)</span>
                           <div className="flex items-center space-x-1.5">
                             <span className="bg-primary/20 text-primary border border-primary/20 font-bold px-1.5 py-0.5 rounded text-[10px]">
-                              {prediction.recommendation_1x2 ?? prediction.bets?.oneXTwo?.recommendation}
+                              {translateRecommendation(prediction.recommendation_1x2 ?? prediction.bets?.oneXTwo?.recommendation)}
                             </span>
                             {renderBetOutcomeBadge('oneXTwo')}
                           </div>
@@ -433,7 +564,7 @@ export default function MatchClient({ match }) {
                           <span className="text-[10px] font-bold text-gray-500 uppercase">Kèo Tài Xỉu (O/U)</span>
                           <div className="flex items-center space-x-1.5">
                             <span className="bg-secondary/20 text-secondary border border-secondary/20 font-bold px-1.5 py-0.5 rounded text-[10px]">
-                              {prediction.recommendation_ou ?? prediction.bets?.overUnder?.recommendation}
+                              {translateRecommendation(prediction.recommendation_ou ?? prediction.bets?.overUnder?.recommendation)}
                             </span>
                             {renderBetOutcomeBadge('overUnder')}
                           </div>
@@ -447,7 +578,7 @@ export default function MatchClient({ match }) {
                           <span className="text-[10px] font-bold text-gray-500 uppercase">Kèo Chấp Châu Á</span>
                           <div className="flex items-center space-x-1.5">
                             <span className="bg-accent/20 text-accent border border-accent/20 font-bold px-1.5 py-0.5 rounded text-[10px]">
-                              {prediction.recommendation_handicap ?? prediction.bets?.handicap?.recommendation}
+                              {translateRecommendation(prediction.recommendation_handicap ?? prediction.bets?.handicap?.recommendation)}
                             </span>
                             {renderBetOutcomeBadge('handicap')}
                           </div>
@@ -461,7 +592,7 @@ export default function MatchClient({ match }) {
                           <span className="text-[10px] font-bold text-gray-500 uppercase">Cả Hai Đội Ghi Bàn (BTTS)</span>
                           <div className="flex items-center space-x-1.5">
                             <span className="bg-[#1D4ED8]/25 text-blue-400 border border-[#1D4ED8]/30 font-bold px-1.5 py-0.5 rounded text-[10px]">
-                              {prediction.recommendation_btts ?? prediction.bets?.btts?.recommendation}
+                              {translateRecommendation(prediction.recommendation_btts ?? prediction.bets?.btts?.recommendation)}
                             </span>
                             {renderBetOutcomeBadge('btts')}
                           </div>
@@ -475,7 +606,7 @@ export default function MatchClient({ match }) {
                           <span className="text-[10px] font-bold text-gray-500 uppercase">Kèo Phạt Góc (O/U 8.5)</span>
                           <div className="flex items-center space-x-1.5">
                             <span className="bg-[#581C87]/25 text-purple-400 border border-[#581C87]/30 font-bold px-1.5 py-0.5 rounded text-[10px]">
-                              {prediction.recommendation_corners ?? prediction.bets?.corners?.recommendation}
+                              {translateRecommendation(prediction.recommendation_corners ?? prediction.bets?.corners?.recommendation)}
                             </span>
                             {renderBetOutcomeBadge('corners')}
                           </div>
@@ -489,7 +620,7 @@ export default function MatchClient({ match }) {
                           <span className="text-[10px] font-bold text-gray-500 uppercase">Kèo Thẻ Phạt (O/U 3.5)</span>
                           <div className="flex items-center space-x-1.5">
                             <span className="bg-[#D97706]/20 text-[#F59E0B] border border-[#D97706]/35 font-bold px-1.5 py-0.5 rounded text-[10px]">
-                              {prediction.recommendation_cards ?? prediction.bets?.cards?.recommendation}
+                              {translateRecommendation(prediction.recommendation_cards ?? prediction.bets?.cards?.recommendation)}
                             </span>
                             {renderBetOutcomeBadge('cards')}
                           </div>

@@ -49,6 +49,8 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
   const [localFixtures, setLocalFixtures] = useState(initialData.fixtures);
   const [updatingAutoList, setUpdatingAutoList] = useState({});
   const [resultModalData, setResultModalData] = useState(null);
+  const [syncingStats, setSyncingStats] = useState({});
+  const [toastMessage, setToastMessage] = useState(null);
 
   // Sync state with props when parent updates
   useEffect(() => {
@@ -63,6 +65,8 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
     setLocalFixtures(initialData.fixtures);
   }, [initialData.fixtures]);
 
+
+  const [isRestored, setIsRestored] = useState(false);
 
   // Load persisted states from localStorage on mount
   useEffect(() => {
@@ -81,39 +85,41 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
 
       const persistedSearch = localStorage.getItem('homepage_search_query');
       if (persistedSearch) setSearchQuery(persistedSearch);
+      
+      setIsRestored(true);
     }
   }, []);
 
   // Save states to localStorage when they change
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (isRestored && typeof window !== 'undefined') {
       localStorage.setItem('homepage_active_tab', activeTab);
     }
-  }, [activeTab]);
+  }, [activeTab, isRestored]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (isRestored && typeof window !== 'undefined') {
       localStorage.setItem('homepage_layout', layout);
     }
-  }, [layout]);
+  }, [layout, isRestored]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (isRestored && typeof window !== 'undefined') {
       localStorage.setItem('homepage_sort_by', sortBy);
     }
-  }, [sortBy]);
+  }, [sortBy, isRestored]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (isRestored && typeof window !== 'undefined') {
       localStorage.setItem('homepage_group_filter', selectedGroupFilter);
     }
-  }, [selectedGroupFilter]);
+  }, [selectedGroupFilter, isRestored]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (isRestored && typeof window !== 'undefined') {
       localStorage.setItem('homepage_search_query', searchQuery);
     }
-  }, [searchQuery]);
+  }, [searchQuery, isRestored]);
 
 
   const handleQuickPredict = async (fixture) => {
@@ -286,6 +292,35 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
     }
   };
 
+  const showToast = (text, success = true) => {
+    setToastMessage({ text, success });
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 5000);
+  };
+
+  const handleUpdateMatchStats = async (fixture) => {
+    if (syncingStats[fixture.id]) return;
+    setSyncingStats(prev => ({ ...prev, [fixture.id]: true }));
+    try {
+      const res = await fetch('/api/admin/teams/ai-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teamNames: [fixture.homeTeam, fixture.awayTeam] })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(`Đã đồng bộ Stats cho ${fixture.homeTeam} & ${fixture.awayTeam} thành công!`, true);
+      } else {
+        throw new Error(data.error || 'Cập nhật Stats thất bại');
+      }
+    } catch (err) {
+      showToast(`Lỗi cập nhật Stats: ${err.message}`, false);
+    } finally {
+      setSyncingStats(prev => ({ ...prev, [fixture.id]: false }));
+    }
+  };
+
   const { groups } = initialData;
 
   // Phân chia trận đấu chính thức và trận thử nghiệm
@@ -325,6 +360,20 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
 
   return (
     <div className="min-h-screen pb-6 bg-gradient-to-b from-[#0B0F17] via-[#0D1527] to-[#0A0D14]">
+      
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className={`fixed bottom-5 right-5 z-50 p-4 rounded-xl border text-xs font-semibold backdrop-blur-md shadow-2xl transition-all duration-300 animate-slide-in ${
+          toastMessage.success 
+            ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' 
+            : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
+        }`}>
+          <div className="flex items-center space-x-2">
+            <span>{toastMessage.success ? '✅' : '🔴'}</span>
+            <span>{toastMessage.text}</span>
+          </div>
+        </div>
+      )}
       
       {/* Hero Header Section */}
       <section className="relative overflow-hidden py-10 border-b border-card-border/50">
@@ -623,10 +672,10 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                             );
                           })()}
                           
-                          <div className="flex space-x-1.5">
+                          <div className="grid grid-cols-2 gap-1.5">
                             <Link 
                               href={`/match/${fixture.id}`}
-                              className="flex-1 bg-card-border hover:bg-primary/20 border border-card-border hover:border-primary/50 text-white font-bold py-2 px-1.5 rounded-lg text-center text-xs transition-all duration-150 flex items-center justify-center space-x-1"
+                              className="bg-card-border hover:bg-primary/20 border border-card-border hover:border-primary/50 text-white font-bold py-1.5 px-1 rounded-lg text-center text-[11px] transition-all duration-150 flex items-center justify-center space-x-1"
                               title="Xem chi tiết & lịch sử dự đoán"
                             >
                               <span>🔍 Chi Tiết</span>
@@ -634,8 +683,8 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                             
                             <button
                               onClick={() => handleQuickPredict(fixture)}
-                              disabled={quickPredicting[fixture.id]}
-                              className={`flex-1 text-white font-bold py-2 px-1.5 rounded-lg text-center text-xs transition-all duration-150 flex items-center justify-center space-x-1 active:scale-[0.98] cursor-pointer ${
+                              disabled={quickPredicting[fixture.id] || syncingStats[fixture.id]}
+                              className={`text-white font-bold py-1.5 px-1 rounded-lg text-center text-[11px] transition-all duration-150 flex items-center justify-center space-x-1 active:scale-[0.98] cursor-pointer ${
                                 quickPredicting[fixture.id]
                                   ? 'bg-[#151E2E] text-gray-500 border border-card-border'
                                   : 'bg-gradient-to-r from-primary/80 to-secondary/80 hover:from-primary hover:to-secondary border border-primary/20 hover:border-primary/40'
@@ -645,16 +694,29 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                             </button>
 
                             <button
+                              onClick={() => handleUpdateMatchStats(fixture)}
+                              disabled={syncingStats[fixture.id] || quickPredicting[fixture.id] || updatingAutoList[fixture.id]}
+                              className={`text-white font-bold py-1.5 px-1 rounded-lg text-center text-[11px] transition-all duration-150 flex items-center justify-center space-x-1 active:scale-[0.98] cursor-pointer ${
+                                syncingStats[fixture.id]
+                                  ? 'bg-[#151E2E] text-gray-500 border border-card-border'
+                                  : 'bg-gradient-to-r from-indigo-500/20 to-purple-500/20 hover:from-indigo-500/35 hover:to-purple-500/35 border border-indigo-500/30 hover:border-indigo-500/50 text-indigo-300'
+                              }`}
+                              title="Cập nhật ELO, FIFA Rank và phong độ mới nhất bằng AI/Search"
+                            >
+                              <span>{syncingStats[fixture.id] ? '⏳ Stats...' : '⚡ Stats AI'}</span>
+                            </button>
+
+                            <button
                               onClick={() => handleAutoUpdate(fixture)}
-                              disabled={updatingAutoList[fixture.id] || quickPredicting[fixture.id]}
-                              className={`flex-1 text-white font-bold py-2 px-1.5 rounded-lg text-center text-[10px] transition-all duration-150 flex items-center justify-center space-x-0.5 active:scale-[0.98] cursor-pointer ${
+                              disabled={updatingAutoList[fixture.id] || quickPredicting[fixture.id] || syncingStats[fixture.id]}
+                              className={`text-white font-bold py-1.5 px-1 rounded-lg text-center text-[11px] transition-all duration-150 flex items-center justify-center space-x-0.5 active:scale-[0.98] cursor-pointer ${
                                 updatingAutoList[fixture.id]
                                   ? 'bg-[#151E2E] text-gray-500 border border-card-border'
                                   : 'bg-[#1E293B]/70 hover:bg-primary/25 border border-card-border hover:border-primary/40'
                               }`}
-                              title="Tự động cập nhật kết quả (AI & Google Search)"
+                              title="Tự động cập nhật kết quả thực tế (AI & Google Search)"
                             >
-                              <span>🤖 {updatingAutoList[fixture.id] ? 'Cập nhật...' : 'Cập nhật'}</span>
+                              <span>🤖 {updatingAutoList[fixture.id] ? 'KQ...' : 'Kết Quả'}</span>
                             </button>
                           </div>
                           
@@ -729,9 +791,9 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                             const status = getPredictionStatus(pred.predictedHomeScore, pred.predictedAwayScore, fixture.actualHomeScore, fixture.actualAwayScore);
                             return (
                               <div className={`px-2 py-0.5 rounded border text-[10px] font-bold flex items-center space-x-1 ${status.colorClass} select-none whitespace-nowrap`} title={status.text}>
-                                <span>🔮 ${pred.predictedHomeScore} - ${pred.predictedAwayScore}</span>
+                                <span>🔮 {pred.predictedHomeScore} - {pred.predictedAwayScore}</span>
                                 <span className="text-[8px] bg-black/25 px-1 py-0.2 rounded font-extrabold uppercase">
-                                  ${status.status === 'correct' ? 'Đúng' : status.status === 'near' ? 'Gần' : status.status === 'incorrect' ? 'Sai' : 'Chờ'}
+                                  {status.status === 'correct' ? 'Đúng' : status.status === 'near' ? 'Gần' : status.status === 'incorrect' ? 'Sai' : 'Chờ'}
                                 </span>
                               </div>
                             );
@@ -746,10 +808,10 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                               <span>🔍</span>
                             </Link>
                             
-                                                        <button
+                            <button
                               onClick={() => handleQuickPredict(fixture)}
-                              disabled={quickPredicting[fixture.id]}
-                              className={`text-white w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-all duration-150 flex items-center justify-center active:scale-[0.98] cursor-pointer \${
+                              disabled={quickPredicting[fixture.id] || syncingStats[fixture.id]}
+                              className={`text-white w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-all duration-150 flex items-center justify-center active:scale-[0.98] cursor-pointer ${
                                 quickPredicting[fixture.id]
                                   ? 'bg-[#151E2E] text-gray-500 border border-card-border'
                                   : 'bg-gradient-to-r from-primary/80 to-secondary/80 hover:from-primary hover:to-secondary border border-primary/25 hover:border-primary/45 shadow-sm'
@@ -758,11 +820,24 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                             >
                               <span>{quickPredicting[fixture.id] ? '⏳' : '⚡'}</span>
                             </button>
+
+                            <button
+                              onClick={() => handleUpdateMatchStats(fixture)}
+                              disabled={syncingStats[fixture.id] || quickPredicting[fixture.id] || updatingAutoList[fixture.id]}
+                              className={`text-white w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-all duration-150 flex items-center justify-center active:scale-[0.98] cursor-pointer ${
+                                syncingStats[fixture.id]
+                                  ? 'bg-[#151E2E] text-gray-500 border border-card-border'
+                                  : 'bg-gradient-to-r from-indigo-500/10 to-purple-500/10 hover:from-indigo-500/25 hover:to-purple-500/25 border border-indigo-500/25 hover:border-indigo-500/45 text-indigo-300'
+                              }`}
+                              title={syncingStats[fixture.id] ? 'Đang đồng bộ stats...' : 'Cập nhật Stats AI của 2 đội'}
+                            >
+                              <span>{syncingStats[fixture.id] ? '⏳' : '📊'}</span>
+                            </button>
                             
                             <button
                               onClick={() => handleAutoUpdate(fixture)}
-                              disabled={updatingAutoList[fixture.id] || quickPredicting[fixture.id]}
-                              className={`text-white w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-all duration-150 flex items-center justify-center active:scale-[0.98] cursor-pointer \${
+                              disabled={updatingAutoList[fixture.id] || quickPredicting[fixture.id] || syncingStats[fixture.id]}
+                              className={`text-white w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-all duration-150 flex items-center justify-center active:scale-[0.98] cursor-pointer ${
                                 updatingAutoList[fixture.id]
                                   ? 'bg-[#151E2E] text-gray-500 border border-card-border'
                                   : 'bg-[#1E293B]/70 hover:bg-primary/25 border border-card-border hover:border-primary/40'
@@ -883,6 +958,56 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
               </div>
             </div>
 
+            {/* Cache Status Badge & Re-predict Button */}
+            {modalData.prediction.isCached && (
+              <div className="mb-3.5 p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[10px] flex items-center justify-between backdrop-blur-md">
+                <span className="flex items-center space-x-1">
+                  <span>⚡</span>
+                  <span>Dữ liệu tải từ bộ nhớ đệm (Lưu cách đây {(() => {
+                    const cachedTime = new Date(modalData.prediction.cachedAt.replace(' ', 'T') + 'Z').getTime();
+                    const diffMins = Math.round((Date.now() - cachedTime) / (1000 * 60));
+                    if (diffMins < 60) return `${diffMins} phút`;
+                    return `${Math.round(diffMins / 60)} giờ`;
+                  })()})</span>
+                </span>
+                <button
+                  onClick={async () => {
+                    const fixtureId = modalData.fixture.id;
+                    setQuickPredicting(prev => ({ ...prev, [fixtureId]: true }));
+                    setModalData(null);
+                    try {
+                      const res = await fetch('/api/predict', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          homeTeam: modalData.fixture.homeTeam,
+                          awayTeam: modalData.fixture.awayTeam,
+                          matchId: fixtureId,
+                          forceRefresh: true
+                        })
+                      });
+                      const data = await res.json();
+                      if (!res.ok) throw new Error(data.error || 'Lỗi phân tích trận đấu');
+                      if (data.modelUsed) {
+                        saveLastUsedModel(data.modelUsed);
+                      }
+                      setModalData({
+                        fixture: modalData.fixture,
+                        prediction: data
+                      });
+                    } catch (err) {
+                      alert(`Lỗi cập nhật AI: ${err.message}`);
+                    } finally {
+                      setQuickPredicting(prev => ({ ...prev, [fixtureId]: false }));
+                    }
+                  }}
+                  className="bg-[#10B981]/25 hover:bg-[#10B981]/40 border border-[#10B981]/40 hover:border-[#10B981]/65 text-emerald-300 font-extrabold px-2.5 py-1 rounded-lg text-[9px] cursor-pointer transition-all active:scale-[0.97]"
+                >
+                  🔄 Phân tích lại
+                </button>
+              </div>
+            )}
+
             {/* Prediction Summary: Score & Win probabilities */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               {/* Score card */}
@@ -927,6 +1052,66 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                 })()}
               </div>
             </div>
+
+            {/* Siêu máy tính Monte Carlo 10,000 lần */}
+            {modalData.prediction.monteCarlo && (
+              <div className="bg-[#1E293B]/20 rounded-xl p-3.5 border border-card-border/50 mb-4 text-xs">
+                <div className="flex justify-between items-center mb-2.5 pb-1.5 border-b border-card-border/30">
+                  <span className="text-[10px] text-indigo-300 font-black uppercase tracking-wider flex items-center space-x-1.5">
+                    <span>📊</span>
+                    <span>Siêu máy tính Monte Carlo (10,000 lần)</span>
+                  </span>
+                  <span className="text-[9px] text-gray-500 font-bold">Tỉ lệ mô phỏng động</span>
+                </div>
+                
+                {/* 1X2 Probabilities */}
+                <div className="mb-3.5">
+                  <div className="flex justify-between text-[10px] text-gray-300 font-bold mb-1">
+                    <span className="text-emerald-400">{modalData.fixture.homeTeam}: {modalData.prediction.monteCarlo.winProbability.home}%</span>
+                    <span className="text-gray-400">Hòa: {modalData.prediction.monteCarlo.winProbability.draw}%</span>
+                    <span className="text-rose-400">{modalData.fixture.awayTeam}: {modalData.prediction.monteCarlo.winProbability.away}%</span>
+                  </div>
+                  <div className="h-2 w-full rounded-full overflow-hidden flex bg-card-border/30 border border-card-border/40">
+                    <div className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-300" style={{ width: `${modalData.prediction.monteCarlo.winProbability.home}%` }}></div>
+                    <div className="h-full bg-gray-550 transition-all duration-300" style={{ width: `${modalData.prediction.monteCarlo.winProbability.draw}%` }}></div>
+                    <div className="h-full bg-gradient-to-r from-rose-500 to-rose-400 transition-all duration-300" style={{ width: `${modalData.prediction.monteCarlo.winProbability.away}%` }}></div>
+                  </div>
+                </div>
+
+                {/* Sub Bets probabilities */}
+                <div className="grid grid-cols-2 gap-2 mb-3.5">
+                  <div className="bg-[#0A0D14]/75 p-2 rounded-lg border border-card-border/35 flex justify-between items-center">
+                    <span className="text-[10px] text-gray-450 font-semibold">Cả 2 đội ghi bàn (BTTS):</span>
+                    <span className="font-extrabold text-blue-400">{modalData.prediction.monteCarlo.bttsProbability}%</span>
+                  </div>
+                  <div className="bg-[#0A0D14]/75 p-2 rounded-lg border border-card-border/35 flex justify-between items-center">
+                    <span className="text-[10px] text-gray-450 font-semibold">Xác suất nổ Tài 2.5:</span>
+                    <span className="font-extrabold text-purple-400">{modalData.prediction.monteCarlo.ouProbability.over}%</span>
+                  </div>
+                </div>
+
+                {/* Top scores */}
+                <div className="space-y-1.5">
+                  <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider block pl-0.5">Top 3 tỉ số dễ xảy ra nhất</span>
+                  <div className="space-y-1">
+                    {modalData.prediction.monteCarlo.topScores.slice(0, 3).map((scoreItem, idx) => (
+                      <div key={idx} className="flex items-center justify-between text-[11px] p-1.5 rounded-lg bg-[#0A0D14]/65 border border-card-border/25">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-[9px] font-bold text-gray-500">#{idx + 1}</span>
+                          <span className="font-black text-white font-mono">{scoreItem.score}</span>
+                        </div>
+                        <div className="flex items-center space-x-2 w-7/12">
+                          <div className="w-full bg-card-border/30 h-1.5 rounded-full overflow-hidden">
+                            <div className="bg-indigo-500 h-full rounded-full" style={{ width: `${scoreItem.probability * 5}%` }}></div>
+                          </div>
+                          <span className="text-[10px] font-black text-indigo-400 min-w-[32px] text-right font-mono">{scoreItem.probability}%</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Recommended Bets Panel */}
             <div className="space-y-2 mb-4.5">
