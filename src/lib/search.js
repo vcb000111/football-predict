@@ -1,5 +1,25 @@
 import { getDB } from './db';
 
+// Bộ lọc kiểm tra domain uy tín và loại bỏ rác/mạng xã hội
+function isReputableDomain(url) {
+  if (!url) return false;
+  const urlLower = url.toLowerCase();
+  
+  // Danh sách các domain rác, forum, mạng xã hội cần loại bỏ hoàn toàn
+  const blacklistedDomains = [
+    'reddit.com', 'facebook.com', 'twitter.com', 'x.com', 'quora.com', 
+    'pinterest.com', 'youtube.com', 'tiktok.com', 'instagram.com',
+    'forum', 'shopee', 'lazada', 'tiki', 'aliexpress', 'amazon'
+  ];
+  
+  for (const domain of blacklistedDomains) {
+    if (urlLower.includes(domain)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 // Hàm helper để gọi Tavily API
 async function searchTavily(query, apiKey) {
   const response = await fetch('https://api.tavily.com/search', {
@@ -12,7 +32,7 @@ async function searchTavily(query, apiKey) {
       query: query,
       search_depth: 'basic',
       include_answer: false,
-      max_results: 5
+      max_results: 8 // Tăng số lượng kết quả thô để lọc
     })
   });
   if (!response.ok) {
@@ -20,14 +40,17 @@ async function searchTavily(query, apiKey) {
   }
   const data = await response.json();
   if (data.results && data.results.length > 0) {
-    return data.results.map(r => r.content);
+    return data.results
+      .filter(r => isReputableDomain(r.url))
+      .slice(0, 5) // Giữ tối đa 5 kết quả sạch
+      .map(r => r.content);
   }
   return [];
 }
 
 // Hàm helper để gọi Brave Search API
 async function searchBrave(query, apiKey) {
-  const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=5`;
+  const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=8`;
   const response = await fetch(url, {
     headers: {
       'X-Subscription-Token': apiKey.trim(),
@@ -39,7 +62,10 @@ async function searchBrave(query, apiKey) {
   }
   const data = await response.json();
   if (data.web && data.web.results && data.web.results.length > 0) {
-    return data.web.results.map(r => r.description || r.title);
+    return data.web.results
+      .filter(r => isReputableDomain(r.url))
+      .slice(0, 5)
+      .map(r => r.description || r.title);
   }
   return [];
 }
@@ -52,14 +78,17 @@ async function searchSerper(query, apiKey) {
       'X-API-KEY': apiKey.trim(),
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ q: query, num: 5 })
+    body: JSON.stringify({ q: query, num: 8 })
   });
   if (!response.ok) {
     throw new Error(`Serper HTTP error ${response.status}`);
   }
   const data = await response.json();
   if (data.organic && data.organic.length > 0) {
-    return data.organic.map(r => r.snippet || r.title);
+    return data.organic
+      .filter(r => isReputableDomain(r.link))
+      .slice(0, 5)
+      .map(r => r.snippet || r.title);
   }
   return [];
 }

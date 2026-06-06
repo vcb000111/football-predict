@@ -60,13 +60,13 @@ export async function POST(request) {
         for (const key of apiKeys) {
           if (key.id) {
             await db.run(
-              `UPDATE api_keys SET key_value = ?, status = ? WHERE id = ?`,
-              [key.key_value.trim(), key.status, key.id]
+              `UPDATE api_keys SET key_value = ?, status = ?, provider = ? WHERE id = ?`,
+              [key.key_value.trim(), key.status, key.provider || 'gemini', key.id]
             );
           } else if (key.key_value && key.key_value.trim()) {
             await db.run(
-              `INSERT OR IGNORE INTO api_keys (key_value, status) VALUES (?, ?)`,
-              [key.key_value.trim(), key.status !== undefined ? key.status : 1]
+              `INSERT OR IGNORE INTO api_keys (key_value, status, provider) VALUES (?, ?, ?)`,
+              [key.key_value.trim(), key.status !== undefined ? key.status : 1, key.provider || 'gemini']
             );
           }
         }
@@ -83,13 +83,13 @@ export async function POST(request) {
         for (const model of models) {
           if (model.id) {
             await db.run(
-              `UPDATE ai_models SET model_name = ?, priority = ?, status = ? WHERE id = ?`,
-              [model.model_name.trim(), model.priority, model.status, model.id]
+              `UPDATE ai_models SET model_name = ?, priority = ?, status = ?, provider = ? WHERE id = ?`,
+              [model.model_name.trim(), model.priority, model.status, model.provider || 'gemini', model.id]
             );
           } else if (model.model_name && model.model_name.trim()) {
             await db.run(
-              `INSERT OR IGNORE INTO ai_models (model_name, priority, status) VALUES (?, ?, ?)`,
-              [model.model_name.trim(), model.priority || 1, model.status !== undefined ? model.status : 1]
+              `INSERT OR IGNORE INTO ai_models (model_name, priority, status, provider) VALUES (?, ?, ?, ?)`,
+              [model.model_name.trim(), model.priority || 1, model.status !== undefined ? model.status : 1, model.provider || 'gemini']
             );
           }
         }

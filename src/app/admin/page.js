@@ -44,7 +44,9 @@ export default function AdminConfigPage() {
 
   // Trạng thái cho biểu mẫu thêm mới cấu hình
   const [newKey, setNewKey] = useState('');
+  const [newKeyProvider, setNewKeyProvider] = useState('gemini');
   const [newModelName, setNewModelName] = useState('');
+  const [newModelProvider, setNewModelProvider] = useState('gemini');
   const [newSearchKeys, setNewSearchKeys] = useState({ tavily: '', brave: '', serper: '' });
 
   // Trạng thái theo dõi các mục cần xóa
@@ -116,6 +118,7 @@ export default function AdminConfigPage() {
       return;
     }
     const item = {
+      provider: newKeyProvider,
       key_value: newKey.trim(),
       status: 1
     };
@@ -149,6 +152,7 @@ export default function AdminConfigPage() {
     }
     const maxPriority = models.reduce((max, m) => m.priority > max ? m.priority : max, 0);
     const item = {
+      provider: newModelProvider,
       model_name: newModelName.trim(),
       priority: maxPriority + 1,
       status: 1
@@ -677,19 +681,27 @@ Lưu ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
                   <div className="border-b border-card-border/50 pb-3 flex items-center justify-between">
                     <h2 className="text-sm font-bold text-white flex items-center space-x-2">
                       <span className="text-primary">🔑</span>
-                      <span>Danh Sách API Keys (Google Gemini)</span>
+                      <span>Danh Sách API Keys (Google Gemini / Groq Cloud)</span>
                     </h2>
                     <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2.5 py-0.5 rounded-full font-bold">
                       {apiKeys.length} Keys
                     </span>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <select
+                      value={newKeyProvider}
+                      onChange={(e) => setNewKeyProvider(e.target.value)}
+                      className="bg-[#0d1527] border border-card-border/70 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-primary/80 cursor-pointer"
+                    >
+                      <option value="gemini">Gemini</option>
+                      <option value="groq">Groq Cloud</option>
+                    </select>
                     <input
                       type="password"
                       value={newKey}
                       onChange={(e) => setNewKey(e.target.value)}
-                      placeholder="Nhập API Key mới từ Google AI Studio..."
+                      placeholder={newKeyProvider === 'gemini' ? "Nhập API Key mới từ Google AI Studio..." : "Nhập API Key mới từ Groq Cloud Console..."}
                       className="flex-1 bg-[#0d1527] border border-card-border/70 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-primary/80 transition-colors"
                     />
                     <button
@@ -714,7 +726,14 @@ Lưu ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
                         >
                           <div className="flex items-center space-x-3 flex-1 min-w-0 pr-4">
                             <span className="text-[10px] text-gray-600 font-bold font-mono">#{index + 1}</span>
-                            <code className="text-xs font-mono text-gray-300 truncate select-all">
+                            <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase border ${
+                              (key.provider || 'gemini') === 'groq'
+                                ? 'bg-orange-500/10 text-orange-400 border-orange-500/20'
+                                : 'bg-primary/10 text-primary border border-primary/20'
+                            }`}>
+                              {key.provider || 'gemini'}
+                            </span>
+                            <code className="text-xs font-mono text-gray-300 truncate select-all flex-1">
                               {maskKey(key.key_value, showKeys[key.id || index])}
                             </code>
                             <button
@@ -725,7 +744,7 @@ Lưu ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
                             </button>
                             <div className="flex items-center space-x-2 mr-2">
                               <button
-                                onClick={() => handleCheckKey('gemini', key.key_value)}
+                                onClick={() => handleCheckKey(key.provider || 'gemini', key.key_value)}
                                 disabled={keyStatuses[key.key_value.trim()]?.loading}
                                 className="bg-[#151E2E] hover:bg-primary/20 border border-card-border/60 hover:border-primary/50 text-[10px] text-gray-400 hover:text-primary px-2 py-0.5 rounded-lg transition-all cursor-pointer disabled:opacity-50"
                               >
@@ -773,25 +792,33 @@ Lưu ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
                   <div className="border-b border-card-border/50 pb-3 flex items-center justify-between">
                     <h2 className="text-sm font-bold text-white flex items-center space-x-2">
                       <span className="text-secondary">🤖</span>
-                      <span>Cấu Hình Thứ Tự Ưu Tiên AI Models</span>
+                      <span>Cấu Hình Thứ Tự Ưu Tiên AI Models (Gemini & Groq)</span>
                     </h2>
                     <span className="text-[10px] bg-secondary/10 text-secondary border border-secondary/20 px-2.5 py-0.5 rounded-full font-bold">
                       {models.length} Models
                     </span>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <select
+                      value={newModelProvider}
+                      onChange={(e) => setNewModelProvider(e.target.value)}
+                      className="bg-[#0d1527] border border-card-border/70 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-secondary/80 cursor-pointer"
+                    >
+                      <option value="gemini">Gemini</option>
+                      <option value="groq">Groq Cloud</option>
+                    </select>
                     <input
                       type="text"
                       value={newModelName}
                       onChange={(e) => setNewModelName(e.target.value)}
-                      placeholder="Nhập mã model Gemini mới (Ví dụ: gemini-2.5-pro)..."
+                      placeholder={newModelProvider === 'gemini' ? "Ví dụ: gemini-2.5-pro, gemini-3.5-flash..." : "Ví dụ: llama-3.1-8b-instant, gemma2-9b-it..."}
                       className="flex-1 bg-[#0d1527] border border-card-border/70 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-secondary/80 transition-colors"
                     />
                     <button
                       onClick={handleAddModel}
                       disabled={!newModelName.trim()}
-                      className="bg-secondary hover:bg-secondary-hover disabled:bg-gray-700 disabled:opacity-50 text-white text-xs font-black px-4 py-2 rounded-xl transition-all"
+                      className="bg-secondary hover:bg-secondary-hover disabled:bg-gray-700 disabled:opacity-50 text-white text-xs font-black px-4 py-2 rounded-xl transition-all cursor-pointer"
                     >
                       ➕ Thêm
                     </button>
@@ -813,7 +840,14 @@ Lưu ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
                               <span className="text-[10px] font-black text-secondary block">{model.priority}</span>
                               <span className="text-[8px] text-gray-600 font-bold uppercase block leading-none mt-0.5">ƯU TIÊN</span>
                             </div>
-                            <div className="truncate">
+                            <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase border ${
+                              (model.provider || 'gemini') === 'groq'
+                                ? 'bg-orange-500/10 text-orange-400 border-orange-500/20'
+                                : 'bg-secondary/10 text-secondary border border-secondary/20'
+                            }`}>
+                              {model.provider || 'gemini'}
+                            </span>
+                            <div className="truncate flex-1">
                               <p className="text-xs font-bold text-white truncate">{model.model_name}</p>
                               <span className="text-[9px] text-gray-500 font-medium">Model ID: {model.id || 'Tạm thời'}</span>
                             </div>

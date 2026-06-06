@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { getTeamFlag } from '@/lib/flags';
+import { saveLastUsedModel } from '@/lib/models-client';
 
 function getPredictionStatus(predHome, predAway, actHome, actAway) {
   if (actHome === null || actHome === undefined || actAway === null || actAway === undefined) {
@@ -108,6 +109,7 @@ export default function MatchClient({ match }) {
         if (data.history && data.history.length > 0) {
           setHistoryList(data.history);
           setPrediction(data.history[0]);
+          saveLastUsedModel(data.history[0].modelUsed || data.history[0].model_used);
           setLoading(false);
         } else {
           // Tự động kích hoạt dự đoán mới nếu chưa có lịch sử
@@ -155,6 +157,7 @@ export default function MatchClient({ match }) {
       if (match.id !== currentMatchId) return;
 
       setPrediction(newPred);
+      saveLastUsedModel(newPred.modelUsed);
       
       // Tải lại lịch sử sau khi dự đoán thành công
       const histRes = await fetch(`/api/history?matchId=${currentMatchId}`);
@@ -477,7 +480,10 @@ export default function MatchClient({ match }) {
                       return (
                         <div
                           key={run.id}
-                          onClick={() => setPrediction(run)}
+                          onClick={() => {
+                            setPrediction(run);
+                            saveLastUsedModel(run.modelUsed || run.model_used);
+                          }}
                           className={`p-2.5 rounded-lg border text-xs cursor-pointer transition-all duration-150 flex items-center justify-between ${
                             isActive 
                               ? 'border-primary bg-primary/5 text-white shadow-sm glow-green' 
@@ -561,7 +567,7 @@ export default function MatchClient({ match }) {
                       {/* Kèo Tài Xỉu */}
                       <div className="p-3 rounded-lg bg-card-border/20 border border-card-border/50">
                         <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[10px] font-bold text-gray-500 uppercase">Kèo Tài Xỉu (O/U)</span>
+                          <span className="text-[10px] font-bold text-gray-500 uppercase">Kèo Tài Xỉu (O/U {prediction.ou_line ?? prediction.bets?.overUnder?.line ?? 2.5})</span>
                           <div className="flex items-center space-x-1.5">
                             <span className="bg-secondary/20 text-secondary border border-secondary/20 font-bold px-1.5 py-0.5 rounded text-[10px]">
                               {translateRecommendation(prediction.recommendation_ou ?? prediction.bets?.overUnder?.recommendation)}
@@ -603,7 +609,7 @@ export default function MatchClient({ match }) {
                       {/* Kèo Phạt Góc */}
                       <div className="p-3 rounded-lg bg-card-border/20 border border-card-border/50">
                         <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[10px] font-bold text-gray-500 uppercase">Kèo Phạt Góc (O/U 8.5)</span>
+                          <span className="text-[10px] font-bold text-gray-500 uppercase">Kèo Phạt Góc (O/U {prediction.corners_line ?? prediction.bets?.corners?.line ?? 8.5})</span>
                           <div className="flex items-center space-x-1.5">
                             <span className="bg-[#581C87]/25 text-purple-400 border border-[#581C87]/30 font-bold px-1.5 py-0.5 rounded text-[10px]">
                               {translateRecommendation(prediction.recommendation_corners ?? prediction.bets?.corners?.recommendation)}
@@ -617,7 +623,7 @@ export default function MatchClient({ match }) {
                       {/* Kèo Thẻ Phạt */}
                       <div className="p-3 rounded-lg bg-card-border/20 border border-card-border/50">
                         <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[10px] font-bold text-gray-500 uppercase">Kèo Thẻ Phạt (O/U 3.5)</span>
+                          <span className="text-[10px] font-bold text-gray-500 uppercase">Kèo Thẻ Phạt (O/U {prediction.cards_line ?? prediction.bets?.cards?.line ?? 3.5})</span>
                           <div className="flex items-center space-x-1.5">
                             <span className="bg-[#D97706]/20 text-[#F59E0B] border border-[#D97706]/35 font-bold px-1.5 py-0.5 rounded text-[10px]">
                               {translateRecommendation(prediction.recommendation_cards ?? prediction.bets?.cards?.recommendation)}

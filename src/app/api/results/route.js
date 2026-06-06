@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { GoogleGenAI } from '@google/genai';
 import { getDB } from '@/lib/db';
 import fs from 'fs';
 import path from 'path';
@@ -170,6 +171,57 @@ export async function POST(request) {
       console.error('Lỗi khi cập nhật fixtures.json:', fsError);
     }
 
+    // --- OPTION 2: SELF-RETROSPECTIVE LESSON GENERATION ---
+    const incorrectBets = [];
+    if (isCorrect === 0) incorrectBets.push('1X2 (Thắng/Hòa/Thua)');
+    if (isCorrectOu === 0) incorrectBets.push('Tài/Xỉu 2.5');
+    if (isCorrectHandicap === 0) incorrectBets.push('Kèo chấp Handicap');
+    if (isCorrectBtts === 0) incorrectBets.push('Cả hai đội ghi bàn (BTTS)');
+
+    if (incorrectBets.length > 0) {
+      console.log(`🔁 [Self-Retrospective - Manual] Phát hiện ${incorrectBets.length} kèo dự đoán sai. Gọi AI viết bài học kinh nghiệm...`);
+      try {
+        const activeKeysRows = await db.all("SELECT key_value FROM api_keys WHERE status = 1 AND (provider IS NULL OR provider = 'gemini')");
+        const activeModelsRows = await db.all("SELECT model_name FROM ai_models WHERE status = 1 AND (provider IS NULL OR provider = 'gemini') ORDER BY priority ASC");
+        
+        if (activeKeysRows.length > 0 && activeModelsRows.length > 0) {
+          const geminiKey = activeKeysRows[0].key_value.trim();
+          const geminiModel = activeModelsRows[0].model_name.trim();
+          
+          const lessonPrompt = `
+Trận đấu giữa ${homeTeam} và ${awayTeam} kết thúc với tỷ số thực tế là ${aHome}-${aAway}.
+Dự đoán ban đầu của bạn là: Tỷ số ${pHome}-${pAway}.
+Các đề xuất kèo bị sai lệch bao gồm: ${incorrectBets.join(', ')}.
+
+Nhiệm vụ: Hãy viết một bài học kinh nghiệm cực kỳ ngắn gọn (dưới 50 từ) giải thích lý do tại sao mô hình dự đoán sai các kèo này (ví dụ: đánh giá quá cao hàng công, đánh giá sai tính chất thực dụng của giải đấu, bỏ qua tin tức chấn thương...).
+Hãy trả về duy nhất nội dung bài học bằng tiếng Việt. Không thêm bất cứ tag hay ký tự dẫn dắt nào. Do NOT include markdown blocks.
+`;
+          
+          const aiInstance = new GoogleGenAI({ apiKey: geminiKey });
+          const lessonRes = await aiInstance.models.generateContent({
+            model: geminiModel,
+            contents: lessonPrompt,
+            config: { abortSignal: AbortSignal.timeout(15000) }
+          });
+          
+          const lessonContent = lessonRes.text?.trim() || '';
+          if (lessonContent) {
+            console.log(`💾 [Self-Retrospective] Đã tạo bài học: "${lessonContent}"`);
+            await db.run(
+              `INSERT INTO ai_lessons (match_id, team_name, bet_type, lesson_content) VALUES (?, ?, ?, ?)`,
+              [predictionRecord.match_id || null, homeTeam, incorrectBets.join('/'), lessonContent]
+            );
+            await db.run(
+              `INSERT INTO ai_lessons (match_id, team_name, bet_type, lesson_content) VALUES (?, ?, ?, ?)`,
+              [predictionRecord.match_id || null, awayTeam, incorrectBets.join('/'), lessonContent]
+            );
+            console.log(`🟢 [Self-Retrospective] Đã lưu bài học vào CSDL.`);
+          }
+        }
+      } catch (lessonErr) {
+        console.warn('⚠️ Lỗi khi tự tạo bài học kinh nghiệm AI:', lessonErr.message);
+      }
+    }
 
     return NextResponse.json({
       success: true,

@@ -166,7 +166,7 @@ function getPoissonRandom(lambda) {
  * @param {boolean} isHomeAdvantage - Có lợi thế sân nhà thực tế hay không
  * @param {number} iterations - Số lần mô phỏng (mặc định 10,000)
  */
-export function runMonteCarloSimulation(homeStats, awayStats, isHomeAdvantage = false, iterations = 10000) {
+export function runMonteCarloSimulation(homeStats, awayStats, isHomeAdvantage = false, iterations = 10000, ouLine = 2.5) {
   const homeScored = homeStats.avg_goals_scored ?? 1.5;
   const homeConceded = homeStats.avg_goals_conceded ?? 1.1;
   const awayScored = awayStats.avg_goals_scored ?? 1.3;
@@ -208,7 +208,7 @@ export function runMonteCarloSimulation(homeStats, awayStats, isHomeAdvantage = 
       awayWins++;
     }
 
-    if (hGoals + aGoals > 2.5) {
+    if (hGoals + aGoals > ouLine) {
       totalOver25++;
     } else {
       totalUnder25++;
@@ -269,4 +269,143 @@ export function runMonteCarloSimulation(homeStats, awayStats, isHomeAdvantage = 
     simulationsCount: iterations
   };
 }
+
+/**
+ * Tính toán mốc kèo và xác suất phạt góc, thẻ phạt kỳ vọng sử dụng Monte Carlo
+ * @param {Object} homeStats - Thống kê đội nhà { avg_corners_won, avg_corners_conceded, avg_cards_received, style_of_play }
+ * @param {Object} awayStats - Thống kê đội khách { avg_corners_won, avg_corners_conceded, avg_cards_received, style_of_play }
+ * @param {number} iterations - Số vòng lặp mô phỏng
+ */
+export function calculateCornersAndCards(homeStats, awayStats, iterations = 10000) {
+  // 1. Phạt góc kỳ vọng
+  const homeCornersWon = homeStats.avg_corners_won ?? 4.5;
+  const homeCornersConceded = homeStats.avg_corners_conceded ?? 4.5;
+  const awayCornersWon = awayStats.avg_corners_won ?? 4.5;
+  const awayCornersConceded = awayStats.avg_corners_conceded ?? 4.5;
+
+  let lambdaHomeCorners = (homeCornersWon + awayCornersConceded) / 2;
+  let lambdaAwayCorners = (awayCornersWon + homeCornersConceded) / 2;
+
+  // Điều chỉnh theo style thi đấu phạt góc
+  const homeStyle = (homeStats.style_of_play || '').toLowerCase();
+  const awayStyle = (awayStats.style_of_play || '').toLowerCase();
+
+  if (homeStyle.includes('tạt cánh') || homeStyle.includes('biên') || homeStyle.includes('cánh')) {
+    lambdaHomeCorners *= 1.15;
+  }
+  if (awayStyle.includes('tạt cánh') || awayStyle.includes('biên') || awayStyle.includes('cánh')) {
+    lambdaAwayCorners *= 1.15;
+  }
+  if (homeStyle.includes('lùi sâu') || homeStyle.includes('hẹp') || homeStyle.includes('phòng ngự số đông')) {
+    lambdaHomeCorners *= 0.85;
+  }
+  if (awayStyle.includes('lùi sâu') || awayStyle.includes('hẹp') || awayStyle.includes('phòng ngự số đông')) {
+    lambdaAwayCorners *= 0.85;
+  }
+
+  lambdaHomeCorners = Math.max(1.5, lambdaHomeCorners);
+  lambdaAwayCorners = Math.max(1.5, lambdaAwayCorners);
+  const totalExpectedCorners = lambdaHomeCorners + lambdaAwayCorners;
+
+  // Chọn mốc phạt góc động (corners_line) dựa trên tổng phạt góc kỳ vọng
+  let corners_line = 8.5;
+  if (totalExpectedCorners < 8.0) {
+    corners_line = 7.5;
+  } else if (totalExpectedCorners >= 8.0 && totalExpectedCorners < 9.0) {
+    corners_line = 8.5;
+  } else if (totalExpectedCorners >= 9.0 && totalExpectedCorners < 10.0) {
+    corners_line = 9.5;
+  } else {
+    corners_line = 10.5;
+  }
+
+  // 2. Thẻ phạt kỳ vọng
+  const homeCards = homeStats.avg_cards_received ?? 1.8;
+  const awayCards = awayStats.avg_cards_received ?? 1.8;
+
+  let lambdaHomeCards = homeCards;
+  let lambdaAwayCards = awayCards;
+
+  // Điều chỉnh theo style thi đấu thẻ phạt
+  if (homeStyle.includes('thể lực') || homeStyle.includes('va chạm') || homeStyle.includes('pressing rát') || homeStyle.includes('quyết liệt')) {
+    lambdaHomeCards *= 1.2;
+  }
+  if (awayStyle.includes('thể lực') || awayStyle.includes('va chạm') || awayStyle.includes('pressing rát') || awayStyle.includes('quyết liệt')) {
+    lambdaAwayCards *= 1.2;
+  }
+  if (homeStyle.includes('kỹ thuật') || homeStyle.includes('kiểm soát') || homeStyle.includes('cống hiến')) {
+    lambdaHomeCards *= 0.85;
+  }
+  if (awayStyle.includes('kỹ thuật') || awayStyle.includes('kiểm soát') || awayStyle.includes('cống hiến')) {
+    lambdaAwayCards *= 0.85;
+  }
+
+  lambdaHomeCards = Math.max(0.5, lambdaHomeCards);
+  lambdaAwayCards = Math.max(0.5, lambdaAwayCards);
+  const totalExpectedCards = lambdaHomeCards + lambdaAwayCards;
+
+  // Chọn mốc thẻ phạt động (cards_line) dựa trên tổng thẻ phạt kỳ vọng
+  let cards_line = 3.5;
+  if (totalExpectedCards < 2.5) {
+    cards_line = 2.5;
+  } else if (totalExpectedCards >= 2.5 && totalExpectedCards < 3.5) {
+    cards_line = 3.5;
+  } else if (totalExpectedCards >= 3.5 && totalExpectedCards < 4.5) {
+    cards_line = 4.5;
+  } else {
+    cards_line = 5.5;
+  }
+
+  // 3. Chạy Monte Carlo giả lập
+  let overCorners = 0;
+  let overCards = 0;
+
+  for (let i = 0; i < iterations; i++) {
+    const hc = getPoissonRandom(lambdaHomeCorners);
+    const ac = getPoissonRandom(lambdaAwayCorners);
+    if (hc + ac > corners_line) {
+      overCorners++;
+    }
+
+    const hcard = getPoissonRandom(lambdaHomeCards);
+    const acard = getPoissonRandom(lambdaAwayCards);
+    if (hcard + acard > cards_line) {
+      overCards++;
+    }
+  }
+
+  const cornersProbability = {
+    over: Math.round((overCorners / iterations) * 100),
+    under: Math.round((1 - overCorners / iterations) * 100)
+  };
+  // Đảm bảo tổng bằng 100
+  const diffCorners = 100 - (cornersProbability.over + cornersProbability.under);
+  cornersProbability.over += diffCorners;
+
+  const cardsProbability = {
+    over: Math.round((overCards / iterations) * 100),
+    under: Math.round((1 - overCards / iterations) * 100)
+  };
+  // Đảm bảo tổng bằng 100
+  const diffCards = 100 - (cardsProbability.over + cardsProbability.under);
+  cardsProbability.over += diffCards;
+
+  return {
+    corners_line,
+    cards_line,
+    expectedCorners: {
+      home: parseFloat(lambdaHomeCorners.toFixed(2)),
+      away: parseFloat(lambdaAwayCorners.toFixed(2)),
+      total: parseFloat(totalExpectedCorners.toFixed(2))
+    },
+    expectedCards: {
+      home: parseFloat(lambdaHomeCards.toFixed(2)),
+      away: parseFloat(lambdaAwayCards.toFixed(2)),
+      total: parseFloat(totalExpectedCards.toFixed(2))
+    },
+    cornersProbability,
+    cardsProbability
+  };
+}
+
 

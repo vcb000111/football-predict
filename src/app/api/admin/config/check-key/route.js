@@ -37,6 +37,35 @@ export async function POST(request) {
       }
     }
 
+    if (provider === 'groq') {
+      try {
+        const url = 'https://api.groq.com/openai/v1/models';
+        const res = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${trimmedKey}`
+          },
+          signal: AbortSignal.timeout(10000)
+        });
+        if (res.ok) {
+          return NextResponse.json({ success: true, status: 'active', credit: null });
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          const errMsg = errData.error?.message || `HTTP error ${res.status}`;
+          return NextResponse.json({ 
+            success: true, 
+            status: 'inactive', 
+            errorDetails: `Lỗi kết nối Groq: ${errMsg}` 
+          });
+        }
+      } catch (err) {
+        return NextResponse.json({ 
+          success: true, 
+          status: 'inactive', 
+          errorDetails: `Lỗi kết nối Groq API: ${err.message}` 
+        });
+      }
+    }
+
     if (provider === 'tavily') {
       try {
         const res = await fetch('https://api.tavily.com/usage', {

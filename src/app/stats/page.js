@@ -193,7 +193,7 @@ export default function StatisticsPage() {
                 ) : (
                   <div className="space-y-4">
                     {[
-                      { label: 'Tài Xỉu 2.5 (Bàn Thắng)', data: stats.overUnder, color: 'from-emerald-500 to-teal-400' },
+                      { label: 'Kèo Tài Xỉu (Bàn Thắng)', data: stats.overUnder, color: 'from-emerald-500 to-teal-400' },
                       { label: 'Cả hai đội ghi bàn (BTTS)', data: stats.btts, color: 'from-emerald-500 to-green-400' },
                       { label: 'Dự đoán kết quả 1X2', data: stats.outcome1x2, color: 'from-indigo-500 to-cyan-400' },
                       { label: 'Kèo Chấp châu Á (Handicap)', data: stats.handicap, color: 'from-indigo-500 to-blue-400' },

@@ -646,7 +646,9 @@
       "time": "20:00",
       "group": "Warm-up Friendly",
       "venue": "Stade de France, Saint-Denis",
-      "isTest": true
+      "isTest": true,
+      "actualHomeScore": 1,
+      "actualAwayScore": 2
     },
     {
       "id": "t10",
@@ -656,7 +658,9 @@
       "time": "19:30",
       "group": "Warm-up Friendly",
       "venue": "Estadio Metropolitano, Madrid",
-      "isTest": true
+      "isTest": true,
+      "actualHomeScore": 1,
+      "actualAwayScore": 1
     },
     {
       "id": "t11",
@@ -678,7 +682,9 @@
       "time": "18:00",
       "group": "Warm-up Friendly",
       "venue": "Pamir Stadium, Dushanbe",
-      "isTest": true
+      "isTest": true,
+      "actualHomeScore": 3,
+      "actualAwayScore": 1
     },
     {
       "id": "t13",

@@ -4,6 +4,23 @@ Tất cả những thay đổi nổi bật đối với dự án **FIFA World Cu
 
 ---
 
+## [1.5.0] - 2026-06-06
+
+### Added (Thêm mới)
+* **Tích hợp Groq Cloud API:** Hỗ trợ gọi REST API trực tiếp của Groq Cloud sử dụng `fetch` cho các mô hình tốc độ cao như `llama-3.1-8b-instant`, `llama-3.3-70b-specdec`, và `gemma2-9b-it`.
+* **Cơ chế Đồng thuận Đa Tác Nhân nâng cao (Consensus Engine - Option 1):** Gọi song song luồng nháp của Gemini và Groq, sau đó sử dụng Gemini Critic làm trọng tài phản biện, đối chiếu logic chéo để đưa ra nhận định hoàn thiện nhất.
+* **Tự Động Xoay Vòng AI Models (Model Rotation):** Tự động lặp qua danh sách AI Models của từng nhà cung cấp theo thứ tự ưu tiên (priority) khi gặp lỗi (như Rate Limit 429, Request Entity Too Large 413, hoặc Service Unavailable 503).
+* **Cool Down thông minh:** Đưa các mô hình gặp lỗi tĩnh/quota vào trạng thái Cool Down 5 phút để tránh gọi lại vô ích.
+* **Tự động rút kinh nghiệm (Self-Retrospective - Option 2):** Khi kết quả thực tế được cập nhật, nếu có kèo dự đoán sai, hệ thống gọi AI viết bài học kinh nghiệm ngắn (< 50 từ) lưu vào bảng `ai_lessons` trong SQLite để nạp làm dữ liệu huấn luyện ngữ cảnh (In-Context Learning) cho các trận sau.
+* **Scraper ELO & FIFA Rank thời gian thực (Option 3):** Tự động chạy RAG Search tìm ELO/Rank mới nhất của hai đội trước khi dự đoán và cập nhật vào SQLite để Poisson/Monte Carlo luôn bám sát thực tế nhất.
+* **Mô hình học máy định lượng Hybrid ML (Option 4):** Viết thuật toán Logistic Regression & Naive Bayes bằng JS thuần tính toán xác suất các kèo cược làm baseline đầu vào cho AI suy luận.
+* **Đồng bộ nhãn Model lên Header:** Tự động đồng bộ hóa nhãn mô hình được dùng (ví dụ: `Đa tác nhân: Gemini 3.1 Flash Lite (Critic) + Groq Llama 3.1 8B`) lên header của trang chi tiết trận đấu khi tải trang hoặc chọn các lượt dự đoán lịch sử.
+
+### Fixed (Sửa lỗi)
+* **Sửa lỗi sập trang Admin (ReferenceError):** Khắc phục lỗi `newKeyProvider is not defined` và `newModelProvider is not defined` trên giao diện cấu hình `/admin`. Hỗ trợ đồng bộ và lưu trữ trường `provider` (Gemini hoặc Groq) lên SQLite thành công.
+
+---
+
 ## [1.4.0] - 2026-06-06
 
 ### Added (Thêm mới)

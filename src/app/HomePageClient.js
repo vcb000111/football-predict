@@ -1085,7 +1085,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                     <span className="font-extrabold text-blue-400">{modalData.prediction.monteCarlo.bttsProbability}%</span>
                   </div>
                   <div className="bg-[#0A0D14]/75 p-2 rounded-lg border border-card-border/35 flex justify-between items-center">
-                    <span className="text-[10px] text-gray-450 font-semibold">Xác suất nổ Tài 2.5:</span>
+                    <span className="text-[10px] text-gray-450 font-semibold">Xác suất nổ Tài {modalData.prediction.ou_line ?? modalData.prediction.bets?.overUnder?.line ?? 2.5}:</span>
                     <span className="font-extrabold text-purple-400">{modalData.prediction.monteCarlo.ouProbability.over}%</span>
                   </div>
                 </div>
@@ -1102,7 +1102,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                         </div>
                         <div className="flex items-center space-x-2 w-7/12">
                           <div className="w-full bg-card-border/30 h-1.5 rounded-full overflow-hidden">
-                            <div className="bg-indigo-500 h-full rounded-full" style={{ width: `${scoreItem.probability * 5}%` }}></div>
+                            <div className="bg-indigo-550 h-full rounded-full" style={{ width: `${scoreItem.probability * 5}%` }}></div>
                           </div>
                           <span className="text-[10px] font-black text-indigo-400 min-w-[32px] text-right font-mono">{scoreItem.probability}%</span>
                         </div>
@@ -1120,14 +1120,14 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
               <div className="grid grid-cols-2 gap-2 text-xs">
                 {/* 1X2 & OU */}
                 <div className="p-2.5 rounded-lg bg-[#0E1321] border border-card-border/50">
-                  <div className="text-[9px] text-gray-550 font-bold uppercase">Châu Âu (1X2)</div>
+                  <div className="text-[9px] text-gray-555 font-bold uppercase">Châu Âu (1X2)</div>
                   <div className="text-[11px] font-bold text-primary mt-0.5">
                     {modalData.prediction.bets?.oneXTwo?.recommendation ?? modalData.prediction.recommendation_1x2}
                   </div>
                 </div>
 
                 <div className="p-2.5 rounded-lg bg-[#0E1321] border border-card-border/50">
-                  <div className="text-[9px] text-gray-550 font-bold uppercase">Tài Xỉu 2.5</div>
+                  <div className="text-[9px] text-gray-555 font-bold uppercase">Tài Xỉu {modalData.prediction.ou_line ?? modalData.prediction.bets?.overUnder?.line ?? 2.5}</div>
                   <div className="text-[11px] font-bold text-secondary mt-0.5">
                     {modalData.prediction.bets?.overUnder?.recommendation ?? modalData.prediction.recommendation_ou}
                   </div>
@@ -1135,14 +1135,14 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
 
                 {/* Handicap & BTTS */}
                 <div className="p-2.5 rounded-lg bg-[#0E1321] border border-card-border/50">
-                  <div className="text-[9px] text-gray-550 font-bold uppercase">Chấp Châu Á</div>
+                  <div className="text-[9px] text-gray-555 font-bold uppercase">Chấp Châu Á</div>
                   <div className="text-[11px] font-bold text-accent mt-0.5 truncate" title={modalData.prediction.bets?.handicap?.recommendation ?? modalData.prediction.recommendation_handicap}>
                     {modalData.prediction.bets?.handicap?.recommendation ?? modalData.prediction.recommendation_handicap}
                   </div>
                 </div>
 
                 <div className="p-2.5 rounded-lg bg-[#0E1321] border border-card-border/50">
-                  <div className="text-[9px] text-gray-550 font-bold uppercase">Ghi Bàn (BTTS)</div>
+                  <div className="text-[9px] text-gray-555 font-bold uppercase">Ghi Bàn (BTTS)</div>
                   <div className="text-[11px] font-bold text-blue-400 mt-0.5">
                     {modalData.prediction.bets?.btts?.recommendation ?? modalData.prediction.recommendation_btts}
                   </div>
@@ -1150,14 +1150,14 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
 
                 {/* Corners & Cards */}
                 <div className="p-2.5 rounded-lg bg-[#0E1321] border border-card-border/50">
-                  <div className="text-[9px] text-gray-550 font-bold uppercase">Phạt Góc (O/U 8.5)</div>
+                  <div className="text-[9px] text-gray-555 font-bold uppercase">Phạt Góc (O/U {modalData.prediction.corners_line ?? modalData.prediction.bets?.corners?.line ?? 8.5})</div>
                   <div className="text-[11px] font-bold text-purple-400 mt-0.5 truncate" title={modalData.prediction.bets?.corners?.recommendation ?? modalData.prediction.recommendation_corners}>
                     {modalData.prediction.bets?.corners?.recommendation ?? modalData.prediction.recommendation_corners}
                   </div>
                 </div>
 
                 <div className="p-2.5 rounded-lg bg-[#0E1321] border border-card-border/50">
-                  <div className="text-[9px] text-gray-550 font-bold uppercase">Thẻ Phạt (O/U 3.5)</div>
+                  <div className="text-[9px] text-gray-555 font-bold uppercase">Thẻ Phạt (O/U {modalData.prediction.cards_line ?? modalData.prediction.bets?.cards?.line ?? 3.5})</div>
                   <div className="text-[11px] font-bold text-[#F59E0B] mt-0.5 truncate" title={modalData.prediction.bets?.cards?.recommendation ?? modalData.prediction.recommendation_cards}>
                     {modalData.prediction.bets?.cards?.recommendation ?? modalData.prediction.recommendation_cards}
                   </div>
@@ -1286,41 +1286,48 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                   <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider block pl-0.5">Kết Quả Chấm Điểm Các Kèo (AI Pundit)</span>
                   
                   <div className="space-y-2 max-h-[35vh] overflow-y-auto pr-1">
-                    {Object.entries({
-                      'Châu Âu (1X2)': { data: resultModalData.betEvaluations.oneXTwo },
-                      'Tài Xỉu 2.5': { data: resultModalData.betEvaluations.overUnder },
-                      'Kèo Chấp': { data: resultModalData.betEvaluations.handicap },
-                      'Ghi Bàn (BTTS)': { data: resultModalData.betEvaluations.btts },
-                      'Phạt Góc': { data: resultModalData.betEvaluations.corners },
-                      'Thẻ Phạt': { data: resultModalData.betEvaluations.cards }
-                    }).map(([betName, { data: evalItem }]) => {
-                      if (!evalItem || evalItem.outcome === 'n/a') return null;
+                    {(() => {
+                      const pred = localLatestPredictions[resultModalData.fixture.id];
+                      const ouLine = pred?.ou_line ?? pred?.bets?.overUnder?.line ?? 2.5;
+                      const cornersLine = pred?.corners_line ?? pred?.bets?.corners?.line ?? 8.5;
+                      const cardsLine = pred?.cards_line ?? pred?.bets?.cards?.line ?? 3.5;
                       
-                      const isCorrect = evalItem.outcome === 'correct';
-                      const isRefund = evalItem.outcome === 'refund';
-                      
-                      return (
-                        <div key={betName} className="p-3 bg-[#0d1324] border border-card-border/40 rounded-xl flex flex-col gap-1.5">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-extrabold text-white">{betName}</span>
-                            <span className={`px-2.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${
-                              isCorrect
-                                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                                : isRefund
-                                  ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-                                  : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
-                            }`}>
-                              {isCorrect ? '✅ ĐÚNG' : isRefund ? '🔄 HOÀ' : '❌ SAI'}
-                            </span>
+                      return Object.entries({
+                        'Châu Âu (1X2)': { data: resultModalData.betEvaluations.oneXTwo },
+                        [`Tài Xỉu ${ouLine}`]: { data: resultModalData.betEvaluations.overUnder },
+                        'Kèo Chấp': { data: resultModalData.betEvaluations.handicap },
+                        'Ghi Bàn (BTTS)': { data: resultModalData.betEvaluations.btts },
+                        [`Phạt Góc (O/U ${cornersLine})`]: { data: resultModalData.betEvaluations.corners },
+                        [`Thẻ Phạt (O/U ${cardsLine})`]: { data: resultModalData.betEvaluations.cards }
+                      }).map(([betName, { data: evalItem }]) => {
+                        if (!evalItem || evalItem.outcome === 'n/a') return null;
+                        
+                        const isCorrect = evalItem.outcome === 'correct';
+                        const isRefund = evalItem.outcome === 'refund';
+                        
+                        return (
+                          <div key={betName} className="p-3 bg-[#0d1324] border border-card-border/40 rounded-xl flex flex-col gap-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-extrabold text-white">{betName}</span>
+                              <span className={`px-2.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${
+                                isCorrect
+                                  ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                                  : isRefund
+                                    ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                                    : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
+                              }`}>
+                                {isCorrect ? '✅ ĐÚNG' : isRefund ? '🔄 HOÀ' : '❌ SAI'}
+                              </span>
+                            </div>
+                            {evalItem.reason && (
+                              <p className="text-[10px] text-gray-400 font-medium leading-relaxed">
+                                {evalItem.reason}
+                              </p>
+                            )}
                           </div>
-                          {evalItem.reason && (
-                            <p className="text-[10px] text-gray-400 font-medium leading-relaxed">
-                              {evalItem.reason}
-                            </p>
-                          )}
-                        </div>
-                      );
-                    })}
+                        );
+                      });
+                    })()}
                   </div>
                 </div>
               )}

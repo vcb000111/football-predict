@@ -445,7 +445,7 @@ export default function CustomPredictor() {
                       {/* Kèo Tài Xỉu */}
                       <div className="p-3 rounded-lg bg-card-border/20 border border-card-border/50 text-xs">
                         <div className="flex items-center justify-between mb-1.5">
-                          <span className="font-bold text-gray-455 text-[10px]">KÈO TÀI XỈU</span>
+                          <span className="font-bold text-gray-455 text-[10px]">KÈO TÀI XỈU (O/U {prediction.ou_line ?? prediction.bets?.overUnder?.line ?? 2.5})</span>
                           <div className="flex items-center space-x-1.5">
                             <span className="bg-secondary/20 text-secondary font-bold px-2 py-0.5 rounded-md text-[10px]">
                               {prediction.recommendation_ou ?? prediction.bets?.overUnder?.recommendation}
@@ -473,7 +473,7 @@ export default function CustomPredictor() {
                       {/* Kèo Cả Hai Đội Ghi Bàn (BTTS) */}
                       <div className="p-3 rounded-lg bg-card-border/20 border border-card-border/50 text-xs">
                         <div className="flex items-center justify-between mb-1.5">
-                          <span className="font-bold text-gray-450 text-[10px]">CẢ HAI ĐỘI GHI BÀN (BTTS)</span>
+                          <span className="font-bold text-gray-455 text-[10px]">CẢ HAI ĐỘI GHI BÀN (BTTS)</span>
                           <div className="flex items-center space-x-1.5">
                             <span className="bg-[#1D4ED8]/25 text-blue-400 font-bold px-2 py-0.5 rounded-md text-[10px]">
                               {prediction.recommendation_btts ?? prediction.bets?.btts?.recommendation}
@@ -487,7 +487,7 @@ export default function CustomPredictor() {
                       {/* Kèo Phạt Góc */}
                       <div className="p-3 rounded-lg bg-card-border/20 border border-card-border/50 text-xs">
                         <div className="flex items-center justify-between mb-1.5">
-                          <span className="font-bold text-gray-450 text-[10px]">KÈO PHẠT GÓC (O/U 8.5)</span>
+                          <span className="font-bold text-gray-450 text-[10px]">KÈO PHẠT GÓC (O/U {prediction.corners_line ?? prediction.bets?.corners?.line ?? 8.5})</span>
                           <div className="flex items-center space-x-1.5">
                             <span className="bg-[#581C87]/25 text-purple-400 font-bold px-2 py-0.5 rounded-md text-[10px]">
                               {prediction.recommendation_corners ?? prediction.bets?.corners?.recommendation}
@@ -501,7 +501,7 @@ export default function CustomPredictor() {
                       {/* Kèo Thẻ Phạt */}
                       <div className="p-3 rounded-lg bg-card-border/20 border border-card-border/50 text-xs">
                         <div className="flex items-center justify-between mb-1.5">
-                          <span className="font-bold text-gray-450 text-[10px]">KÈO THẺ PHẠT (O/U 3.5)</span>
+                          <span className="font-bold text-gray-450 text-[10px]">KÈO THẺ PHẠT (O/U {prediction.cards_line ?? prediction.bets?.cards?.line ?? 3.5})</span>
                           <div className="flex items-center space-x-1.5">
                             <span className="bg-[#D97706]/20 text-[#F59E0B] font-bold px-2 py-0.5 rounded-md text-[10px]">
                               {prediction.recommendation_cards ?? prediction.bets?.cards?.recommendation}

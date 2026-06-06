@@ -90,7 +90,16 @@ npm run dev
 
 ## 🛠️ Nhật Ký Thay Đổi (Changelog)
 
-### [2026-06-06] - Cập nhật Cache dự đoán & Mô phỏng Monte Carlo 10,000 lần
+### [2026-06-06] - Tích hợp 4 Option nâng cấp độ tin cậy AI & Cơ chế Model Rotation (v1.5.0)
+* **Consensus đa tác nhân & Groq API:** Tích hợp Groq REST API, chạy song song Gemini + Groq tạo bản nháp và dùng Gemini làm trọng tài phản biện Critic.
+* **Model Rotation (Xoay vòng AI Models):** Tự động chuyển đổi sang mô hình có độ ưu tiên thấp hơn tiếp theo nếu mô hình ưu tiên trước gặp lỗi (413, 429, 503), đi kèm Cool Down thông minh 5 phút.
+* **Tự động rút kinh nghiệm (Self-Retrospective):** Tự động phân tích lý do đoán sai kèo và ghi nhận bài học kinh nghiệm vào database để phục vụ In-Context Learning.
+* **ELO Scraper thời gian thực:** Quét internet cập nhật ELO và FIFA Rank của đội tuyển trước khi dự đoán.
+* **Hybrid ML Model:** Viết thuật toán Logistic Regression & Naive Bayes bằng JS thuần tính toán xác suất baseline định lượng.
+* **Sửa lỗi Admin panel:** Sửa lỗi sập trang Admin (ReferenceError) liên quan đến `newKeyProvider` và `newModelProvider`.
+* **Đồng bộ nhãn header:** Format trực quan thông tin mô hình đồng thuận (`Đa tác nhân: Gemini... + Groq...`) và hiển thị động trên Header của trang chi tiết.
+
+### [2026-06-06] - Cập nhật Cache dự đoán & Mô phỏng Monte Carlo 10,000 lần (v1.4.0)
 * **Cơ chế Caching thông minh (SQLite):** Lưu trữ kết quả dự đoán trận đấu, tự động bypass cache nếu quá 24h hoặc nếu chỉ số của 2 đội bóng thay đổi trong database.
 * **Mô phỏng Monte Carlo:** Triển khai thuật toán Knuth ngẫu nhiên Poisson chạy 10,000 lần để tính toán xác suất 1X2 động, BTTS, Tài Xỉu, và top 5 tỉ số khả thi nhất. Tích hợp dữ liệu mô phỏng này vào Prompt AI làm thông tin định lượng đầu vào.
 * **Giao diện Modal Dự Đoán Nâng Cao:** Thiết kế Panel Monte Carlo trực quan cao cấp, hiển thị nhãn cache rõ ràng và thêm nút bấm **"🔄 Phân tích lại"** để người dùng làm mới dự đoán AI bất cứ lúc nào.
