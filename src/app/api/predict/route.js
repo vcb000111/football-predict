@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { getDB } from '@/lib/db';
-
-const MODELS = ['gemini-3.5-flash', 'gemini-3-flash-preview', 'gemini-3.1-flash-lite', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'];
+// Kích hoạt recompile và sửa lỗi cache Next.js HMR
+import { searchInternet } from '@/lib/search';
 
 export async function POST(request) {
   try {
@@ -15,87 +15,71 @@ export async function POST(request) {
       );
     }
 
-    // 1. Phân tích danh sách API Keys từ biến môi trường (Hỗ trợ nhiều định dạng)
-    const apiKeysList = [];
-    
-    // Đọc key đơn lẻ
-    if (process.env.GEMINI_API_KEY) {
-      apiKeysList.push(process.env.GEMINI_API_KEY.trim());
-    }
-    
-    // Đọc danh sách keys phân tách bằng dấu phẩy
-    if (process.env.GEMINI_API_KEYS) {
-      const splitKeys = process.env.GEMINI_API_KEYS.split(',')
-        .map((k) => k.trim())
-        .filter(Boolean);
-      apiKeysList.push(...splitKeys);
-    }
-    
-    // Đọc các keys đánh số dạng GEMINI_API_KEY_1, GEMINI_API_KEY_2, ...
-    const numberedKeys = Object.keys(process.env)
-      .filter((key) => key.startsWith('GEMINI_API_KEY_'))
-      .sort((a, b) => {
-        const numA = parseInt(a.replace('GEMINI_API_KEY_', ''), 10);
-        const numB = parseInt(b.replace('GEMINI_API_KEY_', ''), 10);
-        return numA - numB;
-      });
-      
-    numberedKeys.forEach((key) => {
-      if (process.env[key]) {
-        apiKeysList.push(process.env[key].trim());
-      }
-    });
-
-    const apiKeys = Array.from(new Set(apiKeysList));
-
     let db = null;
-    let feedbackPromptSection = '';
-    let historicalAccuracy = null;
+    let apiKeys = [];
+    let MODELS = [];
 
-    // 2. Mở cơ sở dữ liệu SQLite
+    // Mở cơ sở dữ liệu SQLite trước để lấy cấu hình và lịch sử
     try {
       db = await getDB();
       
-      // 3. Tải lịch sử dự đoán trước đây của 2 đội đã có kết quả thực tế để làm Feedback Loop (Học máy)
-      const history = await db.all(
-        `SELECT * FROM predictions 
-         WHERE (home_team = ? OR away_team = ? OR home_team = ? OR away_team = ?) 
-           AND actual_home_score IS NOT NULL 
-         ORDER BY id DESC LIMIT 5`,
-        [homeTeam, awayTeam, awayTeam, homeTeam]
-      );
+      // Đọc các API Keys hoạt động từ DB
+      const activeKeysRows = await db.all("SELECT key_value FROM api_keys WHERE status = 1");
+      apiKeys = Array.from(new Set(activeKeysRows.map(row => row.key_value.trim())));
+      
+      // Đọc các AI Models hoạt động từ DB theo độ ưu tiên
+      const activeModelsRows = await db.all("SELECT model_name FROM ai_models WHERE status = 1 ORDER BY priority ASC");
+      MODELS = activeModelsRows.map(row => row.model_name.trim());
+    } catch (dbInitError) {
+      console.error('Lỗi khi tải API keys/models từ SQLite:', dbInitError);
+    }
 
-      if (history && history.length > 0) {
-        let correctCount = 0;
-        let historyTexts = history.map((record) => {
-          const isCorrectStr = record.is_correct === 1 ? 'ĐÚNG' : 'SAI';
-          if (record.is_correct === 1) correctCount++;
-          
-          return `- Trận [${record.home_team} vs ${record.away_team}]: Bạn dự đoán tỷ số ${record.predicted_home_score}-${record.predicted_away_score}. Thực tế diễn ra: ${record.actual_home_score}-${record.actual_away_score} (Dự đoán kết quả 1X2: ${isCorrectStr}).`;
-        }).join('\n');
+    let feedbackPromptSection = '';
+    let historicalAccuracy = null;
 
-        historicalAccuracy = {
-          total: history.length,
-          correct: correctCount,
-          rate: Math.round((correctCount / history.length) * 100)
-        };
+    if (db) {
+      try {
+        // 3. Tải lịch sử dự đoán trước đây của 2 đội đã có kết quả thực tế để làm Feedback Loop (Học máy)
+        const history = await db.all(
+          `SELECT * FROM predictions 
+           WHERE (home_team = ? OR away_team = ? OR home_team = ? OR away_team = ?) 
+             AND actual_home_score IS NOT NULL 
+           ORDER BY id DESC LIMIT 5`,
+          [homeTeam, awayTeam, awayTeam, homeTeam]
+        );
 
-        feedbackPromptSection = `
+        if (history && history.length > 0) {
+          let correctCount = 0;
+          let historyTexts = history.map((record) => {
+            const isCorrectStr = record.is_correct === 1 ? 'ĐÚNG' : 'SAI';
+            if (record.is_correct === 1) correctCount++;
+            
+            return `- Trận [${record.home_team} vs ${record.away_team}]: Bạn dự đoán tỷ số ${record.predicted_home_score}-${record.predicted_away_score}. Thực tế diễn ra: ${record.actual_home_score}-${record.actual_away_score} (Dự đoán kết quả 1X2: ${isCorrectStr}).`;
+          }).join('\n');
+
+          historicalAccuracy = {
+            total: history.length,
+            correct: correctCount,
+            rate: Math.round((correctCount / history.length) * 100)
+          };
+
+          feedbackPromptSection = `
 --- LỊCH SỬ DỰ ĐOÁN & SAI SỐ TRƯỚC ĐÂY CỦA BẠN (HỌC MÁY NGỮ CẢNH) ---
 Hệ thống đã lưu lại các dự đoán trước đây của bạn đối với 2 đội bóng này. Hãy phân tích kỹ các lỗi dự đoán trước đây để tránh lặp lại sai lầm và tăng độ chính xác lần này:
 ${historyTexts}
 Tỷ lệ dự đoán đúng kết quả chung cuộc (1X2) gần đây của bạn với 2 đội này là: ${historicalAccuracy.rate}% (${correctCount}/${history.length} trận đúng).
 Chú ý: Nếu trước đây bạn từng đánh giá quá cao/thấp đội bóng nào, hãy điều chỉnh lại lập luận chiến thuật và phân bổ xác suất trong JSON dự đoán mới cho phù hợp.
 `;
+        }
+      } catch (dbError) {
+        console.error('Lỗi khi truy vấn lịch sử SQLite:', dbError);
       }
-    } catch (dbError) {
-      console.error('Lỗi khi truy vấn lịch sử SQLite:', dbError);
     }
 
-    // 4. Nếu không cấu hình API Key nào, chạy chế độ giả lập (Mock Mode)
-    if (apiKeys.length === 0) {
-      console.log(`\n💡 [MOCK MODE] Không tìm thấy GEMINI_API_KEY. Chạy thuật toán giả lập dự đoán cho: ${homeTeam} vs ${awayTeam}`);
-      const mockData = getMockPrediction(homeTeam, awayTeam, true, 'GEMINI_API_KEY chưa được thiết lập. Đang chạy ở chế độ giả lập.', historicalAccuracy);
+    // 4. Nếu không cấu hình API Key hay Model nào hoạt động, chạy chế độ giả lập (Mock Mode)
+    if (apiKeys.length === 0 || MODELS.length === 0) {
+      console.log(`\n💡 [MOCK MODE] Không có API Key hoặc Model hoạt động trong DB. Chạy thuật toán giả lập dự đoán cho: ${homeTeam} vs ${awayTeam}`);
+      const mockData = getMockPrediction(homeTeam, awayTeam, true, 'API Key hoặc AI Model hoạt động chưa được thiết lập trong trang cấu hình. Đang chạy ở chế độ giả lập.', historicalAccuracy);
       
       // Lưu dữ liệu giả lập vào SQLite để người dùng vẫn test được Database & Học máy
       if (db) {
@@ -183,6 +167,57 @@ Yêu cầu phân tích và trả về kết quả dưới định dạng JSON du
 
 Chú ý: Tổng phần trăm trong "winProbability" (home + draw + away) phải bằng chính xác 100. Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code markdown hay ký tự thừa.`;
 
+    // 5.5 Thực hiện tìm kiếm thông tin trước khi gọi AI (Custom RAG) - Chia nhỏ theo các kèo & thông tin cần thiết
+    let searchContext = '';
+    try {
+      // Tạo 4 query song song phục vụ dự đoán chuyên sâu
+      const q1 = `${homeTeam} vs ${awayTeam} H2H stats`;
+      const q2 = `${homeTeam} vs ${awayTeam} team news injuries`;
+      const q3 = `${homeTeam} vs ${awayTeam} average corners stats`;
+      const q4 = `${homeTeam} vs ${awayTeam} cards fouls stats`;
+
+      console.log(`   - 🔍 [RAG SEARCH] Chạy 4 truy vấn song song cho thông tin trước trận...`);
+      console.log(`     [Q1]: "${q1}"`);
+      console.log(`     [Q2]: "${q2}"`);
+      console.log(`     [Q3]: "${q3}"`);
+      console.log(`     [Q4]: "${q4}"`);
+
+      const [r1, r2, r3, r4] = await Promise.all([
+        searchInternet(q1),
+        searchInternet(q2),
+        searchInternet(q3),
+        searchInternet(q4)
+      ]);
+
+      const allResults = [
+        { name: 'ĐỐI ĐẦU & PHONG ĐỘ (H2H & Form)', data: r1 },
+        { name: 'TIN TỨC & CHẤN THƯƠNG (News & Injuries)', data: r2 },
+        { name: 'PHẠT GÓC TRUNG BÌNH (Average Corners)', data: r3 },
+        { name: 'THẺ PHẠT & PHẠM LỖI (Cards & Fouls)', data: r4 }
+      ];
+
+      searchContext = `\n--- THÔNG TIN TRA CỨU TỪ INTERNET (TIN TỨC & THỐNG KÊ THỰC TẾ) ---`;
+      
+      allResults.forEach(res => {
+        console.log(`   - 🔍 [RAG SEARCH RESULTS] ${res.name} tìm thấy ${res.data?.length || 0} kết quả:`);
+        searchContext += `\n\n[Dữ liệu: ${res.name}]`;
+        if (res.data && res.data.length > 0) {
+          res.data.forEach((s, idx) => {
+            console.log(`       [${idx + 1}] ${s}`);
+            searchContext += `\n- ${s}`;
+          });
+        } else {
+          console.log(`       ⚠️ Không tìm thấy kết quả nào.`);
+          searchContext += `\n- Không có dữ liệu trực tuyến.`;
+        }
+      });
+
+    } catch (searchErr) {
+      console.warn('⚠️ Lỗi khi tra cứu internet cho dự đoán:', searchErr.message);
+    }
+
+    const finalPrompt = prompt + '\n' + searchContext;
+
     // 6. Thực hiện xoay vòng API Keys & Models (Key / Model Rotation & Retry)
     let callResult = null;
     let lastError = null;
@@ -196,16 +231,15 @@ Chú ý: Tổng phần trăm trong "winProbability" (home + draw + away) phải 
           console.log(`\n🤖 [AI REQUEST] Gửi yêu cầu dự đoán trận đấu: ${homeTeam} vs ${awayTeam}`);
           console.log(`   - Model: ${currentModel}`);
           console.log(`   - API Key: #${keyIdx + 1}/${apiKeys.length}`);
-          console.log(`   - Google Search Grounding: Bật (Timeout: 45s)`);
+          console.log(`   - Custom Search RAG: Bật (DuckDuckGo/Tavily)`);
           
           const ai = new GoogleGenAI({ apiKey: currentKey });
           
           const response = await ai.models.generateContent({
             model: currentModel,
-            contents: prompt,
+            contents: finalPrompt,
             config: {
-              tools: [{ googleSearch: {} }],
-              abortSignal: AbortSignal.timeout(45000), // Timeout sau 45 giây để tăng khả năng hoàn thành Search Grounding
+              abortSignal: AbortSignal.timeout(45000), // Timeout sau 45 giây
             },
           });
           

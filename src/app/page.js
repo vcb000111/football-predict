@@ -7,6 +7,7 @@ export default async function Page() {
   
   let historyCounts = {};
   let scoreMap = {};
+  let latestPredictions = {};
   try {
     const db = await getDB();
     const counts = await db.all(
@@ -25,6 +26,22 @@ export default async function Page() {
       scoreMap[row.match_id] = {
         actualHomeScore: row.actual_home_score,
         actualAwayScore: row.actual_away_score
+      };
+    });
+
+    // Lấy dự đoán gần nhất của mỗi trận đấu để hiển thị lên trang chủ
+    const latestPreds = await db.all(
+      `SELECT match_id, predicted_home_score, predicted_away_score, actual_home_score, actual_away_score, is_correct 
+       FROM predictions 
+       WHERE id IN (SELECT MAX(id) FROM predictions WHERE match_id IS NOT NULL GROUP BY match_id)`
+    );
+    latestPreds.forEach((row) => {
+      latestPredictions[row.match_id] = {
+        predictedHomeScore: row.predicted_home_score,
+        predictedAwayScore: row.predicted_away_score,
+        actualHomeScore: row.actual_home_score,
+        actualAwayScore: row.actual_away_score,
+        isCorrect: row.is_correct
       };
     });
   } catch (err) {
@@ -50,6 +67,7 @@ export default async function Page() {
       initialData={mergedData} 
       isKeyConfigured={isKeyConfigured} 
       historyCounts={historyCounts} 
+      latestPredictions={latestPredictions}
     />
   );
 }

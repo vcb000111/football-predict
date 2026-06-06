@@ -4,6 +4,32 @@ Tất cả những thay đổi nổi bật đối với dự án **FIFA World Cu
 
 ---
 
+## [1.2.1] - 2026-06-06
+
+### Added (Thêm mới)
+* **Đồng bộ hóa 48 trận đấu vòng bảng chính thức:** Cập nhật toàn bộ 48 trận đấu vòng bảng FIFA World Cup 2026 thực tế (bao gồm 24 trận lượt 1 và 24 trận lượt 2 của cả 12 bảng đấu) vào dữ liệu hệ thống [fixtures.json](file:///d:/Projects/Football_Predict/src/data/fixtures.json).
+* **Bổ sung cờ quốc gia Bờ Biển Ngà (Ivory Coast):** Thêm mã quốc gia `ci` và emoji cờ `🇨🇮` vào file tiện ích [flags.js](file:///d:/Projects/Football_Predict/src/lib/flags.js) để hiển thị cờ Bờ Biển Ngà chính xác, không bị lỗi cờ trắng.
+
+### Changed (Thay đổi)
+* Thực thi và dọn dẹp file script đồng bộ `sync_fixtures.js`.
+
+---
+
+## [1.2.0] - 2026-06-06
+
+### Added (Thêm mới)
+* **Hệ thống RAG Search đa nguồn động (SQLite):** Tích hợp 3 API tìm kiếm thời gian thực chính thức (**Tavily**, **Brave Search**, **Serper**) thay thế cho DuckDuckGo scraper cũ để tránh CAPTCHA.
+* **Xoay vòng API Keys & Tự động Dự phòng (Rotation & Failover):** Cho phép cấu hình nhiều API key cho mỗi Search Provider. Khi một key lỗi hoặc hết hạn mức, hệ thống tự động thử key tiếp theo hoặc chuyển sang Search Provider kế tiếp.
+* **Sắp xếp ưu tiên Search Providers:** Hỗ trợ thay đổi thứ tự ưu tiên (Priority) và bật/tắt từng Search Provider tương tự cơ chế xoay vòng AI Models.
+* **Giao diện Admin quản trị RAG nâng cao:** Cập nhật trang `/admin` hiển thị trực quan 3 search engines, hỗ trợ nút bấm Up/Down thay đổi độ ưu tiên, toggle trạng thái, và thêm/xóa/bật/tắt API keys của từng công cụ tìm kiếm.
+* **Tự động di chuyển dữ liệu (Seeding & Migration):** Tự động tạo bảng `search_providers` và `search_api_keys` trong SQLite, tự động seed cấu hình mặc định và import API keys sẵn có từ file `.env.local` trong lần đầu chạy để tránh gián đoạn.
+
+### Changed (Thay đổi)
+* Cập nhật hàm `searchInternet` trong `src/lib/search.js` để đọc trực tiếp cấu hình từ SQLite và thực hiện gọi các API tương ứng với Tavily, Brave Search (header `X-Subscription-Token`), và Serper (POST request).
+* Cập nhật API route `src/app/api/admin/config/route.js` để hỗ trợ lưu trữ đồng bộ trạng thái của các search providers và keys.
+
+---
+
 ## [1.1.0] - 2026-06-06
 
 ### Added (Thêm mới)

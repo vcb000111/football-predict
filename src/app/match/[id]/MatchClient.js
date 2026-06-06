@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { getTeamFlag } from '../../HomePageClient';
+import { getTeamFlag } from '@/lib/flags';
 
 export default function MatchClient({ match }) {
   const [loading, setLoading] = useState(true);

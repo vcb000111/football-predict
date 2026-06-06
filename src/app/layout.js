@@ -60,6 +60,14 @@ export default function RootLayout({ children }) {
                 >
                   Giả Lập Cặp Đấu
                 </Link>
+                <Link 
+                  href="/admin" 
+                  className="text-gray-300 hover:text-primary/90 hover:text-primary transition-colors duration-200 font-medium text-sm flex items-center space-x-1 border-l border-card-border/50 pl-4"
+                  id="nav-admin"
+                >
+                  <span>🛠️</span>
+                  <span>Cấu Hình AI</span>
+                </Link>
               </nav>
 
               {/* Badge */}

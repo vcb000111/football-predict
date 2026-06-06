@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { getDB } from '@/lib/db';
+import { searchInternet } from '@/lib/search';
 import fixturesData from '@/data/fixtures.json';
 import fs from 'fs';
 import path from 'path';
-
-const MODELS = ['gemini-3.5-flash', 'gemini-3-flash-preview', 'gemini-3.1-flash-lite', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'];
 
 export async function POST(request) {
   try {
@@ -18,44 +17,48 @@ export async function POST(request) {
       );
     }
 
-    // 1. Phân tích danh sách API Keys giống như trong predict API
-    const apiKeysList = [];
-    if (process.env.GEMINI_API_KEY) {
-      apiKeysList.push(process.env.GEMINI_API_KEY.trim());
+    let db = null;
+    let apiKeys = [];
+    let MODELS = [];
+
+    // Mở cơ sở dữ liệu SQLite trước để lấy cấu hình
+    try {
+      db = await getDB();
+      
+      // Đọc các API Keys hoạt động từ DB
+      const activeKeysRows = await db.all("SELECT key_value FROM api_keys WHERE status = 1");
+      apiKeys = Array.from(new Set(activeKeysRows.map(row => row.key_value.trim())));
+      
+      // Đọc các AI Models hoạt động từ DB theo độ ưu tiên
+      const activeModelsRows = await db.all("SELECT model_name FROM ai_models WHERE status = 1 ORDER BY priority ASC");
+      MODELS = activeModelsRows.map(row => row.model_name.trim());
+    } catch (dbInitError) {
+      console.error('Lỗi khi tải API keys/models từ SQLite:', dbInitError);
     }
-    if (process.env.GEMINI_API_KEYS) {
-      const splitKeys = process.env.GEMINI_API_KEYS.split(',')
-        .map((k) => k.trim())
-        .filter(Boolean);
-      apiKeysList.push(...splitKeys);
-    }
-    const numberedKeys = Object.keys(process.env)
-      .filter((key) => key.startsWith('GEMINI_API_KEY_'))
-      .sort((a, b) => {
-        const numA = parseInt(a.replace('GEMINI_API_KEY_', ''), 10);
-        const numB = parseInt(b.replace('GEMINI_API_KEY_', ''), 10);
-        return numA - numB;
-      });
-    numberedKeys.forEach((key) => {
-      if (process.env[key]) {
-        apiKeysList.push(process.env[key].trim());
-      }
-    });
-    const apiKeys = Array.from(new Set(apiKeysList));
 
     // 2. Tìm thông tin Fixture để lấy ngày và địa điểm
     let matchDate = null;
     let matchVenue = null;
+    let isTest = false;
+    
+    let fixture = null;
     if (matchId) {
-      const fixture = fixturesData.fixtures.find((f) => f.id === matchId);
-      if (fixture) {
-        matchDate = fixture.date;
-        matchVenue = fixture.venue;
-      }
+      fixture = fixturesData.fixtures.find((f) => f.id === matchId);
+    }
+    if (!fixture) {
+      fixture = fixturesData.fixtures.find(
+        (f) => f.homeTeam === homeTeam && f.awayTeam === awayTeam
+      );
+    }
+    
+    if (fixture) {
+      matchDate = fixture.date;
+      matchVenue = fixture.venue;
+      isTest = !!fixture.isTest;
     }
 
     // 3. Mở database để tìm bản ghi dự đoán gần nhất
-    const db = await getDB();
+    if (!db) db = await getDB();
     let predictionRecord = null;
     if (matchId) {
       predictionRecord = await db.get(
@@ -77,9 +80,9 @@ export async function POST(request) {
       );
     }
 
-    // 4. CHẾ ĐỘ GIẢ LẬP (MOCK MODE) khi không có API Key
-    if (apiKeys.length === 0) {
-      console.log(`\n💡 [MOCK MODE - AUTO UPDATE] Không có GEMINI_API_KEY. Chạy giả lập chấm điểm cho: ${homeTeam} vs ${awayTeam}`);
+    // 4. CHẾ ĐỘ GIẢ LẬP (MOCK MODE) khi không có API Key hoặc Model hoạt động
+    if (apiKeys.length === 0 || MODELS.length === 0) {
+      console.log(`\n💡 [MOCK MODE - AUTO UPDATE] Không có API Key hoặc Model hoạt động trong DB. Chạy giả lập chấm điểm cho: ${homeTeam} vs ${awayTeam}`);
 
       const currentTime = new Date('2026-06-05T23:42:17+07:00'); // Lấy mốc thời gian hệ thống cung cấp
       let isFuture = false;
@@ -227,19 +230,31 @@ export async function POST(request) {
       });
     }
 
+    // Xác định ngày thi đấu thực tế trên internet (Lấy trực tiếp từ ngày của fixture trong hệ thống)
+    let searchDateStr = '';
+    if (matchDate) {
+      const [yearStr, monthStr, dayStr] = matchDate.split('-');
+      const months = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ];
+      const monthIndex = parseInt(monthStr, 10) - 1;
+      const monthName = months[monthIndex] || 'June';
+      const dayNum = parseInt(dayStr, 10);
+      searchDateStr = `${monthName} ${dayNum}, ${yearStr}`;
+    }
+
     // 5. CHẾ ĐỘ REAL MODE: Gọi Gemini AI cùng Search Grounding
-    const prompt = `Hãy tìm kiếm kết quả tỷ số thực tế và trạng thái của trận đấu bóng đá giữa:
+    const prompt = `Hãy phân tích kết quả tỷ số thực tế và trạng thái của trận đấu bóng đá giữa:
 Đội nhà (Home Team): ${homeTeam}
 Đội khách (Away Team): ${awayTeam}
-${matchDate ? `Ngày diễn ra dự kiến trong hệ thống: ${matchDate}` : ''}
+${matchDate ? `Ngày diễn ra trận đấu: ${matchDate} (${searchDateStr})` : ''}
 ${matchVenue ? `Địa điểm/Sân vận động: ${matchVenue}` : ''}
 
-CHÚ Ý QUAN TRỌNG VỀ THỜI GIAN:
-Ngày thi đấu dự kiến trong hệ thống được đặt ở năm 2026 để phục vụ mục đích giả lập World Cup 2026. Tuy nhiên, đây là trận giao hữu hoặc trận đấu đã diễn ra ở thế giới thực (ví dụ: Bồ Đào Nha vs Croatia đã đá giao hữu vào ngày 8 tháng 6 năm 2024, Pháp vs Canada đã đá giao hữu ngày 9 tháng 6 năm 2024).
-Hãy sử dụng công cụ Tìm kiếm để tra cứu kết quả của TRẬN ĐẤU GẦN ĐÂY NHẤT thực tế giữa hai đội tuyển này (thường diễn ra vào năm 2024 hoặc 2025). Hãy lấy kết quả thực tế của trận đấu đó (tỉ số, phạt góc, thẻ phạt) để chấm điểm và trả về trạng thái "finished".
+Hãy sử dụng thông tin kết quả tra cứu từ internet được cung cấp dưới đây về trận đấu thực tế diễn ra vào ngày ${searchDateStr || 'gần đây nhất'}. Hãy lấy kết quả thực tế của trận đấu đó (tỉ số, phạt góc, thẻ phạt) để chấm điểm và trả về trạng thái "finished".
 
 Nhiệm vụ của bạn:
-1. Sử dụng công cụ Tìm kiếm Google (Google Search) để quét kết quả từ các nguồn chính thức và uy tín nhất như FIFA.com, ESPN, Livescore, Flashscore, v.v.
+1. Phân tích thông tin tìm kiếm từ internet được cung cấp dưới đây để tìm kết quả thực tế của trận đấu diễn ra vào ngày ${searchDateStr || 'gần đây nhất'}.
 2. Trả về kết quả thực tế của trận đấu (tỷ số thực tế, số quả phạt góc, số thẻ phạt) và chấm điểm tự động các dự đoán kèo sau:
    - Kèo châu Âu (1X2) dự đoán: "${predictionRecord.recommendation_1x2}"
    - Kèo tài xỉu 2.5 dự đoán: "${predictionRecord.recommendation_ou}"
@@ -287,11 +302,59 @@ Trả về một chuỗi JSON thô duy nhất có dạng cấu trúc sau:
 }
 
 Chú ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code markdown hay ký tự thừa.`;
+    // 4.5 Thực hiện tìm kiếm kết quả trận đấu trước khi gọi AI (Custom RAG) - Chia nhỏ theo các kèo
+    let searchContext = '';
+    try {
+      const dateSuffix = searchDateStr ? ` ${searchDateStr}` : '';
+      
+      // Tạo 3 query song song tập trung đúng trọng tâm
+      const q1 = `${homeTeam} vs ${awayTeam}${dateSuffix} score goals match result`;
+      const q2 = `${homeTeam} vs ${awayTeam}${dateSuffix} corners stats`;
+      const q3 = `${homeTeam} vs ${awayTeam}${dateSuffix} cards stats`;
+
+      console.log(`   - 🔍 [RAG SEARCH] Chạy 3 truy vấn song song cho kết quả trận đấu...`);
+      console.log(`     [Q1]: "${q1}"`);
+      console.log(`     [Q2]: "${q2}"`);
+      console.log(`     [Q3]: "${q3}"`);
+
+      const [r1, r2, r3] = await Promise.all([
+        searchInternet(q1),
+        searchInternet(q2),
+        searchInternet(q3)
+      ]);
+
+      const allResults = [
+        { name: 'KẾT QUẢ & TỶ SỐ (Score/Goals)', data: r1 },
+        { name: 'PHẠT GÓC (Corners)', data: r2 },
+        { name: 'THẺ PHẠT (Cards)', data: r3 }
+      ];
+
+      searchContext = `\n--- THÔNG TIN KẾT QUẢ TRA CỨU THỰC TẾ TỪ INTERNET ---`;
+      
+      allResults.forEach(res => {
+        console.log(`   - 🔍 [RAG SEARCH RESULTS] ${res.name} tìm thấy ${res.data?.length || 0} kết quả:`);
+        searchContext += `\n\n[Thống kê: ${res.name}]`;
+        if (res.data && res.data.length > 0) {
+          res.data.forEach((s, idx) => {
+            console.log(`       [${idx + 1}] ${s}`);
+            searchContext += `\n- ${s}`;
+          });
+        } else {
+          console.log(`       ⚠️ Không tìm thấy kết quả nào.`);
+          searchContext += `\n- Không tìm thấy dữ liệu từ internet.`;
+        }
+      });
+
+    } catch (searchErr) {
+      console.warn('⚠️ Lỗi khi tra cứu internet cho kết quả tự động:', searchErr.message);
+    }
+
+    const finalPrompt = prompt + '\n' + searchContext;
 
     let callResult = null;
     let lastError = null;
 
-        for (let modelIdx = 0; modelIdx < MODELS.length; modelIdx++) {
+    for (let modelIdx = 0; modelIdx < MODELS.length; modelIdx++) {
       const currentModel = MODELS[modelIdx];
       for (let keyIdx = 0; keyIdx < apiKeys.length; keyIdx++) {
         const currentKey = apiKeys[keyIdx];
@@ -300,15 +363,14 @@ Chú ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
           console.log(`\n🤖 [AI REQUEST - AUTO UPDATE] Tra cứu kết quả trận đấu: ${homeTeam} vs ${awayTeam}`);
           console.log(`   - Model: ${currentModel}`);
           console.log(`   - API Key: #${keyIdx + 1}/${apiKeys.length}`);
-          console.log(`   - Google Search Grounding: Bật (Timeout: 5m)`);
+          console.log(`   - Custom Search RAG: Bật (DuckDuckGo/Tavily)`);
           
           const ai = new GoogleGenAI({ apiKey: currentKey });
 
           const response = await ai.models.generateContent({
             model: currentModel,
-            contents: prompt,
+            contents: finalPrompt,
             config: {
-              tools: [{ googleSearch: {} }],
               abortSignal: AbortSignal.timeout(300000), // 5 minutes timeout
             },
           });

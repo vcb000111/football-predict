@@ -3,55 +3,38 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { saveLastUsedModel, formatModelName } from '@/lib/models-client';
+import { getTeamFlag, getTeamFlagEmoji } from '@/lib/flags';
 
+export function getPredictionStatus(predHome, predAway, actHome, actAway) {
+  if (actHome === null || actHome === undefined || actAway === null || actAway === undefined) {
+    return { status: 'pending', text: 'Chờ thi đấu', colorClass: 'bg-gray-500/10 text-gray-400 border-gray-500/20' };
+  }
+  
+  const pHome = parseInt(predHome, 10);
+  const pAway = parseInt(predAway, 10);
+  const aHome = parseInt(actHome, 10);
+  const aAway = parseInt(actAway, 10);
 
-const countryCodes = {
-  "Mexico": "mx", "South Africa": "za", "South Korea": "kr", "Czechia": "cz",
-  "Canada": "ca", "Bosnia and Herzegovina": "ba", "Qatar": "qa", "Switzerland": "ch",
-  "Brazil": "br", "Haiti": "ht", "Morocco": "ma", "Scotland": "gb-sct",
-  "USA": "us", "Paraguay": "py", "Australia": "au", "Türkiye": "tr",
-  "Germany": "de", "Curaçao": "cw", "Côte d'Ivoire": "ci", "Ecuador": "ec",
-  "Japan": "jp", "Netherlands": "nl", "Sweden": "se", "Tunisia": "tn",
-  "Belgium": "be", "Egypt": "eg", "Iran": "ir", "New Zealand": "nz",
-  "Cape Verde": "cv", "Saudi Arabia": "sa", "Spain": "es", "Uruguay": "uy",
-  "France": "fr", "Iraq": "iq", "Norway": "no", "Senegal": "sn",
-  "Algeria": "dz", "Argentina": "ar", "Austria": "at", "Jordan": "jo",
-  "Colombia": "co", "DR Congo": "cd", "Portugal": "pt", "Uzbekistan": "uz",
-  "Croatia": "hr", "England": "gb-eng", "Ghana": "gh", "Panama": "pa"
-};
-
-export function getTeamFlagEmoji(teamName) {
-  const flags = {
-    "Mexico": "🇲🇽", "South Africa": "🇿🇦", "South Korea": "🇰🇷", "Czechia": "🇨🇿",
-    "Canada": "🇨🇦", "Bosnia and Herzegovina": "🇧🇦", "Qatar": "🇶🇦", "Switzerland": "🇨🇭",
-    "Brazil": "🇧🇷", "Haiti": "🇭🇹", "Morocco": "🇲🇦", "Scotland": "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
-    "USA": "🇺🇸", "Paraguay": "🇵🇾", "Australia": "🇦🇺", "Türkiye": "🇹🇷",
-    "Germany": "🇩🇪", "Curaçao": "🇨🇼", "Côte d'Ivoire": "🇨🇮", "Ecuador": "🇪🇨",
-    "Japan": "🇯🇵", "Netherlands": "🇳🇱", "Sweden": "🇸🇪", "Tunisia": "🇹🇳",
-    "Belgium": "🇧🇪", "Egypt": "🇪🇬", "Iran": "🇮🇷", "New Zealand": "🇳🇿",
-    "Cape Verde": "🇨🇻", "Saudi Arabia": "🇸🇦", "Spain": "🇪🇸", "Uruguay": "🇺🇾",
-    "France": "🇫🇷", "Iraq": "🇮🇶", "Norway": "🇳🇴", "Senegal": "🇸🇳",
-    "Algeria": "🇩🇿", "Argentina": "🇦🇷", "Austria": "🇦🇹", "Jordan": "🇯🇴",
-    "Colombia": "🇨🇴", "DR Congo": "🇨🇩", "Portugal": "🇵🇹", "Uzbekistan": "🇺🇿",
-    "Croatia": "🇭🇷", "England": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "Ghana": "🇬🇭", "Panama": "🇵🇦"
-  };
-  return flags[teamName] || "🏳️";
+  // Đúng hoàn toàn (Đúng cả tỷ số)
+  if (pHome === aHome && pAway === aAway) {
+    return { status: 'correct', text: 'Đúng tỷ số', colorClass: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 glow-green-sm' };
+  }
+  
+  // Gần đúng (Đúng kết quả 1X2 nhưng lệch tỷ số)
+  const predDiff = pHome - pAway;
+  const actDiff = aHome - aAway;
+  const predOutcome = predDiff > 0 ? 1 : (predDiff < 0 ? -1 : 0);
+  const actOutcome = actDiff > 0 ? 1 : (actDiff < 0 ? -1 : 0);
+  
+  if (predOutcome === actOutcome) {
+    return { status: 'near', text: 'Gần đúng', colorClass: 'bg-amber-500/10 text-amber-400 border-amber-500/30' };
+  }
+  
+  // Sai hoàn toàn
+  return { status: 'incorrect', text: 'Sai kết quả', colorClass: 'bg-rose-500/10 text-rose-400 border-rose-500/30' };
 }
 
-export function getTeamFlag(teamName, className = "w-6 h-4.5") {
-  const code = countryCodes[teamName];
-  if (!code) return <span className="inline-block text-xl">🏳️</span>;
-  return (
-    <img 
-      src={`https://flagcdn.com/w40/${code}.png`} 
-      alt={teamName}
-      className={`inline-block object-cover rounded-sm shadow-sm border border-card-border/60 ${className}`}
-      loading="lazy"
-    />
-  );
-}
-
-export default function HomePageClient({ initialData, isKeyConfigured, historyCounts = {} }) {
+export default function HomePageClient({ initialData, isKeyConfigured, historyCounts = {}, latestPredictions = {} }) {
   const [activeTab, setActiveTab] = useState('fixtures'); // 'fixtures', 'test-matches' or 'groups'
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGroupFilter, setSelectedGroupFilter] = useState('All');
@@ -62,13 +45,19 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState(null);
   const [localHistoryCounts, setLocalHistoryCounts] = useState(historyCounts);
+  const [localLatestPredictions, setLocalLatestPredictions] = useState(latestPredictions);
   const [localFixtures, setLocalFixtures] = useState(initialData.fixtures);
   const [updatingAutoList, setUpdatingAutoList] = useState({});
+  const [resultModalData, setResultModalData] = useState(null);
 
   // Sync state with props when parent updates
   useEffect(() => {
     setLocalHistoryCounts(historyCounts);
   }, [historyCounts]);
+
+  useEffect(() => {
+    setLocalLatestPredictions(latestPredictions);
+  }, [latestPredictions]);
 
   useEffect(() => {
     setLocalFixtures(initialData.fixtures);
@@ -157,6 +146,18 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
         ...prev,
         [fixture.id]: (prev[fixture.id] || 0) + 1
       }));
+
+      // Update latest predictions instantly on the client side
+      setLocalLatestPredictions(prev => ({
+        ...prev,
+        [fixture.id]: {
+          predictedHomeScore: data.predictedScore?.home ?? data.predicted_home_score,
+          predictedAwayScore: data.predictedScore?.away ?? data.predicted_away_score,
+          actualHomeScore: fixture.actualHomeScore,
+          actualAwayScore: fixture.actualAwayScore,
+          isCorrect: null
+        }
+      }));
     } catch (err) {
       alert(`Lỗi phân tích nhanh: ${err.message}`);
     } finally {
@@ -215,12 +216,45 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
             return f;
           })
         );
-        alert(`🤖 Tự động cập nhật thành công!\nTrận đấu kết thúc với tỷ số thực tế: ${data.actualScore.home}-${data.actualScore.away}.\n${data.summary || ''}`);
+
+        // Update latest predictions actual scores instantly
+        setLocalLatestPredictions(prev => {
+          if (prev[fixture.id]) {
+            return {
+              ...prev,
+              [fixture.id]: {
+                ...prev[fixture.id],
+                actualHomeScore: data.actualScore.home,
+                actualAwayScore: data.actualScore.away
+              }
+            };
+          }
+          return prev;
+        });
+
+        setResultModalData({
+          fixture,
+          success: true,
+          actualScore: data.actualScore,
+          summary: data.summary,
+          betEvaluations: data.betEvaluations,
+          modelUsed: data.modelUsed
+        });
       } else {
-        alert(`⚠️ Trạng thái: ${data.message || 'Không tìm thấy kết quả thực tế trực tuyến.'}`);
+        setResultModalData({
+          fixture,
+          success: false,
+          status: data.status || 'not_started',
+          message: data.message || 'Không tìm thấy kết quả thực tế trực tuyến.'
+        });
       }
     } catch (err) {
-      alert(`Lỗi tự động cập nhật: ${err.message}`);
+      setResultModalData({
+        fixture,
+        success: false,
+        status: 'error',
+        message: err.message
+      });
     } finally {
       setUpdatingAutoList(prev => ({ ...prev, [fixture.id]: false }));
     }
@@ -331,6 +365,13 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
             >
               Xem Lịch Dự Đoán
             </button>
+            <Link 
+              href="/stats"
+              className="bg-gradient-to-r from-[#1E293B] to-[#0F172A] border border-card-border hover:border-indigo-500/40 text-white font-bold py-2 px-5 rounded-xl text-xs transition-all duration-200 flex items-center space-x-1.5"
+            >
+              <span>📊</span>
+              <span>Thống Kê AI</span>
+            </Link>
             <Link 
               href="/custom"
               className="glass-panel text-white hover:text-secondary font-bold py-2 px-5 rounded-xl text-xs hover:border-secondary/40 transition-all duration-200"
@@ -568,6 +609,20 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                             <span className="truncate">{fixture.venue}</span>
                           </div>
                           
+                          {(() => {
+                            const pred = localLatestPredictions[fixture.id];
+                            if (!pred) return null;
+                            const status = getPredictionStatus(pred.predictedHomeScore, pred.predictedAwayScore, fixture.actualHomeScore, fixture.actualAwayScore);
+                            return (
+                              <div className={`p-2 rounded-lg border text-[11px] flex items-center justify-between ${status.colorClass} backdrop-blur-sm transition-all duration-300`}>
+                                <span className="font-bold">🔮 AI: ${pred.predictedHomeScore} - ${pred.predictedAwayScore}</span>
+                                <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-black/30 tracking-wider">
+                                  ${status.text}
+                                </span>
+                              </div>
+                            );
+                          })()}
+                          
                           <div className="flex space-x-1.5">
                             <Link 
                               href={`/match/${fixture.id}`}
@@ -668,48 +723,65 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                             📍 {fixture.venue.split(',')[0]}
                           </span>
                           
+                          {(() => {
+                            const pred = localLatestPredictions[fixture.id];
+                            if (!pred) return null;
+                            const status = getPredictionStatus(pred.predictedHomeScore, pred.predictedAwayScore, fixture.actualHomeScore, fixture.actualAwayScore);
+                            return (
+                              <div className={`px-2 py-0.5 rounded border text-[10px] font-bold flex items-center space-x-1 ${status.colorClass} select-none whitespace-nowrap`} title={status.text}>
+                                <span>🔮 ${pred.predictedHomeScore} - ${pred.predictedAwayScore}</span>
+                                <span className="text-[8px] bg-black/25 px-1 py-0.2 rounded font-extrabold uppercase">
+                                  ${status.status === 'correct' ? 'Đúng' : status.status === 'near' ? 'Gần' : status.status === 'incorrect' ? 'Sai' : 'Chờ'}
+                                </span>
+                              </div>
+                            );
+                          })()}
+                          
                           <div className="flex space-x-1.5 w-full sm:w-auto">
                             <Link 
                               href={`/match/${fixture.id}`}
-                              className="flex-1 sm:flex-none bg-card-border hover:bg-primary/20 border border-card-border hover:border-primary/50 text-white font-semibold py-1 px-2 rounded text-[10px] transition-all duration-150 flex items-center justify-center space-x-0.5"
-                              title="Xem chi tiết & lịch sử dự đoán"
+                              className="bg-card-border hover:bg-primary/20 border border-card-border hover:border-primary/50 text-white w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-all duration-150 flex items-center justify-center"
+                              title="Xem chi tiết & phân tích chuyên sâu"
                             >
-                              <span>🔍 Chi Tiết</span>
+                              <span>🔍</span>
                             </Link>
                             
-                            <button
+                                                        <button
                               onClick={() => handleQuickPredict(fixture)}
                               disabled={quickPredicting[fixture.id]}
-                              className={`flex-1 sm:flex-none text-white font-semibold py-1 px-2 rounded text-[10px] transition-all duration-150 flex items-center justify-center space-x-0.5 active:scale-[0.98] cursor-pointer ${
+                              className={`text-white w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-all duration-150 flex items-center justify-center active:scale-[0.98] cursor-pointer \${
                                 quickPredicting[fixture.id]
                                   ? 'bg-[#151E2E] text-gray-500 border border-card-border'
-                                  : 'bg-gradient-to-r from-primary/80 to-secondary/80 hover:from-primary hover:to-secondary border border-primary/20 hover:border-primary/40'
+                                  : 'bg-gradient-to-r from-primary/80 to-secondary/80 hover:from-primary hover:to-secondary border border-primary/25 hover:border-primary/45 shadow-sm'
                               }`}
+                              title={quickPredicting[fixture.id] ? 'Đang phân tích...' : 'Phân tích nhanh bằng AI'}
                             >
-                              <span>{quickPredicting[fixture.id] ? '⏳ Chạy...' : '⚡ Nhanh'}</span>
+                              <span>{quickPredicting[fixture.id] ? '⏳' : '⚡'}</span>
                             </button>
                             
                             <button
                               onClick={() => handleAutoUpdate(fixture)}
                               disabled={updatingAutoList[fixture.id] || quickPredicting[fixture.id]}
-                              className={`flex-1 sm:flex-none text-white font-semibold py-1 px-2 rounded text-[10px] transition-all duration-150 flex items-center justify-center space-x-0.5 active:scale-[0.98] cursor-pointer ${
+                              className={`text-white w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-all duration-150 flex items-center justify-center active:scale-[0.98] cursor-pointer \${
                                 updatingAutoList[fixture.id]
                                   ? 'bg-[#151E2E] text-gray-500 border border-card-border'
                                   : 'bg-[#1E293B]/70 hover:bg-primary/25 border border-card-border hover:border-primary/40'
                               }`}
-                              title="Tự động cập nhật kết quả (AI)"
+                              title={updatingAutoList[fixture.id] ? 'Đang cập nhật...' : 'Tự động cập nhật kết quả thực tế (AI)'}
                             >
-                              <span>🤖 {updatingAutoList[fixture.id] ? 'Cập nhật...' : 'Cập nhật'}</span>
+                              <span>{updatingAutoList[fixture.id] ? '🔄' : '🤖'}</span>
                             </button>
 
                             {historyCount > 0 && (
                               <Link 
                                 href={`/match/${fixture.id}?tab=history`}
-                                className="bg-card-border/60 hover:bg-secondary/20 border border-card-border/50 hover:border-secondary/50 text-gray-300 hover:text-white font-semibold py-1 px-2 rounded text-[10px] transition-all duration-150 flex items-center justify-center space-x-1"
+                                className="bg-card-border/60 hover:bg-secondary/20 border border-card-border/50 hover:border-secondary/50 text-gray-300 hover:text-white w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-all duration-150 flex items-center justify-center relative"
                                 title={`Xem lịch sử (${historyCount} lần dự đoán)`}
                               >
                                 <span>📜</span>
-                                <span className="text-[9px] bg-secondary/20 px-1 rounded text-secondary">{historyCount}</span>
+                                <span className="absolute -top-1 -right-1 bg-secondary text-white text-[8px] font-black px-1 rounded-full min-w-[13px] h-[13px] flex items-center justify-center border border-[#0B0F17]">
+                                  {historyCount}
+                                </span>
                               </Link>
                             )}
                           </div>
@@ -918,6 +990,167 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
               </Link>
               <button
                 onClick={() => setModalData(null)}
+                className="bg-card-border hover:bg-card-border/80 border border-card-border text-white font-bold py-2 px-5 rounded-xl text-xs transition-all active:scale-[0.98] cursor-pointer"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AUTO RESULT UPDATE RAG MODAL */}
+      {resultModalData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-fade-in">
+          {/* Backdrop click closes modal */}
+          <div className="absolute inset-0" onClick={() => setResultModalData(null)}></div>
+          
+          <div className="glass-panel border border-card-border/80 rounded-2xl w-full max-w-xl p-5 relative z-10 shadow-2xl glow-cyan animate-scale-in max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex justify-between items-start border-b border-card-border pb-3 mb-4">
+              <div>
+                <span className={`border text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
+                  resultModalData.success 
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                    : resultModalData.status === 'error'
+                      ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                      : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                }`}>
+                  {resultModalData.success 
+                    ? '🤖 Cập nhật kết quả RAG thành công' 
+                    : resultModalData.status === 'error'
+                      ? '❌ Lỗi hệ thống'
+                      : '⚠️ Trạng thái trận đấu'}
+                </span>
+                <h2 className="text-sm font-extrabold text-white mt-1.5 flex items-center space-x-2">
+                  <span>📊 Kết Quả Thực Tế Trực Tuyến</span>
+                </h2>
+              </div>
+              <button 
+                onClick={() => setResultModalData(null)}
+                className="text-gray-400 hover:text-white font-bold text-base p-1 transition-colors leading-none cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Teams Matchup & Score Header */}
+            <div className="bg-[#0B0F17]/50 rounded-xl p-4 border border-card-border/50 text-center mb-4 relative overflow-hidden">
+              <div className="absolute top-0 right-0 text-[8px] text-gray-550 font-bold bg-card-border/40 px-2 py-0.5 rounded-bl">
+                {resultModalData.fixture.date} • {resultModalData.fixture.time}
+              </div>
+              
+              {resultModalData.modelUsed && (
+                <div className="absolute top-0 left-0 text-[7px] text-gray-400 font-bold bg-card-border/40 px-2 py-0.5 rounded-br uppercase tracking-wide">
+                  Chấm điểm bởi: {formatModelName(resultModalData.modelUsed)}
+                </div>
+              )}
+              
+              <div className="flex items-center justify-center space-x-4 mt-2">
+                {/* Home Team */}
+                <div className="flex items-center space-x-2.5 w-5/12 justify-end">
+                  <span className="font-extrabold text-sm text-white truncate">{resultModalData.fixture.homeTeam}</span>
+                  {getTeamFlag(resultModalData.fixture.homeTeam, "w-8 h-5.5")}
+                </div>
+
+                {/* Score or VS */}
+                <div className="flex flex-col items-center justify-center min-w-[70px]">
+                  {resultModalData.success ? (
+                    <div className="flex items-center space-x-2.5">
+                      <span className="text-2xl font-black text-primary">{resultModalData.actualScore.home}</span>
+                      <span className="text-gray-650 font-bold text-lg">-</span>
+                      <span className="text-2xl font-black text-primary">{resultModalData.actualScore.away}</span>
+                    </div>
+                  ) : (
+                    <span className="text-[10px] font-bold text-gray-650 bg-card-border/30 px-2.5 py-0.5 rounded-full">VS</span>
+                  )}
+                  {resultModalData.success && (
+                    <span className="text-[8px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.2 rounded font-black mt-1">FT</span>
+                  )}
+                </div>
+
+                {/* Away Team */}
+                <div className="flex items-center space-x-2.5 w-5/12 justify-start">
+                  {getTeamFlag(resultModalData.fixture.awayTeam, "w-8 h-5.5")}
+                  <span className="font-extrabold text-sm text-white truncate">{resultModalData.fixture.awayTeam}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Content Body */}
+            <div className="space-y-4 mb-5">
+              {/* Summary / Message Text */}
+              <div className={`p-3.5 rounded-xl border text-xs leading-relaxed ${
+                resultModalData.success 
+                  ? 'bg-emerald-500/5 text-emerald-300 border-emerald-500/20' 
+                  : resultModalData.status === 'error'
+                    ? 'bg-rose-500/5 text-rose-300 border-rose-500/20'
+                    : 'bg-amber-500/5 text-amber-300 border-amber-500/20'
+              }`}>
+                <p className="font-bold mb-1 flex items-center space-x-1.5">
+                  <span>{resultModalData.success ? '📝 Nhận định đối chiếu kết quả:' : 'ℹ️ Thông tin trạng thái:'}</span>
+                </p>
+                <p className="text-[11px] font-medium text-gray-300">
+                  {resultModalData.success ? resultModalData.summary : resultModalData.message}
+                </p>
+              </div>
+
+              {/* Kèo cược đánh giá chi tiết */}
+              {resultModalData.success && resultModalData.betEvaluations && (
+                <div className="space-y-2">
+                  <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider block pl-0.5">Kết Quả Chấm Điểm Các Kèo (AI Pundit)</span>
+                  
+                  <div className="space-y-2 max-h-[35vh] overflow-y-auto pr-1">
+                    {Object.entries({
+                      'Châu Âu (1X2)': { data: resultModalData.betEvaluations.oneXTwo },
+                      'Tài Xỉu 2.5': { data: resultModalData.betEvaluations.overUnder },
+                      'Kèo Chấp': { data: resultModalData.betEvaluations.handicap },
+                      'Ghi Bàn (BTTS)': { data: resultModalData.betEvaluations.btts },
+                      'Phạt Góc': { data: resultModalData.betEvaluations.corners },
+                      'Thẻ Phạt': { data: resultModalData.betEvaluations.cards }
+                    }).map(([betName, { data: evalItem }]) => {
+                      if (!evalItem || evalItem.outcome === 'n/a') return null;
+                      
+                      const isCorrect = evalItem.outcome === 'correct';
+                      const isRefund = evalItem.outcome === 'refund';
+                      
+                      return (
+                        <div key={betName} className="p-3 bg-[#0d1324] border border-card-border/40 rounded-xl flex flex-col gap-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-extrabold text-white">{betName}</span>
+                            <span className={`px-2.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${
+                              isCorrect
+                                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                                : isRefund
+                                  ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                                  : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
+                            }`}>
+                              {isCorrect ? '✅ ĐÚNG' : isRefund ? '🔄 HOÀ' : '❌ SAI'}
+                            </span>
+                          </div>
+                          {evalItem.reason && (
+                            <p className="text-[10px] text-gray-400 font-medium leading-relaxed">
+                              {evalItem.reason}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex space-x-3 pt-3 border-t border-card-border">
+              <Link
+                href={`/match/${resultModalData.fixture.id}`}
+                className="flex-1 bg-gradient-to-r from-primary to-secondary text-white font-bold py-2 px-4 rounded-xl text-center text-xs transition-all active:scale-[0.98]"
+              >
+                🔍 Xem Lịch Sử Dự Đoán Trận Đấu
+              </Link>
+              <button
+                onClick={() => setResultModalData(null)}
                 className="bg-card-border hover:bg-card-border/80 border border-card-border text-white font-bold py-2 px-5 rounded-xl text-xs transition-all active:scale-[0.98] cursor-pointer"
               >
                 Đóng

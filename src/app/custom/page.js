@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getTeamFlag, getTeamFlagEmoji } from '../HomePageClient';
+import { getTeamFlag, getTeamFlagEmoji } from '@/lib/flags';
 import data from '@/data/fixtures.json';
 import { saveLastUsedModel, formatModelName } from '@/lib/models-client';
 

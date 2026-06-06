@@ -3,6 +3,7 @@ import { GoogleGenAI } from '@google/genai';
 import fs from 'fs';
 import path from 'path';
 import currentData from '@/data/fixtures.json';
+import { searchInternet } from '@/lib/search';
 
 const MODELS = ['gemini-3.5-flash', 'gemini-3-flash-preview', 'gemini-3.1-flash-lite', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'];
 const FIXTURES_FILE_PATH = path.join(process.cwd(), 'src', 'data', 'fixtures.json');
@@ -201,6 +202,28 @@ Nhiệm vụ của bạn:
 
 Chú ý: Chỉ trả về chuỗi JSON thô, không chứa markdown, không có chữ thừa. Hãy giữ nguyên các tên quốc gia chuẩn tiếng Anh trùng khớp với các đội trong World Cup.`;
 
+    let searchContext = '';
+    try {
+      const searchResults = await searchInternet('FIFA World Cup 2026 official match schedule dates venues matches 1 to 12');
+      console.log(`   - 🔍 [RAG SEARCH RESULTS] Đã tìm thấy ${searchResults?.length || 0} kết quả lịch thi đấu:`);
+      if (searchResults && searchResults.length > 0) {
+        searchResults.forEach((s, idx) => {
+          console.log(`     [${idx + 1}] ${s}`);
+        });
+        searchContext = `
+--- THÔNG TIN LỊCH THI ĐẤU TRA CỨU TỪ INTERNET (THỰC TẾ) ---
+Dưới đây là các kết quả tìm kiếm thực tế về lịch thi đấu từ internet:
+${searchResults.map((s, idx) => `[${idx + 1}] ${s}`).join('\n')}
+`;
+      } else {
+        console.log(`     ⚠️ Cảnh báo: Không tìm thấy lịch thi đấu chính thức nào trực tuyến.`);
+      }
+    } catch (searchErr) {
+      console.warn('⚠️ Lỗi khi tra cứu internet cho đồng bộ lịch đấu:', searchErr.message);
+    }
+
+    const finalPrompt = prompt + '\n' + searchContext;
+
     let callResult = null;
     let lastError = null;
 
@@ -213,15 +236,14 @@ Chú ý: Chỉ trả về chuỗi JSON thô, không chứa markdown, không có 
           console.log(`\n🤖 [AI REQUEST - SYNC FIXTURES] Gọi AI đồng bộ lịch thi đấu World Cup 2026`);
           console.log(`   - Model: ${currentModel}`);
           console.log(`   - API Key: #${keyIdx + 1}/${apiKeys.length}`);
-          console.log(`   - Google Search Grounding: Bật (Timeout: 45s)`);
+          console.log(`   - Custom Search RAG: Bật (DuckDuckGo/Tavily)`);
           
           const ai = new GoogleGenAI({ apiKey: currentKey });
           
           const response = await ai.models.generateContent({
             model: currentModel,
-            contents: prompt,
+            contents: finalPrompt,
             config: {
-              tools: [{ googleSearch: {} }],
               abortSignal: AbortSignal.timeout(45000), // 45s timeout
             },
           });

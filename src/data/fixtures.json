@@ -115,7 +115,7 @@
       "homeTeam": "Mexico",
       "awayTeam": "South Africa",
       "date": "2026-06-11",
-      "time": "18:00",
+      "time": "15:00",
       "group": "Group A",
       "venue": "Estadio Azteca, Mexico City"
     },
@@ -124,7 +124,7 @@
       "homeTeam": "South Korea",
       "awayTeam": "Czechia",
       "date": "2026-06-11",
-      "time": "20:30",
+      "time": "20:00",
       "group": "Group A",
       "venue": "Estadio Akron, Guadalajara"
     },
@@ -133,16 +133,16 @@
       "homeTeam": "Canada",
       "awayTeam": "Bosnia and Herzegovina",
       "date": "2026-06-12",
-      "time": "17:00",
+      "time": "15:00",
       "group": "Group B",
       "venue": "BMO Field, Toronto"
     },
     {
       "id": "m4",
-      "homeTeam": "USA",
+      "homeTeam": "United States",
       "awayTeam": "Paraguay",
       "date": "2026-06-12",
-      "time": "20:00",
+      "time": "18:00",
       "group": "Group D",
       "venue": "SoFi Stadium, Los Angeles"
     },
@@ -151,14 +151,14 @@
       "homeTeam": "Haiti",
       "awayTeam": "Scotland",
       "date": "2026-06-13",
-      "time": "15:00",
+      "time": "21:00",
       "group": "Group C",
-      "venue": "Gillette Stadium, Foxborough"
+      "venue": "Gillette Stadium, Boston"
     },
     {
       "id": "m6",
       "homeTeam": "Australia",
-      "awayTeam": "Türkiye",
+      "awayTeam": "Turkey",
       "date": "2026-06-13",
       "time": "21:00",
       "group": "Group D",
@@ -169,25 +169,25 @@
       "homeTeam": "Brazil",
       "awayTeam": "Morocco",
       "date": "2026-06-13",
-      "time": "15:00",
+      "time": "18:00",
       "group": "Group C",
-      "venue": "MetLife Stadium, East Rutherford"
+      "venue": "MetLife Stadium, New York/New Jersey"
     },
     {
       "id": "m8",
       "homeTeam": "Qatar",
       "awayTeam": "Switzerland",
       "date": "2026-06-13",
-      "time": "18:00",
+      "time": "12:00",
       "group": "Group B",
-      "venue": "Levi's Stadium, Santa Clara"
+      "venue": "Levi's Stadium, San Francisco Bay Area"
     },
     {
       "id": "m9",
-      "homeTeam": "Côte d'Ivoire",
+      "homeTeam": "Ivory Coast",
       "awayTeam": "Ecuador",
       "date": "2026-06-14",
-      "time": "14:00",
+      "time": "19:00",
       "group": "Group E",
       "venue": "Lincoln Financial Field, Philadelphia"
     },
@@ -196,7 +196,7 @@
       "homeTeam": "Germany",
       "awayTeam": "Curaçao",
       "date": "2026-06-14",
-      "time": "17:00",
+      "time": "12:00",
       "group": "Group E",
       "venue": "NRG Stadium, Houston"
     },
@@ -205,9 +205,9 @@
       "homeTeam": "Netherlands",
       "awayTeam": "Japan",
       "date": "2026-06-14",
-      "time": "17:00",
+      "time": "15:00",
       "group": "Group F",
-      "venue": "AT&T Stadium, Arlington"
+      "venue": "AT&T Stadium, Dallas"
     },
     {
       "id": "m12",
@@ -216,112 +216,514 @@
       "date": "2026-06-14",
       "time": "20:00",
       "group": "Group F",
-      "venue": "Estadio Monterrey, Guadalupe"
+      "venue": "Estadio BBVA, Monterrey"
+    },
+    {
+      "id": "m13",
+      "homeTeam": "Saudi Arabia",
+      "awayTeam": "Uruguay",
+      "date": "2026-06-15",
+      "time": "18:00",
+      "group": "Group H",
+      "venue": "Hard Rock Stadium, Miami"
+    },
+    {
+      "id": "m14",
+      "homeTeam": "Spain",
+      "awayTeam": "Cape Verde",
+      "date": "2026-06-15",
+      "time": "12:00",
+      "group": "Group H",
+      "venue": "Mercedes-Benz Stadium, Atlanta"
+    },
+    {
+      "id": "m15",
+      "homeTeam": "Iran",
+      "awayTeam": "New Zealand",
+      "date": "2026-06-15",
+      "time": "18:00",
+      "group": "Group G",
+      "venue": "SoFi Stadium, Los Angeles"
+    },
+    {
+      "id": "m16",
+      "homeTeam": "Belgium",
+      "awayTeam": "Egypt",
+      "date": "2026-06-15",
+      "time": "12:00",
+      "group": "Group G",
+      "venue": "Lumen Field, Seattle"
+    },
+    {
+      "id": "m17",
+      "homeTeam": "France",
+      "awayTeam": "Senegal",
+      "date": "2026-06-16",
+      "time": "15:00",
+      "group": "Group I",
+      "venue": "MetLife Stadium, New York/New Jersey"
+    },
+    {
+      "id": "m18",
+      "homeTeam": "Iraq",
+      "awayTeam": "Norway",
+      "date": "2026-06-16",
+      "time": "18:00",
+      "group": "Group I",
+      "venue": "Gillette Stadium, Boston"
+    },
+    {
+      "id": "m19",
+      "homeTeam": "Argentina",
+      "awayTeam": "Algeria",
+      "date": "2026-06-16",
+      "time": "20:00",
+      "group": "Group J",
+      "venue": "Arrowhead Stadium, Kansas City"
+    },
+    {
+      "id": "m20",
+      "homeTeam": "Austria",
+      "awayTeam": "Jordan",
+      "date": "2026-06-16",
+      "time": "21:00",
+      "group": "Group J",
+      "venue": "Levi's Stadium, San Francisco Bay Area"
+    },
+    {
+      "id": "m21",
+      "homeTeam": "Ghana",
+      "awayTeam": "Panama",
+      "date": "2026-06-17",
+      "time": "19:00",
+      "group": "Group L",
+      "venue": "BMO Field, Toronto"
+    },
+    {
+      "id": "m22",
+      "homeTeam": "England",
+      "awayTeam": "Croatia",
+      "date": "2026-06-17",
+      "time": "15:00",
+      "group": "Group L",
+      "venue": "AT&T Stadium, Dallas"
+    },
+    {
+      "id": "m23",
+      "homeTeam": "Portugal",
+      "awayTeam": "DR Congo",
+      "date": "2026-06-17",
+      "time": "12:00",
+      "group": "Group K",
+      "venue": "NRG Stadium, Houston"
+    },
+    {
+      "id": "m24",
+      "homeTeam": "Uzbekistan",
+      "awayTeam": "Colombia",
+      "date": "2026-06-17",
+      "time": "20:00",
+      "group": "Group K",
+      "venue": "Estadio Azteca, Mexico City"
+    },
+    {
+      "id": "m25",
+      "homeTeam": "Czechia",
+      "awayTeam": "South Africa",
+      "date": "2026-06-18",
+      "time": "12:00",
+      "group": "Group A",
+      "venue": "Mercedes-Benz Stadium, Atlanta"
+    },
+    {
+      "id": "m26",
+      "homeTeam": "Switzerland",
+      "awayTeam": "Bosnia and Herzegovina",
+      "date": "2026-06-18",
+      "time": "12:00",
+      "group": "Group B",
+      "venue": "SoFi Stadium, Los Angeles"
+    },
+    {
+      "id": "m27",
+      "homeTeam": "Canada",
+      "awayTeam": "Qatar",
+      "date": "2026-06-18",
+      "time": "15:00",
+      "group": "Group B",
+      "venue": "BC Place, Vancouver"
+    },
+    {
+      "id": "m28",
+      "homeTeam": "Mexico",
+      "awayTeam": "South Korea",
+      "date": "2026-06-18",
+      "time": "19:00",
+      "group": "Group A",
+      "venue": "Estadio Guadalajara, Guadalajara"
+    },
+    {
+      "id": "m29",
+      "homeTeam": "United States",
+      "awayTeam": "Australia",
+      "date": "2026-06-19",
+      "time": "12:00",
+      "group": "Group D",
+      "venue": "Lumen Field, Seattle"
+    },
+    {
+      "id": "m30",
+      "homeTeam": "Scotland",
+      "awayTeam": "Morocco",
+      "date": "2026-06-19",
+      "time": "18:00",
+      "group": "Group C",
+      "venue": "Gillette Stadium, Boston"
+    },
+    {
+      "id": "m31",
+      "homeTeam": "Brazil",
+      "awayTeam": "Haiti",
+      "date": "2026-06-19",
+      "time": "20:30",
+      "group": "Group C",
+      "venue": "Lincoln Financial Field, Philadelphia"
+    },
+    {
+      "id": "m32",
+      "homeTeam": "Turkey",
+      "awayTeam": "Paraguay",
+      "date": "2026-06-19",
+      "time": "20:00",
+      "group": "Group D",
+      "venue": "Levi's Stadium, San Francisco Bay Area"
+    },
+    {
+      "id": "m33",
+      "homeTeam": "Netherlands",
+      "awayTeam": "Sweden",
+      "date": "2026-06-20",
+      "time": "12:00",
+      "group": "Group F",
+      "venue": "NRG Stadium, Houston"
+    },
+    {
+      "id": "m34",
+      "homeTeam": "Germany",
+      "awayTeam": "Ivory Coast",
+      "date": "2026-06-20",
+      "time": "16:00",
+      "group": "Group E",
+      "venue": "BMO Field, Toronto"
+    },
+    {
+      "id": "m35",
+      "homeTeam": "Ecuador",
+      "awayTeam": "Curaçao",
+      "date": "2026-06-20",
+      "time": "19:00",
+      "group": "Group E",
+      "venue": "Arrowhead Stadium, Kansas City"
+    },
+    {
+      "id": "m36",
+      "homeTeam": "Tunisia",
+      "awayTeam": "Japan",
+      "date": "2026-06-20",
+      "time": "22:00",
+      "group": "Group F",
+      "venue": "Estadio Monterrey, Monterrey"
+    },
+    {
+      "id": "m37",
+      "homeTeam": "Spain",
+      "awayTeam": "Saudi Arabia",
+      "date": "2026-06-21",
+      "time": "12:00",
+      "group": "Group H",
+      "venue": "Mercedes-Benz Stadium, Atlanta"
+    },
+    {
+      "id": "m38",
+      "homeTeam": "Belgium",
+      "awayTeam": "Iran",
+      "date": "2026-06-21",
+      "time": "12:00",
+      "group": "Group G",
+      "venue": "SoFi Stadium, Los Angeles"
+    },
+    {
+      "id": "m39",
+      "homeTeam": "Uruguay",
+      "awayTeam": "Cape Verde",
+      "date": "2026-06-21",
+      "time": "18:00",
+      "group": "Group H",
+      "venue": "Hard Rock Stadium, Miami"
+    },
+    {
+      "id": "m40",
+      "homeTeam": "New Zealand",
+      "awayTeam": "Egypt",
+      "date": "2026-06-21",
+      "time": "18:00",
+      "group": "Group G",
+      "venue": "BC Place, Vancouver"
+    },
+    {
+      "id": "m41",
+      "homeTeam": "France",
+      "awayTeam": "Iraq",
+      "date": "2026-06-22",
+      "time": "15:00",
+      "group": "Group I",
+      "venue": "MetLife Stadium, New York/New Jersey"
+    },
+    {
+      "id": "m42",
+      "homeTeam": "Norway",
+      "awayTeam": "Senegal",
+      "date": "2026-06-22",
+      "time": "18:00",
+      "group": "Group I",
+      "venue": "Gillette Stadium, Boston"
+    },
+    {
+      "id": "m43",
+      "homeTeam": "Argentina",
+      "awayTeam": "Austria",
+      "date": "2026-06-22",
+      "time": "20:00",
+      "group": "Group J",
+      "venue": "Arrowhead Stadium, Kansas City"
+    },
+    {
+      "id": "m44",
+      "homeTeam": "Jordan",
+      "awayTeam": "Algeria",
+      "date": "2026-06-22",
+      "time": "21:00",
+      "group": "Group J",
+      "venue": "Levi's Stadium, San Francisco Bay Area"
+    },
+    {
+      "id": "m45",
+      "homeTeam": "Portugal",
+      "awayTeam": "Uzbekistan",
+      "date": "2026-06-23",
+      "time": "12:00",
+      "group": "Group K",
+      "venue": "NRG Stadium, Houston"
+    },
+    {
+      "id": "m46",
+      "homeTeam": "Colombia",
+      "awayTeam": "DR Congo",
+      "date": "2026-06-23",
+      "time": "20:00",
+      "group": "Group K",
+      "venue": "Estadio Azteca, Mexico City"
+    },
+    {
+      "id": "m47",
+      "homeTeam": "England",
+      "awayTeam": "Panama",
+      "date": "2026-06-23",
+      "time": "19:00",
+      "group": "Group L",
+      "venue": "BMO Field, Toronto"
+    },
+    {
+      "id": "m48",
+      "homeTeam": "Croatia",
+      "awayTeam": "Ghana",
+      "date": "2026-06-23",
+      "time": "15:00",
+      "group": "Group L",
+      "venue": "AT&T Stadium, Dallas"
     },
     {
       "id": "t1",
-      "homeTeam": "Germany",
-      "awayTeam": "Ukraine",
-      "date": "2026-06-03",
-      "time": "19:45",
+      "homeTeam": "Turkey",
+      "awayTeam": "North Macedonia",
+      "date": "2026-06-01",
+      "time": "18:00",
       "group": "Warm-up Friendly",
-      "venue": "Max-Morlock-Stadion, Nuremberg",
-      "isTest": true
+      "venue": "Şükrü Saracoğlu Stadium, Istanbul",
+      "isTest": true,
+      "actualHomeScore": 4,
+      "actualAwayScore": 0
     },
     {
       "id": "t2",
-      "homeTeam": "England",
-      "awayTeam": "Bosnia and Herzegovina",
-      "date": "2026-06-03",
-      "time": "19:45",
+      "homeTeam": "Norway",
+      "awayTeam": "Sweden",
+      "date": "2026-06-01",
+      "time": "19:00",
       "group": "Warm-up Friendly",
-      "venue": "St James' Park, Newcastle",
-      "isTest": true
+      "venue": "Ullevaal Stadion, Oslo",
+      "isTest": true,
+      "actualHomeScore": 3,
+      "actualAwayScore": 1
     },
     {
       "id": "t3",
-      "homeTeam": "Croatia",
-      "awayTeam": "North Macedonia",
-      "date": "2026-06-03",
-      "time": "20:00",
+      "homeTeam": "Wales",
+      "awayTeam": "Ghana",
+      "date": "2026-06-02",
+      "time": "19:45",
       "group": "Warm-up Friendly",
-      "venue": "Stadion HNK Rijeka, Rijeka",
-      "isTest": true
+      "venue": "Cardiff City Stadium, Cardiff",
+      "isTest": true,
+      "actualHomeScore": 1,
+      "actualAwayScore": 1
     },
     {
       "id": "t4",
-      "homeTeam": "Italy",
-      "awayTeam": "Türkiye",
-      "date": "2026-06-04",
+      "homeTeam": "Croatia",
+      "awayTeam": "Belgium",
+      "date": "2026-06-02",
       "time": "20:00",
       "group": "Warm-up Friendly",
-      "venue": "Stadio Renato Dall'Ara, Bologna",
-      "isTest": true
+      "venue": "Stadion HNK Rijeka, Rijeka",
+      "isTest": true,
+      "actualHomeScore": 0,
+      "actualAwayScore": 2
     },
     {
       "id": "t5",
-      "homeTeam": "Portugal",
-      "awayTeam": "Finland",
-      "date": "2026-06-04",
+      "homeTeam": "Luxembourg",
+      "awayTeam": "Italy",
+      "date": "2026-06-03",
       "time": "19:45",
       "group": "Warm-up Friendly",
-      "venue": "Estádio José Alvalade, Lisbon",
-      "isTest": true
+      "venue": "Stade de Luxembourg, Luxembourg",
+      "isTest": true,
+      "actualHomeScore": 0,
+      "actualAwayScore": 1
     },
     {
       "id": "t6",
-      "homeTeam": "Austria",
-      "awayTeam": "Serbia",
-      "date": "2026-06-04",
-      "time": "20:45",
+      "homeTeam": "Netherlands",
+      "awayTeam": "Algeria",
+      "date": "2026-06-03",
+      "time": "20:30",
       "group": "Warm-up Friendly",
-      "venue": "Ernst-Happel-Stadion, Vienna",
-      "isTest": true
+      "venue": "De Kuip, Rotterdam",
+      "isTest": true,
+      "actualHomeScore": 0,
+      "actualAwayScore": 1
     },
     {
       "id": "t7",
-      "homeTeam": "France",
-      "awayTeam": "Luxembourg",
-      "date": "2026-06-05",
-      "time": "20:00",
+      "homeTeam": "Poland",
+      "awayTeam": "Nigeria",
+      "date": "2026-06-03",
+      "time": "19:45",
       "group": "Warm-up Friendly",
-      "venue": "Stade Saint-Symphorien, Metz",
-      "isTest": true
+      "venue": "PGE Narodowy, Warsaw",
+      "isTest": true,
+      "actualHomeScore": 2,
+      "actualAwayScore": 2
     },
     {
       "id": "t8",
-      "homeTeam": "Spain",
-      "awayTeam": "Andorra",
-      "date": "2026-06-05",
-      "time": "20:30",
-      "group": "Warm-up Friendly",
-      "venue": "Estadio Nuevo Vivero, Badajoz",
-      "isTest": true
-    },
-    {
-      "id": "t9",
-      "homeTeam": "Denmark",
-      "awayTeam": "Sweden",
-      "date": "2026-06-05",
+      "homeTeam": "DR Congo",
+      "awayTeam": "Denmark",
+      "date": "2026-06-03",
       "time": "19:00",
       "group": "Warm-up Friendly",
       "venue": "Parken Stadium, Copenhagen",
+      "isTest": true,
+      "actualHomeScore": 0,
+      "actualAwayScore": 0
+    },
+    {
+      "id": "t9",
+      "homeTeam": "France",
+      "awayTeam": "Côte d'Ivoire",
+      "date": "2026-06-04",
+      "time": "20:00",
+      "group": "Warm-up Friendly",
+      "venue": "Stade de France, Saint-Denis",
       "isTest": true
     },
     {
       "id": "t10",
-      "homeTeam": "Germany",
-      "awayTeam": "Greece",
-      "date": "2026-06-06",
-      "time": "19:45",
+      "homeTeam": "Spain",
+      "awayTeam": "Iraq",
+      "date": "2026-06-04",
+      "time": "19:30",
       "group": "Warm-up Friendly",
-      "venue": "Borussia-Park, Mönchengladbach",
+      "venue": "Estadio Metropolitano, Madrid",
       "isTest": true
     },
     {
       "id": "t11",
+      "homeTeam": "Sweden",
+      "awayTeam": "Greece",
+      "date": "2026-06-04",
+      "time": "19:00",
+      "group": "Warm-up Friendly",
+      "venue": "Friends Arena, Solna",
+      "isTest": true,
+      "actualHomeScore": 2,
+      "actualAwayScore": 2
+    },
+    {
+      "id": "t12",
+      "homeTeam": "Tajikistan",
+      "awayTeam": "India",
+      "date": "2026-06-05",
+      "time": "18:00",
+      "group": "Warm-up Friendly",
+      "venue": "Pamir Stadium, Dushanbe",
+      "isTest": true
+    },
+    {
+      "id": "t13",
+      "homeTeam": "Portugal",
+      "awayTeam": "Chile",
+      "date": "2026-06-06",
+      "time": "19:45",
+      "group": "Warm-up Friendly",
+      "venue": "Estádio da Luz, Lisbon",
+      "isTest": true
+    },
+    {
+      "id": "t14",
+      "homeTeam": "United States",
+      "awayTeam": "Germany",
+      "date": "2026-06-06",
+      "time": "20:00",
+      "group": "Warm-up Friendly",
+      "venue": "Lincoln Financial Field, Philadelphia",
+      "isTest": true
+    },
+    {
+      "id": "t15",
+      "homeTeam": "Belgium",
+      "awayTeam": "Tunisia",
+      "date": "2026-06-06",
+      "time": "19:45",
+      "group": "Warm-up Friendly",
+      "venue": "King Baudouin Stadium, Brussels",
+      "isTest": true
+    },
+    {
+      "id": "t16",
+      "homeTeam": "Brazil",
+      "awayTeam": "Egypt",
+      "date": "2026-06-06",
+      "time": "19:00",
+      "group": "Warm-up Friendly",
+      "venue": "FirstEnergy Stadium, Cleveland",
+      "isTest": true
+    },
+    {
+      "id": "t17",
       "homeTeam": "England",
-      "awayTeam": "Iceland",
+      "awayTeam": "New Zealand",
       "date": "2026-06-06",
       "time": "19:45",
       "group": "Warm-up Friendly",
@@ -329,73 +731,13 @@
       "isTest": true
     },
     {
-      "id": "t12",
-      "homeTeam": "Poland",
-      "awayTeam": "Ukraine",
-      "date": "2026-06-06",
-      "time": "19:45",
-      "group": "Warm-up Friendly",
-      "venue": "National Stadium, Warsaw",
-      "isTest": true
-    },
-    {
-      "id": "t13",
-      "homeTeam": "Spain",
-      "awayTeam": "Northern Ireland",
-      "date": "2026-06-07",
-      "time": "20:30",
-      "group": "Warm-up Friendly",
-      "venue": "Estadi Mallorca Son Moix, Palma",
-      "isTest": true
-    },
-    {
-      "id": "t14",
-      "homeTeam": "Belgium",
-      "awayTeam": "Luxembourg",
-      "date": "2026-06-07",
-      "time": "19:00",
-      "group": "Warm-up Friendly",
-      "venue": "King Baudouin Stadium, Brussels",
-      "isTest": true
-    },
-    {
-      "id": "t15",
-      "homeTeam": "Portugal",
-      "awayTeam": "Croatia",
-      "date": "2026-06-08",
-      "time": "17:45",
-      "group": "Warm-up Friendly",
-      "venue": "Estádio Nacional, Oeiras",
-      "isTest": true
-    },
-    {
-      "id": "t16",
-      "homeTeam": "France",
-      "awayTeam": "Canada",
-      "date": "2026-06-08",
-      "time": "20:15",
-      "group": "Warm-up Friendly",
-      "venue": "Matmut Atlantique, Bordeaux",
-      "isTest": true
-    },
-    {
-      "id": "t17",
-      "homeTeam": "Brazil",
-      "awayTeam": "Mexico",
-      "date": "2026-06-08",
-      "time": "19:00",
-      "group": "Warm-up Friendly",
-      "venue": "Kyle Field, College Station",
-      "isTest": true
-    },
-    {
       "id": "t18",
-      "homeTeam": "Argentina",
-      "awayTeam": "Ecuador",
+      "homeTeam": "France",
+      "awayTeam": "Northern Ireland",
       "date": "2026-06-08",
-      "time": "18:00",
+      "time": "20:00",
       "group": "Warm-up Friendly",
-      "venue": "Soldier Field, Chicago",
+      "venue": "Allianz Riviera, Nice",
       "isTest": true
     }
   ]
