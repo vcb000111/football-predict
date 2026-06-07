@@ -7,14 +7,24 @@ Tất cả những thay đổi nổi bật đối với dự án **FIFA World Cu
 ## [1.7.0] - 2026-06-07
 
 ### Added (Thêm mới)
-* **Dữ liệu mẫu Premier League & La Liga 2024-2025:** Tích hợp 20 trận đấu thực tế tiêu biểu (EPL & La Liga) đầy đủ thông số bàn thắng, Handicap, phạt góc và thẻ phạt phục vụ chạy Backtest mở rộng cỡ mẫu.
+* **Dữ liệu mẫu Premier League & La Liga 2024-2025:** Tích hợp tổng cộng 70 trận đấu thực tế (30 trận EPL mới, 20 trận La Liga mới và 20 trận trước đó) đầy đủ thông số bàn thắng, Handicap, phạt góc và thẻ phạt phục vụ chạy Backtest mở rộng cỡ mẫu.
+* **Bổ sung thuộc tính Season**: Tích hợp trường `season` động cho toàn bộ 187 trận đấu trong `fixtures.json` (World Cup 2026 -> "2026", Euro 2024 -> "2024", các giải CLB -> "2024-2025").
 * **Logo và cờ Câu lạc bộ:** Nâng cấp hệ thống hiển thị tự động lấy cờ/logo chuẩn của các CLB bóng đá thực tế thay vì fallback cờ quốc gia.
+* **Bộ lọc mùa giải trên Trang chủ**: Phát triển bộ lọc Mùa giải (Season Filter) cạnh dropdown Giải đấu ở Trang chủ, khôi phục/lưu trạng thái lọc vào `localStorage` (`homepage_season_filter`).
+* **Cập nhật UI Stats hiển thị 4 trường mới**: Panel kết quả cập nhật AI tại trang Thống kê hiển thị phạt góc trung bình, lối chơi dịch nghĩa và phong độ handicap dạng vòng tròn màu (W/D/L) có cơ chế optional chaining chống crash giao diện.
 
 ### Changed (Thay đổi logic)
+* **UX Gating tự động reset bộ lọc**: Thêm logic kiểm tra tab hiện tại, tự động reset `selectedSeasonFilter` về `"All"` khi chuyển tab nếu ở tab mới không có trận đấu nào thuộc mùa giải đang chọn (tránh lỗi màn hình trống).
 * **Logic cược Handicap thực tế:** Lưu trữ mốc chấp nhà cái (`handicap_line`) trực tiếp dạng số thực trong SQLite và cập nhật prompt buộc AI đối chiếu tỉ số dự kiến với tỷ lệ kèo chấp thực tế để đưa ra cửa cược tối ưu.
 * **Logic chấm điểm tự động:** So khớp kết quả Handicap trực tiếp từ cột `handicap_line` của DB thay vì dùng Regex parse chuỗi văn bản tự do, triệt tiêu hoàn toàn sai sót hiển thị.
 * **Cải tiến Game States (Kèo phụ):** Nâng cấp prompt Critic phân tích sâu kịch bản trận đấu (đội mạnh bị dẫn bàn ép sân tăng phạt góc, tính chất knock-out/derby tăng thẻ phạt) thay vì dùng Poisson thô.
 * **Bộ lọc giải đấu mở rộng:** Hỗ trợ bộ lọc và biểu đồ cho Premier League & La Liga trên giao diện Admin và Thống kê.
+* **Tái dựng stats lịch sử (Historical Reconstructor)**: Phát triển cơ chế tự động tính toán lại phong độ thi đấu (`recent_form`), phong độ cược chấp (`asian_handicap_form`) và bàn thắng trung bình của hai đội bóng tại thời điểm trước ngày diễn ra trận đấu dựa trên dữ liệu các trận đã đấu trước đó trong `fixtures.json`. Triệt tiêu hoàn toàn lỗi Look-ahead bias (rò rỉ dữ liệu tương lai) khi chạy Backtest các trận đấu quá khứ.
+* **Quản lý dữ liệu ELO an toàn & Phân biệt CLB/ĐTQG**: Phân tách query search internet cho CLB (dùng từ khóa `club`) và ĐTQG (dùng `national team`). Tích hợp logic validate ELO trong khoảng `1000 - 2500` để tránh việc AI cào nhầm thứ hạng thế giới thành điểm ELO.
+
+### Fixed (Sửa lỗi)
+* **Khắc phục lỗi Quota Exceeded (429) ở kết quả tự động**: Sửa đổi tiến trình Self-Retrospective của `/api/results/auto` tái sử dụng API Key/Model đã chạy thành công trước đó (đảm bảo key đang hoạt động tốt) và bổ sung kiểm tra trùng lặp bài học trong DB dựa trên `match_id` trước khi gọi AI để tránh cạn hạn mức.
+
 
 ---
 

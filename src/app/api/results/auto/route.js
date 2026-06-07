@@ -772,7 +772,22 @@ Chú ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
       if (incorrectBets.length > 0 && apiKeys.length > 0) {
         console.log(`🔁 [Self-Retrospective] Phát hiện ${incorrectBets.length} kèo dự đoán sai ở mẫu. Gọi AI viết bài học kinh nghiệm...`);
         try {
-          const lessonPrompt = `
+          // Kiểm tra xem đã có bài học kinh nghiệm cho trận đấu này chưa để tối ưu hóa API (Rule 14)
+          const targetMatchId = sampleRecord.match_id || null;
+          let hasLesson = false;
+          if (targetMatchId) {
+            const existingLesson = await db.get(
+              'SELECT id FROM ai_lessons WHERE match_id = ? LIMIT 1',
+              [targetMatchId]
+            );
+            if (existingLesson) {
+              hasLesson = true;
+              console.log(`ℹ️ [Self-Retrospective] Đã có bài học kinh nghiệm cho trận đấu này trong DB. Bỏ qua.`);
+            }
+          }
+
+          if (!hasLesson) {
+            const lessonPrompt = `
 Trận đấu giữa ${homeTeam} và ${awayTeam} kết thúc với tỷ số thực tế là ${aHome}-${aAway}.
 Dự đoán ban đầu của bạn là: Tỷ số ${sampleRecord.predicted_home_score}-${sampleRecord.predicted_away_score}.
 Các đề xuất kèo bị sai lệch bao gồm: ${incorrectBets.join(', ')}.
@@ -782,25 +797,30 @@ Nhiệm vụ: Hãy viết một bài học kinh nghiệm cực kỳ ngắn gọn
 Hãy trả về duy nhất nội dung bài học bằng tiếng Việt. Không thêm bất cứ tag hay ký tự dẫn dắt nào. Do NOT include markdown blocks.
 `;
 
-          const aiInstance = new GoogleGenAI({ apiKey: apiKeys[0] });
-          const lessonRes = await aiInstance.models.generateContent({
-            model: MODELS[0] || 'gemini-2.5-flash',
-            contents: lessonPrompt,
-            config: { abortSignal: AbortSignal.timeout(15000) }
-          });
-          
-          const lessonContent = lessonRes.text?.trim() || '';
-          if (lessonContent) {
-            console.log(`💾 [Self-Retrospective] Đã tạo bài học: "${lessonContent}"`);
-            await db.run(
-              `INSERT INTO ai_lessons (match_id, team_name, bet_type, lesson_content) VALUES (?, ?, ?, ?)`,
-              [sampleRecord.match_id || null, homeTeam, incorrectBets.join('/'), lessonContent]
-            );
-            await db.run(
-              `INSERT INTO ai_lessons (match_id, team_name, bet_type, lesson_content) VALUES (?, ?, ?, ?)`,
-              [sampleRecord.match_id || null, awayTeam, incorrectBets.join('/'), lessonContent]
-            );
-            console.log(`🟢 [Self-Retrospective] Đã lưu bài học vào CSDL.`);
+            // Tái sử dụng API Key và Model thành công từ bước trước để tránh lỗi Rate Limit / Quota Exceeded (429)
+            const successfulKey = apiKeys[callResult.keyIndexUsed];
+            const successfulModel = callResult.modelUsed;
+
+            const aiInstance = new GoogleGenAI({ apiKey: successfulKey });
+            const lessonRes = await aiInstance.models.generateContent({
+              model: successfulModel,
+              contents: lessonPrompt,
+              config: { abortSignal: AbortSignal.timeout(15000) }
+            });
+            
+            const lessonContent = lessonRes.text?.trim() || '';
+            if (lessonContent) {
+              console.log(`💾 [Self-Retrospective] Đã tạo bài học: "${lessonContent}"`);
+              await db.run(
+                `INSERT INTO ai_lessons (match_id, team_name, bet_type, lesson_content) VALUES (?, ?, ?, ?)`,
+                [targetMatchId, homeTeam, incorrectBets.join('/'), lessonContent]
+              );
+              await db.run(
+                `INSERT INTO ai_lessons (match_id, team_name, bet_type, lesson_content) VALUES (?, ?, ?, ?)`,
+                [targetMatchId, awayTeam, incorrectBets.join('/'), lessonContent]
+              );
+              console.log(`🟢 [Self-Retrospective] Đã lưu bài học vào CSDL.`);
+            }
           }
         } catch (lessonErr) {
           console.warn('⚠️ Lỗi khi tự tạo bài học kinh nghiệm AI:', lessonErr.message);

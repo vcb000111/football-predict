@@ -39,6 +39,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGroupFilter, setSelectedGroupFilter] = useState('All');
   const [selectedTournamentFilter, setSelectedTournamentFilter] = useState('All');
+  const [selectedSeasonFilter, setSelectedSeasonFilter] = useState('All');
   const [layout, setLayout] = useState('grid'); // 'grid' or 'list'
   const [sortBy, setSortBy] = useState('date'); // 'date' | 'group' | 'history'
   const [quickPredicting, setQuickPredicting] = useState({});
@@ -87,6 +88,9 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
       const persistedTournamentFilter = localStorage.getItem('homepage_tournament_filter');
       if (persistedTournamentFilter) setSelectedTournamentFilter(persistedTournamentFilter);
 
+      const persistedSeasonFilter = localStorage.getItem('homepage_season_filter');
+      if (persistedSeasonFilter) setSelectedSeasonFilter(persistedSeasonFilter);
+
       const persistedSearch = localStorage.getItem('homepage_search_query');
       if (persistedSearch) setSearchQuery(persistedSearch);
       
@@ -130,6 +134,24 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
       localStorage.setItem('homepage_tournament_filter', selectedTournamentFilter);
     }
   }, [selectedTournamentFilter, isRestored]);
+
+  useEffect(() => {
+    if (isRestored && typeof window !== 'undefined') {
+      localStorage.setItem('homepage_season_filter', selectedSeasonFilter);
+    }
+  }, [selectedSeasonFilter, isRestored]);
+
+  useEffect(() => {
+    if (selectedSeasonFilter !== 'All') {
+      const currentTabFixtures = activeTab === 'test-matches' 
+        ? localFixtures.filter(f => f.isTest) 
+        : localFixtures.filter(f => !f.isTest);
+      const hasMatchInNewTab = currentTabFixtures.some(f => f.season === selectedSeasonFilter);
+      if (!hasMatchInNewTab) {
+        setSelectedSeasonFilter('All');
+      }
+    }
+  }, [activeTab, localFixtures]);
 
 
   const handleQuickPredict = async (fixture) => {
@@ -343,7 +365,12 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
     new Set(displayFixtures.map(f => f.tournament).filter(Boolean))
   );
 
-  // Lọc lịch thi đấu dựa trên tìm kiếm, bảng đấu và giải đấu
+  // Lấy danh sách mùa giải duy nhất của các trận đấu hiển thị
+  const uniqueSeasons = Array.from(
+    new Set(displayFixtures.map(f => f.season).filter(Boolean))
+  ).sort();
+
+  // Lọc lịch thi đấu dựa trên tìm kiếm, bảng đấu, giải đấu và mùa giải
   const filteredFixtures = displayFixtures.filter(fixture => {
     const matchesSearch = 
       fixture.homeTeam.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -352,8 +379,9 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
     
     const matchesGroup = selectedGroupFilter === 'All' || fixture.group === selectedGroupFilter;
     const matchesTournament = selectedTournamentFilter === 'All' || fixture.tournament === selectedTournamentFilter;
+    const matchesSeason = selectedSeasonFilter === 'All' || fixture.season === selectedSeasonFilter;
     
-    return matchesSearch && matchesGroup && matchesTournament;
+    return matchesSearch && matchesGroup && matchesTournament && matchesSeason;
   });
 
   // Sắp xếp các trận đấu dựa trên sortBy
@@ -524,6 +552,18 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                     <option value="All">Tất cả giải đấu</option>
                     {uniqueTournaments.map(t => (
                       <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="w-full sm:w-48">
+                  <select
+                    value={selectedSeasonFilter}
+                    onChange={(e) => setSelectedSeasonFilter(e.target.value)}
+                    className="w-full bg-[#0E131F]/80 border border-card-border/80 rounded-lg py-1.5 px-2.5 text-xs text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer"
+                  >
+                    <option value="All">Tất cả mùa giải</option>
+                    {uniqueSeasons.map(s => (
+                      <option key={s} value={s}>Mùa giải {s}</option>
                     ))}
                   </select>
                 </div>

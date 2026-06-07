@@ -35,6 +35,102 @@ const cleanJsonText = (rawText) => {
   return cleaned;
 };
 
+// Hàm tái dựng phong độ và bàn thắng trung bình lịch sử từ fixtures.json để chống rò rỉ dữ liệu (Look-ahead Bias)
+function reconstructHistoricalStats(homeTeam, awayTeam, matchId) {
+  try {
+    const fixturesPath = path.join(process.cwd(), 'src', 'data', 'fixtures.json');
+    if (!fs.existsSync(fixturesPath)) return null;
+    
+    const fixturesData = JSON.parse(fs.readFileSync(fixturesPath, 'utf8'));
+    const allFixtures = fixturesData.fixtures || [];
+    
+    // Tìm trận đấu hiện tại
+    const currentMatch = allFixtures.find(f => f.id === matchId) || 
+                         allFixtures.find(f => f.homeTeam === homeTeam && f.awayTeam === awayTeam);
+                         
+    if (!currentMatch) return null;
+    
+    const matchDate = currentMatch.date;
+    
+    // Lọc các trận đấu đã diễn ra trước trận này (có kết quả thực tế)
+    const pastMatches = allFixtures.filter(f => 
+      f.date < matchDate && 
+      f.actualHomeScore !== null && 
+      f.actualHomeScore !== undefined
+    );
+    
+    const getStatsForTeam = (teamName) => {
+      const teamMatches = pastMatches.filter(f => f.homeTeam === teamName || f.awayTeam === teamName);
+      
+      // Sắp xếp ngày giảm dần
+      teamMatches.sort((a, b) => new Date(b.date) - new Date(a.date));
+      
+      const recentMatches = teamMatches.slice(0, 5);
+      const formArray = [];
+      const handicapFormArray = [];
+      
+      recentMatches.forEach(m => {
+        const isHome = m.homeTeam === teamName;
+        const goalsFor = isHome ? m.actualHomeScore : m.actualAwayScore;
+        const goalsAgainst = isHome ? m.actualAwayScore : m.actualHomeScore;
+        
+        if (goalsFor > goalsAgainst) formArray.push('W');
+        else if (goalsFor === goalsAgainst) formArray.push('D');
+        else formArray.push('L');
+        
+        if (m.marketHandicap !== undefined && m.marketHandicap !== null) {
+          const hLine = parseFloat(m.marketHandicap);
+          const diff = m.actualHomeScore - m.actualAwayScore;
+          const homeHandicapResult = diff + hLine;
+          
+          if (isHome) {
+            if (homeHandicapResult > 0) handicapFormArray.push('W');
+            else if (homeHandicapResult === 0) handicapFormArray.push('D');
+            else handicapFormArray.push('L');
+          } else {
+            if (homeHandicapResult < 0) handicapFormArray.push('W');
+            else if (homeHandicapResult === 0) handicapFormArray.push('D');
+            else handicapFormArray.push('L');
+          }
+        } else {
+          handicapFormArray.push('D');
+        }
+      });
+      
+      while (formArray.length < 5) formArray.push('D');
+      while (handicapFormArray.length < 5) handicapFormArray.push('D');
+      
+      const matches10 = teamMatches.slice(0, 10);
+      let totalGoalsFor = 0;
+      let totalGoalsAgainst = 0;
+      
+      matches10.forEach(m => {
+        const isHome = m.homeTeam === teamName;
+        totalGoalsFor += isHome ? m.actualHomeScore : m.actualAwayScore;
+        totalGoalsAgainst += isHome ? m.actualAwayScore : m.actualHomeScore;
+      });
+      
+      const avgGoalsFor = matches10.length > 0 ? parseFloat((totalGoalsFor / matches10.length).toFixed(2)) : 1.2;
+      const avgGoalsAgainst = matches10.length > 0 ? parseFloat((totalGoalsAgainst / matches10.length).toFixed(2)) : 1.2;
+      
+      return {
+        recent_form: formArray.join(','),
+        asian_handicap_form: handicapFormArray.join(','),
+        avg_goals_scored: avgGoalsFor,
+        avg_goals_conceded: avgGoalsAgainst
+      };
+    };
+    
+    return {
+      home: getStatsForTeam(homeTeam),
+      away: getStatsForTeam(awayTeam)
+    };
+  } catch (err) {
+    console.error('Lỗi khi reconstructHistoricalStats:', err);
+    return null;
+  }
+}
+
 // Hàm tự động cào ELO và FIFA Rank bằng RAG Search và cập nhật SQLite
 async function scrapeAndUpdateElo(homeTeam, awayTeam, db, apiKeys, MODELS) {
   try {
@@ -281,17 +377,58 @@ export async function POST(request) {
     }
 
     // --- OPTION 1: TRUY VẤN DỮ LIỆU ĐỊNH LƯỢNG (ELO & FIFA RANK) TỪ SQLITE ---
-    let homeTeamData = { fifa_rank: 50, elo_rating: 1600, recent_form: "D,D,D,D,D", avg_goals_scored: 1.2, avg_goals_conceded: 1.2, key_players: "Chưa có thông tin", tactical_analysis: "Đang cập nhật" };
-    let awayTeamData = { fifa_rank: 50, elo_rating: 1600, recent_form: "D,D,D,D,D", avg_goals_scored: 1.2, avg_goals_conceded: 1.2, key_players: "Chưa có thông tin", tactical_analysis: "Đang cập nhật" };
+    let homeTeamData = { 
+      fifa_rank: 50, 
+      elo_rating: 1600, 
+      recent_form: "D,D,D,D,D", 
+      avg_goals_scored: 1.2, 
+      avg_goals_conceded: 1.2, 
+      avg_corners_won: 4.5,
+      avg_corners_conceded: 4.5,
+      asian_handicap_form: "D,D,D,D,D",
+      play_style: "mixed",
+      key_players: "Chưa có thông tin", 
+      tactical_analysis: "Đang cập nhật" 
+    };
+    let awayTeamData = { 
+      fifa_rank: 50, 
+      elo_rating: 1600, 
+      recent_form: "D,D,D,D,D", 
+      avg_goals_scored: 1.2, 
+      avg_goals_conceded: 1.2, 
+      avg_corners_won: 4.5,
+      avg_corners_conceded: 4.5,
+      asian_handicap_form: "D,D,D,D,D",
+      play_style: "mixed",
+      key_players: "Chưa có thông tin", 
+      tactical_analysis: "Đang cập nhật" 
+    };
 
     if (db) {
       try {
         const homeStats = await db.get("SELECT * FROM teams WHERE team_name = ?", [homeTeam]);
         const awayStats = await db.get("SELECT * FROM teams WHERE team_name = ?", [awayTeam]);
-        if (homeStats) homeTeamData = homeStats;
-        if (awayStats) awayTeamData = awayStats;
+        if (homeStats) homeTeamData = { ...homeTeamData, ...homeStats };
+        if (awayStats) awayTeamData = { ...awayTeamData, ...awayStats };
       } catch (err) {
         console.error('Lỗi khi đọc chỉ số đội tuyển từ SQLite:', err);
+      }
+    }
+
+    // --- KHẮC PHỤC RÒ RỈ DỮ LIỆU LỊCH SỬ (LOOK-AHEAD BIAS) KHI BACKTEST / QUÁ KHỨ ---
+    // Nếu ở chế độ Backtest hoặc giải đấu thuộc quá khứ (Euro 2024, Premier League/La Liga 2024-2025)
+    // ta tự động tái thiết lập phong độ, bàn thắng trung bình thực tế tại thời điểm trước trận đấu.
+    const isPastSeason = fixture?.season === '2024' || fixture?.season === '2024-2025';
+    if (isBacktest || isPastSeason) {
+      const historicalStats = reconstructHistoricalStats(homeTeam, awayTeam, matchId);
+      if (historicalStats) {
+        console.log(`🛡️ [Historical Reconstructor] Tái dựng chỉ số lịch sử cho ${homeTeam} vs ${awayTeam} (Tránh Look-ahead bias)`);
+        if (historicalStats.home) {
+          homeTeamData = { ...homeTeamData, ...historicalStats.home };
+        }
+        if (historicalStats.away) {
+          awayTeamData = { ...awayTeamData, ...historicalStats.away };
+        }
       }
     }
 
@@ -625,7 +762,7 @@ Lưu ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
         const lessons = await db.all(
           `SELECT * FROM ai_lessons 
            WHERE team_name IN (?, ?) 
-           ORDER BY id DESC LIMIT 5`,
+           ORDER BY id DESC LIMIT 3`,
           [homeTeam, awayTeam]
         );
         if (lessons && lessons.length > 0) {
@@ -639,8 +776,15 @@ Lưu ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
     }
 
     // --- CHUẨN BỊ DỮ LIỆU ĐỘNG ---
-    const homeStatsString = `FIFA Rank: #${homeTeamData.fifa_rank}, ELO Rating: ${homeTeamData.elo_rating}. Phong độ gần đây: ${homeTeamData.recent_form}. Số bàn thắng ghi được TB: ${homeTeamData.avg_goals_scored}/trận, Bàn thua TB: ${homeTeamData.avg_goals_conceded}/trận. Ngôi sao: ${homeTeamData.key_players}. Lối chơi chiến thuật: ${homeTeamData.tactical_analysis}.`;
-    const awayStatsString = `FIFA Rank: #${awayTeamData.fifa_rank}, ELO Rating: ${awayTeamData.elo_rating}. Phong độ gần đây: ${awayTeamData.recent_form}. Số bàn thắng ghi được TB: ${awayTeamData.avg_goals_scored}/trận, Bàn thua TB: ${awayTeamData.avg_goals_conceded}/trận. Ngôi sao: ${awayTeamData.key_players}. Lối chơi chiến thuật: ${awayTeamData.tactical_analysis}.`;
+    const getPlayStyleName = (style) => {
+      if (style === 'wing_play') return 'Tạt cánh đánh biên (Wing play)';
+      if (style === 'tiki_taka') return 'Kiểm soát bóng ngắn (Tiki-taka)';
+      if (style === 'counter_attack') return 'Phòng ngự phản công (Counter attack)';
+      return 'Lối chơi đa dạng (Mixed style)';
+    };
+
+    const homeStatsString = `FIFA Rank: #${homeTeamData.fifa_rank}, ELO Rating: ${homeTeamData.elo_rating}. Phong độ gần đây: ${homeTeamData.recent_form}. Phong độ Handicap châu Á (5 trận gần nhất): ${homeTeamData.asian_handicap_form || 'D,D,D,D,D'}. Số bàn thắng ghi được TB: ${homeTeamData.avg_goals_scored}/trận, Bàn thua TB: ${homeTeamData.avg_goals_conceded}/trận. Phạt góc kiếm được TB: ${homeTeamData.avg_corners_won || 4.5}/trận, chịu phạt góc TB: ${homeTeamData.avg_corners_conceded || 4.5}/trận. Lối đá chủ đạo: ${getPlayStyleName(homeTeamData.play_style)}. Ngôi sao: ${homeTeamData.key_players}. Lối chơi chiến thuật: ${homeTeamData.tactical_analysis}.`;
+    const awayStatsString = `FIFA Rank: #${awayTeamData.fifa_rank}, ELO Rating: ${awayTeamData.elo_rating}. Phong độ gần đây: ${awayTeamData.recent_form}. Phong độ Handicap châu Á (5 trận gần nhất): ${awayTeamData.asian_handicap_form || 'D,D,D,D,D'}. Số bàn thắng ghi được TB: ${awayTeamData.avg_goals_scored}/trận, Bàn thua TB: ${awayTeamData.avg_goals_conceded}/trận. Phạt góc kiếm được TB: ${awayTeamData.avg_corners_won || 4.5}/trận, chịu phạt góc TB: ${awayTeamData.avg_corners_conceded || 4.5}/trận. Lối đá chủ đạo: ${getPlayStyleName(awayTeamData.play_style)}. Ngôi sao: ${awayTeamData.key_players}. Lối chơi chiến thuật: ${awayTeamData.tactical_analysis}.`;
 
     const poissonMonteCarloString = `* Số bàn thắng kỳ vọng (xG): Đội nhà ${poissonResult.expectedGoals.home} vs Đội khách ${poissonResult.expectedGoals.away}.
 * Mốc kèo Tài Xỉu khuyến nghị: ${ou_line} bàn.
@@ -731,11 +875,16 @@ Lưu ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
 --- THÔNG TIN KÈO CHẤP THỰC TẾ (ODDS HANDICAP) ---
 Tỷ lệ chấp thực tế của nhà cái cho trận đấu này là: ${marketHandicap > 0 ? `Đội khách chấp Đội nhà -${marketHandicap}` : marketHandicap < 0 ? `Đội nhà chấp Đội khách -${Math.abs(marketHandicap)}` : 'Đồng banh (0)'} (Mức handicap_line: ${marketHandicap}).
 Bạn bắt buộc phải đối chiếu tỷ số dự đoán của bạn với tỷ lệ chấp này để đưa ra khuyến nghị Handicap tối ưu trong mục "bets.handicap" (Chọn "Home" nếu tin tưởng đội nhà thắng kèo chấp, chọn "Away" nếu tin tưởng đội khách thắng kèo chấp).
+- Ghi nhớ: Với mốc cược chấp phân nửa như 0.25, 0.75, nếu trận đấu kết thúc với kết quả sát nút vừa đủ mốc sẽ có trường hợp "thắng nửa tiền" hoặc "thua nửa tiền". Ví dụ nếu bạn dự đoán kết quả hòa 1-1 và đội khách được chấp +0.25, bạn bắt buộc phải chọn cửa Away (thắng nửa tiền).
 
---- HƯỚNG DẪN DỰ ĐOÁN KÈO PHỤ (GAME STATES & CONTEXT) ---
-Hãy phân tích kịch bản trận đấu (Game States) để đưa ra dự đoán Phạt góc và Thẻ phạt chính xác nhất:
-1. Phạt góc: Đội tuyển mạnh bị dẫn bàn hoặc bế tắc thường có xu hướng ép sân dồn dập ở cánh, tạo ra lượng phạt góc rất lớn. Đội bóng chơi phòng ngự phản công biên cũng hay được hưởng phạt góc.
-2. Thẻ phạt: Các trận đấu có tính chất sống còn (vòng knock-out, trận chung kết hoặc các trận derby lớn giữa hai đội thù địch) thường diễn ra vô cùng căng thẳng, tỷ lệ va chạm cao dẫn đến số lượng thẻ phạt tăng vọt so với các trận đấu vòng bảng thong thả. Hãy phân tích tính chất này để dự đoán chính xác kèo thẻ phạt Over/Under.
+--- CHỈ THỊ NEO TỶ SỐ TOÁN HỌC POISSON (MỐC NEO CỨNG) ---
+Mô hình toán học Poisson dự báo tỷ số cơ sở lý thuyết là: Đội nhà **${poissonResult.predictedScore.home} - ${poissonResult.predictedScore.away}** Đội khách.
+Bạn bắt buộc phải sử dụng tỷ số Poisson thô này làm mốc neo thực lực chính. Mọi điều chỉnh tỷ số cuối cùng của bạn dựa trên tin tức RAG chỉ được phép dao động trong khoảng tối đa ±1 bàn thắng so với tỷ số Poisson thô (Ví dụ: nếu Poisson là 2-0, bạn chỉ được phép dự đoán tỷ số cuối cùng là 2-1, 1-0, 3-0, hoặc giữ nguyên 2-0. Tuyệt đối không đưa ra kết quả không tưởng như 4-0, 3-2 hay 0-1).
+
+--- HƯỚNG DẪN DỰ ĐOÁN KÈO PHỤ (GAME STATES & LỐI CHƠI) ---
+Hãy phân tích phong cách lối chơi (play_style) và phạt góc trung bình để đưa ra dự đoán Phạt góc và Thẻ phạt chính xác nhất:
+1. Phạt góc: Đội tuyển có lối chơi tạt cánh đánh biên (wing_play) và số phạt góc kiếm được trung bình cao thường xuyên tạo ra nhiều quả phạt góc hơn hẳn. Ngược lại, đội chơi kiểm soát bóng ngắn (tiki_taka) có xu hướng đột phá trung lộ và tạt cánh ít hơn, dẫn đến lượng phạt góc thấp. Hãy so sánh lối chơi của hai đội với mốc phạt góc nhà cái: corners_line = ${corners_line}.
+2. Thẻ phạt: Các trận đấu có tính chất sống còn (vòng knock-out, trận chung kết hoặc derby lớn) thường diễn ra căng thẳng hơn, số lượng thẻ phạt sẽ tăng vọt so với các trận đấu vòng bảng thong thả. Hãy phân tích tính chất này để so sánh với mốc thẻ phạt: cards_line = ${cards_line}.
 `;
 
     finalPrompt += '\n' + oddsInstruction;

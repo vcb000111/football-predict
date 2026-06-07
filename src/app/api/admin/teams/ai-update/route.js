@@ -6,9 +6,9 @@ import { searchInternet } from '@/lib/search';
 // Gọi model AI để trích xuất JSON
 async function extractTeamStatsWithAI(teamName, currentData, model, apiKeys, searchContext) {
   const prompt = `Bạn là một chuyên gia phân tích dữ liệu bóng đá hàng đầu thế giới.
-Nhiệm vụ của bạn là cập nhật các chỉ số thực lực cho đội tuyển quốc gia: **${teamName}**.
+Nhiệm vụ của bạn là cập nhật các chỉ số thực lực cho đội tuyển/câu lạc bộ bóng đá: **${teamName}**.
 
-Dưới đây là thông tin tìm kiếm mới nhất từ Internet về đội tuyển này:
+Dưới đây là thông tin tìm kiếm mới nhất từ Internet về đội bóng này:
 ${searchContext}
 
 Hãy phân tích thông tin trên và trả về kết quả dưới dạng một đối tượng JSON duy nhất có cấu trúc chính xác như sau:
@@ -18,6 +18,10 @@ Hãy phân tích thông tin trên và trả về kết quả dưới dạng mộ
   "recent_form": "${currentData.recent_form || 'D,D,D,D,D'}", // Chuỗi dạng W,D,L thể hiện phong độ 5 trận gần nhất, ví dụ "W,D,W,L,W". Cần viết hoa.
   "avg_goals_scored": ${currentData.avg_goals_scored || 1.2}, // Số thực, số bàn thắng trung bình mỗi trận trong 10 trận gần nhất.
   "avg_goals_conceded": ${currentData.avg_goals_conceded || 1.2}, // Số thực, số bàn thua trung bình mỗi trận trong 10 trận gần nhất.
+  "avg_corners_won": ${currentData.avg_corners_won || 4.5}, // Số thực, số quả phạt góc trung bình kiếm được mỗi trận gần đây.
+  "avg_corners_conceded": ${currentData.avg_corners_conceded || 4.5}, // Số thực, số quả phạt góc trung bình phải nhận mỗi trận gần đây.
+  "asian_handicap_form": "${currentData.asian_handicap_form || 'D,D,D,D,D'}", // Chuỗi dạng W,D,L thể hiện phong độ thắng kèo Handicap châu Á 5 trận gần nhất.
+  "play_style": "${currentData.play_style || 'mixed'}", // Phong cách lối chơi chính, CHỈ chọn một trong bốn nhãn: "wing_play" (tạt cánh), "tiki_taka" (kiểm soát bóng ngắn), "counter_attack" (phòng ngự phản công), "mixed" (lối đá đa dạng).
   "key_players": "${(currentData.key_players || 'Đang cập nhật').replace(/"/g, '\\"')}", // Danh sách cầu thủ ngôi sao nổi bật nhất, cách nhau bởi dấu phẩy.
   "tactical_analysis": "${(currentData.tactical_analysis || 'Đang cập nhật').replace(/"/g, '\\"')}" // Phân tích chiến thuật ngắn gọn (1-2 câu) về lối chơi và sơ đồ ưa thích hiện tại.
 }
@@ -26,7 +30,7 @@ Chú ý quan trọng:
 1. TRẢ VỀ DUY NHẤT MỘT KHỐI JSON HỢP LỆ. KHÔNG thêm bất kỳ giải thích, tiêu đề, mở bài, kết bài hay mã Markdown nào khác ngoài khối JSON.
 2. Dữ liệu trích xuất phải chính xác từ ngữ cảnh tìm kiếm.
 3. Không trả về giá trị null hay undefined. Sử dụng giá trị mặc định được cung cấp ở trên nếu không tìm thấy dữ liệu mới hơn.
-4. Đảm bảo recent_form có định dạng đúng chuẩn các ký tự W, D, L cách nhau bằng dấu phẩy (ví dụ: W,D,W,L,W).`;
+4. Đảm bảo recent_form và asian_handicap_form có định dạng đúng chuẩn các ký tự W, D, L cách nhau bằng dấu phẩy (ví dụ: W,D,W,L,W).`;
 
   let lastError = null;
   for (let keyIdx = 0; keyIdx < apiKeys.length; keyIdx++) {
@@ -51,12 +55,22 @@ Chú ý quan trọng:
         // Validate và làm sạch dữ liệu trước khi trả về
         return {
           fifa_rank: parseInt(parsed.fifa_rank, 10) || currentData.fifa_rank || 50,
-          elo_rating: parseInt(parsed.elo_rating, 10) || currentData.elo_rating || 1600,
+          elo_rating: (parseInt(parsed.elo_rating, 10) >= 1000 && parseInt(parsed.elo_rating, 10) <= 2500)
+            ? parseInt(parsed.elo_rating, 10)
+            : currentData.elo_rating || 1600,
           recent_form: typeof parsed.recent_form === 'string' && /^[WwDdLl](,[WwDdLl]){0,4}$/.test(parsed.recent_form) 
             ? parsed.recent_form.toUpperCase() 
             : currentData.recent_form || 'D,D,D,D,D',
           avg_goals_scored: parseFloat(parsed.avg_goals_scored) >= 0 ? parseFloat(parsed.avg_goals_scored) : currentData.avg_goals_scored || 1.2,
           avg_goals_conceded: parseFloat(parsed.avg_goals_conceded) >= 0 ? parseFloat(parsed.avg_goals_conceded) : currentData.avg_goals_conceded || 1.2,
+          avg_corners_won: parseFloat(parsed.avg_corners_won) >= 0 ? parseFloat(parsed.avg_corners_won) : currentData.avg_corners_won || 4.5,
+          avg_corners_conceded: parseFloat(parsed.avg_corners_conceded) >= 0 ? parseFloat(parsed.avg_corners_conceded) : currentData.avg_corners_conceded || 4.5,
+          asian_handicap_form: typeof parsed.asian_handicap_form === 'string' && /^[WwDdLl](,[WwDdLl]){0,4}$/.test(parsed.asian_handicap_form)
+            ? parsed.asian_handicap_form.toUpperCase()
+            : currentData.asian_handicap_form || 'D,D,D,D,D',
+          play_style: ['wing_play', 'tiki_taka', 'counter_attack', 'mixed'].includes(parsed.play_style)
+            ? parsed.play_style
+            : currentData.play_style || 'mixed',
           key_players: parsed.key_players ? parsed.key_players.trim() : currentData.key_players || 'Đang cập nhật',
           tactical_analysis: parsed.tactical_analysis ? parsed.tactical_analysis.trim() : currentData.tactical_analysis || 'Đang cập nhật'
         };
@@ -145,13 +159,17 @@ export async function POST(request) {
             recent_form: "D,D,D,D,D",
             avg_goals_scored: 1.2,
             avg_goals_conceded: 1.2,
+            avg_corners_won: 4.5,
+            avg_corners_conceded: 4.5,
+            asian_handicap_form: "D,D,D,D,D",
+            play_style: "mixed",
             key_players: "Chưa có thông tin",
             tactical_analysis: "Đang cập nhật"
           };
           // Insert trước bản ghi rỗng
           await db.run(
-            `INSERT INTO teams (team_name, fifa_rank, elo_rating, recent_form, avg_goals_scored, avg_goals_conceded, key_players, tactical_analysis)
-             VALUES (?, 50, 1600, 'D,D,D,D,D', 1.2, 1.2, 'Chưa có thông tin', 'Đang cập nhật')`,
+            `INSERT INTO teams (team_name, fifa_rank, elo_rating, recent_form, avg_goals_scored, avg_goals_conceded, key_players, tactical_analysis, avg_corners_won, avg_corners_conceded, asian_handicap_form, play_style)
+             VALUES (?, 50, 1600, 'D,D,D,D,D', 1.2, 1.2, 'Chưa có thông tin', 'Đang cập nhật', 4.5, 4.5, 'D,D,D,D,D', 'mixed')`,
             [teamName]
           );
           const newRow = await db.get("SELECT * FROM teams WHERE team_name = ?", [teamName]);
@@ -159,7 +177,14 @@ export async function POST(request) {
         }
 
         // 2. Chạy tìm kiếm internet thu thập dữ liệu
-        const searchQuery = `"${teamName}" national football team ELO rating FIFA ranking recent form tactical analysis 2026`;
+        const clubs = [
+          'Arsenal', 'Athletic Bilbao', 'Atletico Madrid', 'Barcelona', 'Chelsea', 
+          'Fulham', 'Girona', 'Liverpool', 'Manchester City', 'Manchester United', 
+          'Real Madrid', 'Real Sociedad', 'Tottenham'
+        ];
+        const isClub = clubs.includes(teamName);
+        const teamTypeKeyword = isClub ? 'club' : 'national team';
+        const searchQuery = `"${teamName}" football ${teamTypeKeyword} ELO rating recent form tactical analysis 2026`;
         const searchResults = await searchInternet(searchQuery);
         const searchContext = searchResults.length > 0 
           ? searchResults.join('\n') 
@@ -184,6 +209,10 @@ export async function POST(request) {
                avg_goals_conceded = ?, 
                key_players = ?, 
                tactical_analysis = ?,
+               avg_corners_won = ?,
+               avg_corners_conceded = ?,
+               asian_handicap_form = ?,
+               play_style = ?,
                last_updated = CURRENT_TIMESTAMP
            WHERE team_name = ?`,
           [
@@ -194,6 +223,10 @@ export async function POST(request) {
             extracted.avg_goals_conceded,
             extracted.key_players,
             extracted.tactical_analysis,
+            extracted.avg_corners_won,
+            extracted.avg_corners_conceded,
+            extracted.asian_handicap_form,
+            extracted.play_style,
             teamName
           ]
         );

@@ -385,7 +385,7 @@ export default function StatisticsPage() {
                         <span className="text-xs font-black text-emerald-400">Đã cập nhật: {updateResult.team_name}</span>
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-2 text-[10px] font-medium text-gray-300">
+                      <div className="grid grid-cols-2 gap-3 text-[10px] font-medium text-gray-300">
                         <div>
                           <span className="text-gray-500 block uppercase text-[8px] font-bold">FIFA Rank Mới</span>
                           <span className="font-bold font-mono text-white text-xs">#{updateResult.fifa_rank}</span>
@@ -394,10 +394,30 @@ export default function StatisticsPage() {
                           <span className="text-gray-500 block uppercase text-[8px] font-bold">ELO Rating Mới</span>
                           <span className="font-bold font-mono text-yellow-400 text-xs">{updateResult.elo_rating}</span>
                         </div>
+                        
+                        <div>
+                          <span className="text-gray-500 block uppercase text-[8px] font-bold">Phạt góc thắng/trận</span>
+                          <span className="font-bold font-mono text-emerald-400 text-xs">{(updateResult.avg_corners_won ?? 4.5).toFixed(1)} quả</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 block uppercase text-[8px] font-bold">Phạt góc thua/trận</span>
+                          <span className="font-bold font-mono text-rose-400 text-xs">{(updateResult.avg_corners_conceded ?? 4.5).toFixed(1)} quả</span>
+                        </div>
+
                         <div className="col-span-2">
+                          <span className="text-gray-500 block uppercase text-[8px] font-bold">Phong cách lối chơi</span>
+                          <span className="font-bold text-white text-xs">
+                            {updateResult.play_style === 'wing_play' && 'Tạt cánh đánh biên'}
+                            {updateResult.play_style === 'tiki_taka' && 'Kiểm soát bóng ngắn'}
+                            {updateResult.play_style === 'counter_attack' && 'Phòng ngự phản công'}
+                            {(updateResult.play_style === 'mixed' || !updateResult.play_style) && 'Lối chơi đa dạng'}
+                          </span>
+                        </div>
+
+                        <div>
                           <span className="text-gray-500 block uppercase text-[8px] font-bold">Phong độ 5 trận</span>
                           <div className="flex gap-1 mt-1">
-                            {updateResult.recent_form?.split(',').map((char, idx) => {
+                            {(updateResult.recent_form || 'D,D,D,D,D').split(',').map((char, idx) => {
                               const c = char.trim().toUpperCase();
                               let bg = 'bg-gray-600/30 text-gray-400';
                               if (c === 'W') bg = 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
@@ -411,16 +431,35 @@ export default function StatisticsPage() {
                             })}
                           </div>
                         </div>
+
+                        <div>
+                          <span className="text-gray-500 block uppercase text-[8px] font-bold">Phong độ handicap</span>
+                          <div className="flex gap-1 mt-1">
+                            {(updateResult.asian_handicap_form || 'D,D,D,D,D').split(',').map((char, idx) => {
+                              const c = char.trim().toUpperCase();
+                              let bg = 'bg-gray-600/30 text-gray-400';
+                              if (c === 'W') bg = 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+                              if (c === 'D') bg = 'bg-gray-500/20 text-gray-400 border border-gray-500/30';
+                              if (c === 'L') bg = 'bg-rose-500/20 text-rose-400 border border-rose-500/30';
+                              return (
+                                <span key={idx} className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-black ${bg}`}>
+                                  {c}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+
                         {updateResult.key_players && (
-                          <div className="col-span-2">
+                          <div className="col-span-2 border-t border-card-border/30 pt-2">
                             <span className="text-gray-500 block uppercase text-[8px] font-bold">Ngôi sao</span>
-                            <span className="text-gray-300">{updateResult.key_players}</span>
+                            <span className="text-gray-300 text-[11px] font-semibold">{updateResult.key_players}</span>
                           </div>
                         )}
                         {updateResult.tactical_analysis && (
                           <div className="col-span-2">
                             <span className="text-gray-500 block uppercase text-[8px] font-bold">Chiến thuật mới</span>
-                            <span className="text-gray-400 font-sans block leading-normal mt-0.5">{updateResult.tactical_analysis}</span>
+                            <span className="text-gray-400 font-sans block leading-relaxed text-[11px] mt-0.5">{updateResult.tactical_analysis}</span>
                           </div>
                         )}
                       </div>

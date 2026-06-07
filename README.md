@@ -90,6 +90,17 @@ npm run dev
 
 ## 🛠️ Nhật Ký Thay Đổi (Changelog)
 
+### [2026-06-07] - Nạp 50 trận đấu CLB mới, bộ lọc Mùa giải, Cải tiến Logic Handicap & Phạt góc & Chống Look-ahead Bias (v1.7.0)
+* **Tích hợp 50 trận đấu thực tế mới**: Thêm 30 trận EPL và 20 trận La Liga mùa giải 2024-2025 vào dữ liệu. Bổ sung thuộc tính `season` cho toàn bộ 187 trận đấu trong `fixtures.json`.
+* **Bộ lọc mùa giải trên Trang chủ**: Thiết kế bộ lọc Mùa giải (Season Filter) cạnh dropdown Giải đấu, hỗ trợ khôi phục/lưu `localStorage` (`homepage_season_filter`) và UX Gating tự động reset tránh màn hình trống.
+* **Cải tiến logic cược Handicap & Phạt góc**: Lưu mốc chấp nhà cái `handicap_line` vào SQLite, bắt buộc AI đối chiếu tỉ số dự đoán để khuyên dùng kèo Handicap chuẩn xác; tích hợp kịch bản phạt góc (wing-play/tiki-taka) và thẻ phạt (knock-out/derby) vào prompt.
+* **Mốc neo Poisson cứng**: Ép AI bắt buộc phải lấy tỷ số Poisson thô làm điểm tựa thực lực, mọi điều chỉnh tỷ số sau đó chỉ được phép dao động tối đa **±1 bàn**.
+* **Chống rò rỉ dữ liệu tương lai (Look-ahead Bias)**: Phát triển cơ chế tự động tái dựng chỉ số lịch sử (`recent_form`, `asian_handicap_form`, bàn thắng trung bình) của hai đội tại thời điểm trước ngày diễn ra trận đấu dựa trên dữ liệu các trận đã đấu trước đó trong `fixtures.json` khi chạy Backtest các trận đấu quá khứ.
+* **Quản lý ELO an toàn & Phân biệt CLB/ĐTQG**: Phân biệt query search internet cho CLB (`club`) và ĐTQG (`national team`). Tích hợp logic validate ELO trong khoảng `1000 - 2500` để tránh việc AI cào nhầm thứ hạng thế giới thành điểm ELO.
+* **Cập nhật UI Stats hiển thị 4 trường mới**: Panel kết quả cập nhật AI tại trang Thống kê hiển thị phạt góc trung bình, lối chơi dịch nghĩa và phong độ handicap dạng vòng tròn màu (W/D/L) có cơ chế optional chaining chống crash giao diện.
+* **Sửa lỗi Quota Exceeded (429) ở kết quả tự động**: Tái sử dụng API Key/Model đã chạy thành công trước đó trong tiến trình Self-Retrospective, và bỏ qua việc gọi AI tạo bài học mới nếu đã tồn tại `match_id` trong DB.
+* **Logo và cờ Câu lạc bộ**: Tự động render logo tròn từ CDN cho các câu lạc bộ (EPL & La Liga) thay vì cờ quốc gia.
+
 ### [2026-06-07] - Tăng cỡ mẫu qua dữ liệu Euro 2024 & Bộ lọc giải đấu (v1.6.0)
 * **Dữ liệu thực tế Euro 2024:** Nhập 51 trận đấu có sẵn tỉ số thực tế của Euro 2024 dưới dạng trận test (`isTest: true`).
 * **Bộ lọc giải đấu trang chủ & thống kê:** Thêm bộ lọc dropdown chọn giải đấu (World Cup 2026 / Euro 2024) ở cả trang chủ và thống kê giúp dễ dàng phân loại, theo dõi hiệu suất.

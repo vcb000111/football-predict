@@ -118,7 +118,8 @@
       "time": "15:00",
       "group": "Group A",
       "venue": "Estadio Azteca, Mexico City",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m2",
@@ -128,7 +129,8 @@
       "time": "20:00",
       "group": "Group A",
       "venue": "Estadio Akron, Guadalajara",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m3",
@@ -138,7 +140,8 @@
       "time": "15:00",
       "group": "Group B",
       "venue": "BMO Field, Toronto",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m4",
@@ -148,7 +151,8 @@
       "time": "18:00",
       "group": "Group D",
       "venue": "SoFi Stadium, Los Angeles",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m5",
@@ -158,7 +162,8 @@
       "time": "21:00",
       "group": "Group C",
       "venue": "Gillette Stadium, Boston",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m6",
@@ -168,7 +173,8 @@
       "time": "21:00",
       "group": "Group D",
       "venue": "BC Place, Vancouver",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m7",
@@ -178,7 +184,8 @@
       "time": "18:00",
       "group": "Group C",
       "venue": "MetLife Stadium, New York/New Jersey",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m8",
@@ -188,7 +195,8 @@
       "time": "12:00",
       "group": "Group B",
       "venue": "Levi's Stadium, San Francisco Bay Area",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m9",
@@ -198,7 +206,8 @@
       "time": "19:00",
       "group": "Group E",
       "venue": "Lincoln Financial Field, Philadelphia",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m10",
@@ -208,7 +217,8 @@
       "time": "12:00",
       "group": "Group E",
       "venue": "NRG Stadium, Houston",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m11",
@@ -218,7 +228,8 @@
       "time": "15:00",
       "group": "Group F",
       "venue": "AT&T Stadium, Dallas",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m12",
@@ -228,7 +239,8 @@
       "time": "20:00",
       "group": "Group F",
       "venue": "Estadio BBVA, Monterrey",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m13",
@@ -238,7 +250,8 @@
       "time": "18:00",
       "group": "Group H",
       "venue": "Hard Rock Stadium, Miami",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m14",
@@ -248,7 +261,8 @@
       "time": "12:00",
       "group": "Group H",
       "venue": "Mercedes-Benz Stadium, Atlanta",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m15",
@@ -258,7 +272,8 @@
       "time": "18:00",
       "group": "Group G",
       "venue": "SoFi Stadium, Los Angeles",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m16",
@@ -268,7 +283,8 @@
       "time": "12:00",
       "group": "Group G",
       "venue": "Lumen Field, Seattle",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m17",
@@ -278,7 +294,8 @@
       "time": "15:00",
       "group": "Group I",
       "venue": "MetLife Stadium, New York/New Jersey",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m18",
@@ -288,7 +305,8 @@
       "time": "18:00",
       "group": "Group I",
       "venue": "Gillette Stadium, Boston",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m19",
@@ -298,7 +316,8 @@
       "time": "20:00",
       "group": "Group J",
       "venue": "Arrowhead Stadium, Kansas City",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m20",
@@ -308,7 +327,8 @@
       "time": "21:00",
       "group": "Group J",
       "venue": "Levi's Stadium, San Francisco Bay Area",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m21",
@@ -318,7 +338,8 @@
       "time": "19:00",
       "group": "Group L",
       "venue": "BMO Field, Toronto",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m22",
@@ -328,7 +349,8 @@
       "time": "15:00",
       "group": "Group L",
       "venue": "AT&T Stadium, Dallas",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m23",
@@ -338,7 +360,8 @@
       "time": "12:00",
       "group": "Group K",
       "venue": "NRG Stadium, Houston",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m24",
@@ -348,7 +371,8 @@
       "time": "20:00",
       "group": "Group K",
       "venue": "Estadio Azteca, Mexico City",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m25",
@@ -358,7 +382,8 @@
       "time": "12:00",
       "group": "Group A",
       "venue": "Mercedes-Benz Stadium, Atlanta",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m26",
@@ -368,7 +393,8 @@
       "time": "12:00",
       "group": "Group B",
       "venue": "SoFi Stadium, Los Angeles",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m27",
@@ -378,7 +404,8 @@
       "time": "15:00",
       "group": "Group B",
       "venue": "BC Place, Vancouver",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m28",
@@ -388,7 +415,8 @@
       "time": "19:00",
       "group": "Group A",
       "venue": "Estadio Guadalajara, Guadalajara",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m29",
@@ -398,7 +426,8 @@
       "time": "12:00",
       "group": "Group D",
       "venue": "Lumen Field, Seattle",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m30",
@@ -408,7 +437,8 @@
       "time": "18:00",
       "group": "Group C",
       "venue": "Gillette Stadium, Boston",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m31",
@@ -418,7 +448,8 @@
       "time": "20:30",
       "group": "Group C",
       "venue": "Lincoln Financial Field, Philadelphia",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m32",
@@ -428,7 +459,8 @@
       "time": "20:00",
       "group": "Group D",
       "venue": "Levi's Stadium, San Francisco Bay Area",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m33",
@@ -438,7 +470,8 @@
       "time": "12:00",
       "group": "Group F",
       "venue": "NRG Stadium, Houston",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m34",
@@ -448,7 +481,8 @@
       "time": "16:00",
       "group": "Group E",
       "venue": "BMO Field, Toronto",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m35",
@@ -458,7 +492,8 @@
       "time": "19:00",
       "group": "Group E",
       "venue": "Arrowhead Stadium, Kansas City",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m36",
@@ -468,7 +503,8 @@
       "time": "22:00",
       "group": "Group F",
       "venue": "Estadio Monterrey, Monterrey",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m37",
@@ -478,7 +514,8 @@
       "time": "12:00",
       "group": "Group H",
       "venue": "Mercedes-Benz Stadium, Atlanta",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m38",
@@ -488,7 +525,8 @@
       "time": "12:00",
       "group": "Group G",
       "venue": "SoFi Stadium, Los Angeles",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m39",
@@ -498,7 +536,8 @@
       "time": "18:00",
       "group": "Group H",
       "venue": "Hard Rock Stadium, Miami",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m40",
@@ -508,7 +547,8 @@
       "time": "18:00",
       "group": "Group G",
       "venue": "BC Place, Vancouver",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m41",
@@ -518,7 +558,8 @@
       "time": "15:00",
       "group": "Group I",
       "venue": "MetLife Stadium, New York/New Jersey",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m42",
@@ -528,7 +569,8 @@
       "time": "18:00",
       "group": "Group I",
       "venue": "Gillette Stadium, Boston",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m43",
@@ -538,7 +580,8 @@
       "time": "20:00",
       "group": "Group J",
       "venue": "Arrowhead Stadium, Kansas City",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m44",
@@ -548,7 +591,8 @@
       "time": "21:00",
       "group": "Group J",
       "venue": "Levi's Stadium, San Francisco Bay Area",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m45",
@@ -558,7 +602,8 @@
       "time": "12:00",
       "group": "Group K",
       "venue": "NRG Stadium, Houston",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m46",
@@ -568,7 +613,8 @@
       "time": "20:00",
       "group": "Group K",
       "venue": "Estadio Azteca, Mexico City",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m47",
@@ -578,7 +624,8 @@
       "time": "19:00",
       "group": "Group L",
       "venue": "BMO Field, Toronto",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "m48",
@@ -588,7 +635,8 @@
       "time": "15:00",
       "group": "Group L",
       "venue": "AT&T Stadium, Dallas",
-      "tournament": "World Cup 2026"
+      "tournament": "World Cup 2026",
+      "season": "2026"
     },
     {
       "id": "t1",
@@ -601,7 +649,8 @@
       "isTest": true,
       "actualHomeScore": 4,
       "actualAwayScore": 0,
-      "tournament": "Warm-up Friendly"
+      "tournament": "Warm-up Friendly",
+      "season": "2026"
     },
     {
       "id": "t2",
@@ -614,7 +663,8 @@
       "isTest": true,
       "actualHomeScore": 3,
       "actualAwayScore": 1,
-      "tournament": "Warm-up Friendly"
+      "tournament": "Warm-up Friendly",
+      "season": "2026"
     },
     {
       "id": "t3",
@@ -627,7 +677,8 @@
       "isTest": true,
       "actualHomeScore": 1,
       "actualAwayScore": 1,
-      "tournament": "Warm-up Friendly"
+      "tournament": "Warm-up Friendly",
+      "season": "2026"
     },
     {
       "id": "t4",
@@ -640,7 +691,8 @@
       "isTest": true,
       "actualHomeScore": 0,
       "actualAwayScore": 2,
-      "tournament": "Warm-up Friendly"
+      "tournament": "Warm-up Friendly",
+      "season": "2026"
     },
     {
       "id": "t5",
@@ -653,7 +705,8 @@
       "isTest": true,
       "actualHomeScore": 0,
       "actualAwayScore": 1,
-      "tournament": "Warm-up Friendly"
+      "tournament": "Warm-up Friendly",
+      "season": "2026"
     },
     {
       "id": "t6",
@@ -666,7 +719,8 @@
       "isTest": true,
       "actualHomeScore": 0,
       "actualAwayScore": 1,
-      "tournament": "Warm-up Friendly"
+      "tournament": "Warm-up Friendly",
+      "season": "2026"
     },
     {
       "id": "t7",
@@ -679,7 +733,8 @@
       "isTest": true,
       "actualHomeScore": 2,
       "actualAwayScore": 2,
-      "tournament": "Warm-up Friendly"
+      "tournament": "Warm-up Friendly",
+      "season": "2026"
     },
     {
       "id": "t8",
@@ -692,7 +747,8 @@
       "isTest": true,
       "actualHomeScore": 0,
       "actualAwayScore": 0,
-      "tournament": "Warm-up Friendly"
+      "tournament": "Warm-up Friendly",
+      "season": "2026"
     },
     {
       "id": "t9",
@@ -705,7 +761,8 @@
       "isTest": true,
       "actualHomeScore": 1,
       "actualAwayScore": 2,
-      "tournament": "Warm-up Friendly"
+      "tournament": "Warm-up Friendly",
+      "season": "2026"
     },
     {
       "id": "t10",
@@ -718,7 +775,8 @@
       "isTest": true,
       "actualHomeScore": 1,
       "actualAwayScore": 1,
-      "tournament": "Warm-up Friendly"
+      "tournament": "Warm-up Friendly",
+      "season": "2026"
     },
     {
       "id": "t11",
@@ -731,7 +789,8 @@
       "isTest": true,
       "actualHomeScore": 2,
       "actualAwayScore": 2,
-      "tournament": "Warm-up Friendly"
+      "tournament": "Warm-up Friendly",
+      "season": "2026"
     },
     {
       "id": "t12",
@@ -744,7 +803,8 @@
       "isTest": true,
       "actualHomeScore": 3,
       "actualAwayScore": 1,
-      "tournament": "Warm-up Friendly"
+      "tournament": "Warm-up Friendly",
+      "season": "2026"
     },
     {
       "id": "t13",
@@ -757,7 +817,8 @@
       "isTest": true,
       "actualHomeScore": 2,
       "actualAwayScore": 1,
-      "tournament": "Warm-up Friendly"
+      "tournament": "Warm-up Friendly",
+      "season": "2026"
     },
     {
       "id": "t14",
@@ -770,7 +831,8 @@
       "isTest": true,
       "actualHomeScore": 1,
       "actualAwayScore": 2,
-      "tournament": "Warm-up Friendly"
+      "tournament": "Warm-up Friendly",
+      "season": "2026"
     },
     {
       "id": "t15",
@@ -783,7 +845,8 @@
       "isTest": true,
       "actualHomeScore": 5,
       "actualAwayScore": 0,
-      "tournament": "Warm-up Friendly"
+      "tournament": "Warm-up Friendly",
+      "season": "2026"
     },
     {
       "id": "t16",
@@ -796,7 +859,8 @@
       "isTest": true,
       "actualHomeScore": 2,
       "actualAwayScore": 1,
-      "tournament": "Warm-up Friendly"
+      "tournament": "Warm-up Friendly",
+      "season": "2026"
     },
     {
       "id": "t17",
@@ -809,7 +873,8 @@
       "isTest": true,
       "actualHomeScore": 1,
       "actualAwayScore": 0,
-      "tournament": "Warm-up Friendly"
+      "tournament": "Warm-up Friendly",
+      "season": "2026"
     },
     {
       "id": "t18",
@@ -820,7 +885,8 @@
       "group": "Warm-up Friendly",
       "venue": "Allianz Riviera, Nice",
       "isTest": true,
-      "tournament": "Warm-up Friendly"
+      "tournament": "Warm-up Friendly",
+      "season": "2026"
     },
     {
       "id": "e1",
@@ -833,7 +899,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 5,
-      "actualAwayScore": 1
+      "actualAwayScore": 1,
+      "season": "2024"
     },
     {
       "id": "e2",
@@ -846,7 +913,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 1,
-      "actualAwayScore": 3
+      "actualAwayScore": 3,
+      "season": "2024"
     },
     {
       "id": "e3",
@@ -859,7 +927,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 3,
-      "actualAwayScore": 0
+      "actualAwayScore": 0,
+      "season": "2024"
     },
     {
       "id": "e4",
@@ -872,7 +941,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 2,
-      "actualAwayScore": 1
+      "actualAwayScore": 1,
+      "season": "2024"
     },
     {
       "id": "e5",
@@ -885,7 +955,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 1,
-      "actualAwayScore": 2
+      "actualAwayScore": 2,
+      "season": "2024"
     },
     {
       "id": "e6",
@@ -898,7 +969,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 1,
-      "actualAwayScore": 1
+      "actualAwayScore": 1,
+      "season": "2024"
     },
     {
       "id": "e7",
@@ -911,7 +983,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 0,
-      "actualAwayScore": 1
+      "actualAwayScore": 1,
+      "season": "2024"
     },
     {
       "id": "e8",
@@ -924,7 +997,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 3,
-      "actualAwayScore": 0
+      "actualAwayScore": 0,
+      "season": "2024"
     },
     {
       "id": "e9",
@@ -937,7 +1011,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 0,
-      "actualAwayScore": 1
+      "actualAwayScore": 1,
+      "season": "2024"
     },
     {
       "id": "e10",
@@ -950,7 +1025,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 0,
-      "actualAwayScore": 1
+      "actualAwayScore": 1,
+      "season": "2024"
     },
     {
       "id": "e11",
@@ -963,7 +1039,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 3,
-      "actualAwayScore": 1
+      "actualAwayScore": 1,
+      "season": "2024"
     },
     {
       "id": "e12",
@@ -976,7 +1053,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 2,
-      "actualAwayScore": 1
+      "actualAwayScore": 1,
+      "season": "2024"
     },
     {
       "id": "e13",
@@ -989,7 +1067,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 2,
-      "actualAwayScore": 2
+      "actualAwayScore": 2,
+      "season": "2024"
     },
     {
       "id": "e14",
@@ -1002,7 +1081,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 2,
-      "actualAwayScore": 0
+      "actualAwayScore": 0,
+      "season": "2024"
     },
     {
       "id": "e15",
@@ -1015,7 +1095,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 1,
-      "actualAwayScore": 1
+      "actualAwayScore": 1,
+      "season": "2024"
     },
     {
       "id": "e16",
@@ -1028,7 +1109,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 1,
-      "actualAwayScore": 1
+      "actualAwayScore": 1,
+      "season": "2024"
     },
     {
       "id": "e17",
@@ -1041,7 +1123,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 1,
-      "actualAwayScore": 1
+      "actualAwayScore": 1,
+      "season": "2024"
     },
     {
       "id": "e18",
@@ -1054,7 +1137,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 1,
-      "actualAwayScore": 0
+      "actualAwayScore": 0,
+      "season": "2024"
     },
     {
       "id": "e19",
@@ -1067,7 +1151,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 1,
-      "actualAwayScore": 2
+      "actualAwayScore": 2,
+      "season": "2024"
     },
     {
       "id": "e20",
@@ -1080,7 +1165,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 1,
-      "actualAwayScore": 3
+      "actualAwayScore": 3,
+      "season": "2024"
     },
     {
       "id": "e21",
@@ -1093,7 +1179,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 0,
-      "actualAwayScore": 0
+      "actualAwayScore": 0,
+      "season": "2024"
     },
     {
       "id": "e22",
@@ -1106,7 +1193,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 1,
-      "actualAwayScore": 1
+      "actualAwayScore": 1,
+      "season": "2024"
     },
     {
       "id": "e23",
@@ -1119,7 +1207,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 0,
-      "actualAwayScore": 3
+      "actualAwayScore": 3,
+      "season": "2024"
     },
     {
       "id": "e24",
@@ -1132,7 +1221,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 2,
-      "actualAwayScore": 0
+      "actualAwayScore": 0,
+      "season": "2024"
     },
     {
       "id": "e25",
@@ -1145,7 +1235,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 1,
-      "actualAwayScore": 1
+      "actualAwayScore": 1,
+      "season": "2024"
     },
     {
       "id": "e26",
@@ -1158,7 +1249,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 0,
-      "actualAwayScore": 1
+      "actualAwayScore": 1,
+      "season": "2024"
     },
     {
       "id": "e27",
@@ -1171,7 +1263,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 0,
-      "actualAwayScore": 1
+      "actualAwayScore": 1,
+      "season": "2024"
     },
     {
       "id": "e28",
@@ -1184,7 +1277,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 1,
-      "actualAwayScore": 1
+      "actualAwayScore": 1,
+      "season": "2024"
     },
     {
       "id": "e29",
@@ -1197,7 +1291,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 2,
-      "actualAwayScore": 3
+      "actualAwayScore": 3,
+      "season": "2024"
     },
     {
       "id": "e30",
@@ -1210,7 +1305,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 1,
-      "actualAwayScore": 1
+      "actualAwayScore": 1,
+      "season": "2024"
     },
     {
       "id": "e31",
@@ -1223,7 +1319,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 0,
-      "actualAwayScore": 0
+      "actualAwayScore": 0,
+      "season": "2024"
     },
     {
       "id": "e32",
@@ -1236,7 +1333,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 0,
-      "actualAwayScore": 0
+      "actualAwayScore": 0,
+      "season": "2024"
     },
     {
       "id": "e33",
@@ -1249,7 +1347,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 1,
-      "actualAwayScore": 1
+      "actualAwayScore": 1,
+      "season": "2024"
     },
     {
       "id": "e34",
@@ -1262,7 +1361,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 0,
-      "actualAwayScore": 0
+      "actualAwayScore": 0,
+      "season": "2024"
     },
     {
       "id": "e35",
@@ -1275,7 +1375,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 2,
-      "actualAwayScore": 0
+      "actualAwayScore": 0,
+      "season": "2024"
     },
     {
       "id": "e36",
@@ -1288,7 +1389,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 1,
-      "actualAwayScore": 2
+      "actualAwayScore": 2,
+      "season": "2024"
     },
     {
       "id": "e37",
@@ -1301,7 +1403,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 2,
-      "actualAwayScore": 0
+      "actualAwayScore": 0,
+      "season": "2024"
     },
     {
       "id": "e38",
@@ -1314,7 +1417,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 2,
-      "actualAwayScore": 0
+      "actualAwayScore": 0,
+      "season": "2024"
     },
     {
       "id": "e39",
@@ -1327,7 +1431,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 2,
-      "actualAwayScore": 1
+      "actualAwayScore": 1,
+      "season": "2024"
     },
     {
       "id": "e40",
@@ -1340,7 +1445,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 4,
-      "actualAwayScore": 1
+      "actualAwayScore": 1,
+      "season": "2024"
     },
     {
       "id": "e41",
@@ -1353,7 +1459,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 1,
-      "actualAwayScore": 0
+      "actualAwayScore": 0,
+      "season": "2024"
     },
     {
       "id": "e42",
@@ -1366,7 +1473,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 0,
-      "actualAwayScore": 0
+      "actualAwayScore": 0,
+      "season": "2024"
     },
     {
       "id": "e43",
@@ -1379,7 +1487,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 0,
-      "actualAwayScore": 3
+      "actualAwayScore": 3,
+      "season": "2024"
     },
     {
       "id": "e44",
@@ -1392,7 +1501,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 1,
-      "actualAwayScore": 2
+      "actualAwayScore": 2,
+      "season": "2024"
     },
     {
       "id": "e45",
@@ -1405,7 +1515,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 2,
-      "actualAwayScore": 1
+      "actualAwayScore": 1,
+      "season": "2024"
     },
     {
       "id": "e46",
@@ -1418,7 +1529,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 0,
-      "actualAwayScore": 0
+      "actualAwayScore": 0,
+      "season": "2024"
     },
     {
       "id": "e47",
@@ -1431,7 +1543,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 1,
-      "actualAwayScore": 1
+      "actualAwayScore": 1,
+      "season": "2024"
     },
     {
       "id": "e48",
@@ -1444,7 +1557,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 2,
-      "actualAwayScore": 1
+      "actualAwayScore": 1,
+      "season": "2024"
     },
     {
       "id": "e49",
@@ -1457,7 +1571,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 2,
-      "actualAwayScore": 1
+      "actualAwayScore": 1,
+      "season": "2024"
     },
     {
       "id": "e50",
@@ -1470,7 +1585,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 1,
-      "actualAwayScore": 2
+      "actualAwayScore": 2,
+      "season": "2024"
     },
     {
       "id": "e51",
@@ -1483,7 +1599,8 @@
       "tournament": "Euro 2024",
       "isTest": true,
       "actualHomeScore": 2,
-      "actualAwayScore": 1
+      "actualAwayScore": 1,
+      "season": "2024"
     },
     {
       "id": "pl1",
@@ -1499,7 +1616,8 @@
       "actualHomeScore": 1,
       "actualAwayScore": 0,
       "actualCorners": 12,
-      "actualCards": 4
+      "actualCards": 4,
+      "season": "2024-2025"
     },
     {
       "id": "pl2",
@@ -1515,7 +1633,8 @@
       "actualHomeScore": 0,
       "actualAwayScore": 2,
       "actualCorners": 11,
-      "actualCards": 6
+      "actualCards": 6,
+      "season": "2024-2025"
     },
     {
       "id": "pl3",
@@ -1531,7 +1650,8 @@
       "actualHomeScore": 1,
       "actualAwayScore": 1,
       "actualCorners": 10,
-      "actualCards": 5
+      "actualCards": 5,
+      "season": "2024-2025"
     },
     {
       "id": "pl4",
@@ -1547,7 +1667,8 @@
       "actualHomeScore": 0,
       "actualAwayScore": 2,
       "actualCorners": 10,
-      "actualCards": 4
+      "actualCards": 4,
+      "season": "2024-2025"
     },
     {
       "id": "pl5",
@@ -1563,7 +1684,8 @@
       "actualHomeScore": 0,
       "actualAwayScore": 3,
       "actualCorners": 7,
-      "actualCards": 7
+      "actualCards": 7,
+      "season": "2024-2025"
     },
     {
       "id": "pl6",
@@ -1579,7 +1701,8 @@
       "actualHomeScore": 0,
       "actualAwayScore": 1,
       "actualCorners": 13,
-      "actualCards": 8
+      "actualCards": 8,
+      "season": "2024-2025"
     },
     {
       "id": "pl7",
@@ -1595,7 +1718,8 @@
       "actualHomeScore": 2,
       "actualAwayScore": 2,
       "actualCorners": 15,
-      "actualCards": 6
+      "actualCards": 6,
+      "season": "2024-2025"
     },
     {
       "id": "pl8",
@@ -1607,11 +1731,12 @@
       "venue": "Anfield, Liverpool",
       "tournament": "Premier League",
       "isTest": true,
-      "marketHandicap": -1.0,
+      "marketHandicap": -1,
       "actualHomeScore": 2,
       "actualAwayScore": 1,
       "actualCorners": 8,
-      "actualCards": 4
+      "actualCards": 4,
+      "season": "2024-2025"
     },
     {
       "id": "pl9",
@@ -1627,7 +1752,8 @@
       "actualHomeScore": 2,
       "actualAwayScore": 2,
       "actualCorners": 7,
-      "actualCards": 3
+      "actualCards": 3,
+      "season": "2024-2025"
     },
     {
       "id": "pl10",
@@ -1643,7 +1769,8 @@
       "actualHomeScore": 1,
       "actualAwayScore": 1,
       "actualCorners": 10,
-      "actualCards": 5
+      "actualCards": 5,
+      "season": "2024-2025"
     },
     {
       "id": "ll1",
@@ -1659,7 +1786,8 @@
       "actualHomeScore": 0,
       "actualAwayScore": 4,
       "actualCorners": 10,
-      "actualCards": 6
+      "actualCards": 6,
+      "season": "2024-2025"
     },
     {
       "id": "ll2",
@@ -1675,7 +1803,8 @@
       "actualHomeScore": 0,
       "actualAwayScore": 2,
       "actualCorners": 8,
-      "actualCards": 6
+      "actualCards": 6,
+      "season": "2024-2025"
     },
     {
       "id": "ll3",
@@ -1691,7 +1820,8 @@
       "actualHomeScore": 1,
       "actualAwayScore": 4,
       "actualCorners": 9,
-      "actualCards": 5
+      "actualCards": 5,
+      "season": "2024-2025"
     },
     {
       "id": "ll4",
@@ -1707,7 +1837,8 @@
       "actualHomeScore": 1,
       "actualAwayScore": 1,
       "actualCorners": 10,
-      "actualCards": 7
+      "actualCards": 7,
+      "season": "2024-2025"
     },
     {
       "id": "ll5",
@@ -1719,11 +1850,12 @@
       "venue": "Estadi Olimpic Lluis Companys, Barcelona",
       "tournament": "La Liga",
       "isTest": true,
-      "marketHandicap": -1.0,
+      "marketHandicap": -1,
       "actualHomeScore": 2,
       "actualAwayScore": 1,
       "actualCorners": 8,
-      "actualCards": 4
+      "actualCards": 4,
+      "season": "2024-2025"
     },
     {
       "id": "ll6",
@@ -1739,7 +1871,8 @@
       "actualHomeScore": 1,
       "actualAwayScore": 1,
       "actualCorners": 11,
-      "actualCards": 6
+      "actualCards": 6,
+      "season": "2024-2025"
     },
     {
       "id": "ll7",
@@ -1755,7 +1888,8 @@
       "actualHomeScore": 0,
       "actualAwayScore": 1,
       "actualCorners": 9,
-      "actualCards": 4
+      "actualCards": 4,
+      "season": "2024-2025"
     },
     {
       "id": "ll8",
@@ -1771,7 +1905,8 @@
       "actualHomeScore": 0,
       "actualAwayScore": 1,
       "actualCorners": 7,
-      "actualCards": 5
+      "actualCards": 5,
+      "season": "2024-2025"
     },
     {
       "id": "ll9",
@@ -1784,10 +1919,11 @@
       "tournament": "La Liga",
       "isTest": true,
       "marketHandicap": -1.25,
-      "actualHomeScore": 1,
-      "actualAwayScore": 0,
+      "actualHomeScore": 4,
+      "actualAwayScore": 1,
       "actualCorners": 12,
-      "actualCards": 3
+      "actualCards": 3,
+      "season": "2024-2025"
     },
     {
       "id": "ll10",
@@ -1803,7 +1939,860 @@
       "actualHomeScore": 1,
       "actualAwayScore": 0,
       "actualCorners": 6,
+      "actualCards": 4,
+      "season": "2024-2025"
+    },
+    {
+      "id": "pl11",
+      "homeTeam": "Chelsea",
+      "awayTeam": "Crystal Palace",
+      "homeTeamName": "Chelsea",
+      "awayTeamName": "Crystal Palace",
+      "date": "2024-09-01",
+      "time": "13:30",
+      "group": "Matchday 3",
+      "venue": "Stamford Bridge, London",
+      "tournament": "Premier League",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -0.75,
+      "actualHomeScore": 1,
+      "actualAwayScore": 1,
+      "actualCorners": 11,
+      "actualCards": 5
+    },
+    {
+      "id": "pl12",
+      "homeTeam": "Newcastle",
+      "awayTeam": "Tottenham",
+      "date": "2024-09-01",
+      "time": "13:30",
+      "group": "Matchday 3",
+      "venue": "St James' Park, Newcastle",
+      "tournament": "Premier League",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": 0.25,
+      "actualHomeScore": 2,
+      "actualAwayScore": 1,
+      "actualCorners": 12,
+      "actualCards": 6
+    },
+    {
+      "id": "pl13",
+      "homeTeam": "Aston Villa",
+      "awayTeam": "Everton",
+      "date": "2024-09-14",
+      "time": "17:30",
+      "group": "Matchday 4",
+      "venue": "Villa Park, Birmingham",
+      "tournament": "Premier League",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -1,
+      "actualHomeScore": 3,
+      "actualAwayScore": 2,
+      "actualCorners": 9,
       "actualCards": 4
+    },
+    {
+      "id": "pl14",
+      "homeTeam": "Liverpool",
+      "awayTeam": "Nottingham Forest",
+      "date": "2024-09-14",
+      "time": "15:00",
+      "group": "Matchday 4",
+      "venue": "Anfield, Liverpool",
+      "tournament": "Premier League",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -1.75,
+      "actualHomeScore": 0,
+      "actualAwayScore": 1,
+      "actualCorners": 10,
+      "actualCards": 3
+    },
+    {
+      "id": "pl15",
+      "homeTeam": "Tottenham",
+      "awayTeam": "Brentford",
+      "date": "2024-09-21",
+      "time": "15:00",
+      "group": "Matchday 5",
+      "venue": "Tottenham Hotspur Stadium, London",
+      "tournament": "Premier League",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -1.25,
+      "actualHomeScore": 3,
+      "actualAwayScore": 1,
+      "actualCorners": 11,
+      "actualCards": 4
+    },
+    {
+      "id": "pl16",
+      "homeTeam": "Crystal Palace",
+      "awayTeam": "Manchester United",
+      "date": "2024-09-21",
+      "time": "17:30",
+      "group": "Matchday 5",
+      "venue": "Selhurst Park, London",
+      "tournament": "Premier League",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": 0.25,
+      "actualHomeScore": 0,
+      "actualAwayScore": 0,
+      "actualCorners": 8,
+      "actualCards": 5
+    },
+    {
+      "id": "pl17",
+      "homeTeam": "Newcastle",
+      "awayTeam": "Manchester City",
+      "date": "2024-09-28",
+      "time": "12:30",
+      "group": "Matchday 6",
+      "venue": "St James' Park, Newcastle",
+      "tournament": "Premier League",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": 0.75,
+      "actualHomeScore": 1,
+      "actualAwayScore": 1,
+      "actualCorners": 12,
+      "actualCards": 6
+    },
+    {
+      "id": "pl18",
+      "homeTeam": "Wolverhampton",
+      "awayTeam": "Liverpool",
+      "date": "2024-09-28",
+      "time": "17:30",
+      "group": "Matchday 6",
+      "venue": "Molineux Stadium, Wolverhampton",
+      "tournament": "Premier League",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": 1.5,
+      "actualHomeScore": 1,
+      "actualAwayScore": 2,
+      "actualCorners": 9,
+      "actualCards": 4
+    },
+    {
+      "id": "pl19",
+      "homeTeam": "Manchester United",
+      "awayTeam": "Tottenham",
+      "date": "2024-09-29",
+      "time": "16:30",
+      "group": "Matchday 6",
+      "venue": "Old Trafford, Manchester",
+      "tournament": "Premier League",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -0.25,
+      "actualHomeScore": 0,
+      "actualAwayScore": 3,
+      "actualCorners": 10,
+      "actualCards": 6
+    },
+    {
+      "id": "pl20",
+      "homeTeam": "Arsenal",
+      "awayTeam": "Southampton",
+      "date": "2024-10-05",
+      "time": "15:00",
+      "group": "Matchday 7",
+      "venue": "Emirates Stadium, London",
+      "tournament": "Premier League",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -2.25,
+      "actualHomeScore": 3,
+      "actualAwayScore": 1,
+      "actualCorners": 13,
+      "actualCards": 3
+    },
+    {
+      "id": "pl21",
+      "homeTeam": "Manchester City",
+      "awayTeam": "Fulham",
+      "date": "2024-10-05",
+      "time": "15:00",
+      "group": "Matchday 7",
+      "venue": "Etihad Stadium, Manchester",
+      "tournament": "Premier League",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -1.75,
+      "actualHomeScore": 3,
+      "actualAwayScore": 2,
+      "actualCorners": 11,
+      "actualCards": 2
+    },
+    {
+      "id": "pl22",
+      "homeTeam": "Chelsea",
+      "awayTeam": "Nottingham Forest",
+      "date": "2024-10-06",
+      "time": "14:00",
+      "group": "Matchday 7",
+      "venue": "Stamford Bridge, London",
+      "tournament": "Premier League",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -1,
+      "actualHomeScore": 1,
+      "actualAwayScore": 1,
+      "actualCorners": 12,
+      "actualCards": 5
+    },
+    {
+      "id": "pl23",
+      "homeTeam": "Bournemouth",
+      "awayTeam": "Arsenal",
+      "date": "2024-10-19",
+      "time": "17:30",
+      "group": "Matchday 8",
+      "venue": "Vitality Stadium, Bournemouth",
+      "tournament": "Premier League",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": 1,
+      "actualHomeScore": 2,
+      "actualAwayScore": 0,
+      "actualCorners": 10,
+      "actualCards": 4
+    },
+    {
+      "id": "pl24",
+      "homeTeam": "Wolverhampton",
+      "awayTeam": "Manchester City",
+      "date": "2024-10-20",
+      "time": "14:00",
+      "group": "Matchday 8",
+      "venue": "Molineux Stadium, Wolverhampton",
+      "tournament": "Premier League",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": 1.5,
+      "actualHomeScore": 1,
+      "actualAwayScore": 2,
+      "actualCorners": 11,
+      "actualCards": 3
+    },
+    {
+      "id": "pl25",
+      "homeTeam": "Chelsea",
+      "awayTeam": "Newcastle",
+      "date": "2024-10-27",
+      "time": "14:00",
+      "group": "Matchday 9",
+      "venue": "Stamford Bridge, London",
+      "tournament": "Premier League",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -0.5,
+      "actualHomeScore": 2,
+      "actualAwayScore": 1,
+      "actualCorners": 10,
+      "actualCards": 5
+    },
+    {
+      "id": "pl26",
+      "homeTeam": "West Ham",
+      "awayTeam": "Manchester United",
+      "date": "2024-10-27",
+      "time": "14:00",
+      "group": "Matchday 9",
+      "venue": "London Stadium, London",
+      "tournament": "Premier League",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": 0.25,
+      "actualHomeScore": 2,
+      "actualAwayScore": 1,
+      "actualCorners": 8,
+      "actualCards": 4
+    },
+    {
+      "id": "pl27",
+      "homeTeam": "Newcastle",
+      "awayTeam": "Arsenal",
+      "date": "2024-11-02",
+      "time": "12:30",
+      "group": "Matchday 10",
+      "venue": "St James' Park, Newcastle",
+      "tournament": "Premier League",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": 0.5,
+      "actualHomeScore": 1,
+      "actualAwayScore": 0,
+      "actualCorners": 9,
+      "actualCards": 5
+    },
+    {
+      "id": "pl28",
+      "homeTeam": "Liverpool",
+      "awayTeam": "Brighton",
+      "date": "2024-11-02",
+      "time": "15:00",
+      "group": "Matchday 10",
+      "venue": "Anfield, Liverpool",
+      "tournament": "Premier League",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -1.25,
+      "actualHomeScore": 2,
+      "actualAwayScore": 1,
+      "actualCorners": 10,
+      "actualCards": 3
+    },
+    {
+      "id": "pl29",
+      "homeTeam": "Bournemouth",
+      "awayTeam": "Manchester City",
+      "date": "2024-11-02",
+      "time": "15:00",
+      "group": "Matchday 10",
+      "venue": "Vitality Stadium, Bournemouth",
+      "tournament": "Premier League",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": 1,
+      "actualHomeScore": 2,
+      "actualAwayScore": 1,
+      "actualCorners": 11,
+      "actualCards": 4
+    },
+    {
+      "id": "pl30",
+      "homeTeam": "Tottenham",
+      "awayTeam": "Aston Villa",
+      "date": "2024-11-03",
+      "time": "14:00",
+      "group": "Matchday 10",
+      "venue": "Tottenham Hotspur Stadium, London",
+      "tournament": "Premier League",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -0.25,
+      "actualHomeScore": 4,
+      "actualAwayScore": 1,
+      "actualCorners": 12,
+      "actualCards": 5
+    },
+    {
+      "id": "pl31",
+      "homeTeam": "Manchester United",
+      "awayTeam": "Leicester City",
+      "date": "2024-11-10",
+      "time": "14:00",
+      "group": "Matchday 11",
+      "venue": "Old Trafford, Manchester",
+      "tournament": "Premier League",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -1,
+      "actualHomeScore": 3,
+      "actualAwayScore": 0,
+      "actualCorners": 10,
+      "actualCards": 2
+    },
+    {
+      "id": "pl32",
+      "homeTeam": "Leicester City",
+      "awayTeam": "Chelsea",
+      "date": "2024-11-23",
+      "time": "12:30",
+      "group": "Matchday 12",
+      "venue": "King Power Stadium, Leicester",
+      "tournament": "Premier League",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": 0.75,
+      "actualHomeScore": 1,
+      "actualAwayScore": 2,
+      "actualCorners": 9,
+      "actualCards": 4
+    },
+    {
+      "id": "pl33",
+      "homeTeam": "Arsenal",
+      "awayTeam": "Nottingham Forest",
+      "date": "2024-11-23",
+      "time": "15:00",
+      "group": "Matchday 12",
+      "venue": "Emirates Stadium, London",
+      "tournament": "Premier League",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -1.5,
+      "actualHomeScore": 3,
+      "actualAwayScore": 0,
+      "actualCorners": 11,
+      "actualCards": 3
+    },
+    {
+      "id": "pl34",
+      "homeTeam": "Manchester City",
+      "awayTeam": "Tottenham",
+      "date": "2024-11-23",
+      "time": "17:30",
+      "group": "Matchday 12",
+      "venue": "Etihad Stadium, Manchester",
+      "tournament": "Premier League",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -1.25,
+      "actualHomeScore": 0,
+      "actualAwayScore": 4,
+      "actualCorners": 13,
+      "actualCards": 5
+    },
+    {
+      "id": "pl35",
+      "homeTeam": "Ipswich Town",
+      "awayTeam": "Manchester United",
+      "date": "2024-11-24",
+      "time": "16:30",
+      "group": "Matchday 12",
+      "venue": "Portman Road, Ipswich",
+      "tournament": "Premier League",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": 0.75,
+      "actualHomeScore": 1,
+      "actualAwayScore": 1,
+      "actualCorners": 9,
+      "actualCards": 4
+    },
+    {
+      "id": "pl36",
+      "homeTeam": "West Ham",
+      "awayTeam": "Arsenal",
+      "date": "2024-11-30",
+      "time": "17:30",
+      "group": "Matchday 13",
+      "venue": "London Stadium, London",
+      "tournament": "Premier League",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": 1,
+      "actualHomeScore": 2,
+      "actualAwayScore": 5,
+      "actualCorners": 10,
+      "actualCards": 5
+    },
+    {
+      "id": "pl37",
+      "homeTeam": "Chelsea",
+      "awayTeam": "Aston Villa",
+      "date": "2024-12-01",
+      "time": "13:30",
+      "group": "Matchday 13",
+      "venue": "Stamford Bridge, London",
+      "tournament": "Premier League",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -0.5,
+      "actualHomeScore": 3,
+      "actualAwayScore": 0,
+      "actualCorners": 11,
+      "actualCards": 4
+    },
+    {
+      "id": "pl38",
+      "homeTeam": "Liverpool",
+      "awayTeam": "Manchester City",
+      "date": "2024-12-01",
+      "time": "16:00",
+      "group": "Matchday 13",
+      "venue": "Anfield, Liverpool",
+      "tournament": "Premier League",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -0.25,
+      "actualHomeScore": 2,
+      "actualAwayScore": 0,
+      "actualCorners": 12,
+      "actualCards": 6
+    },
+    {
+      "id": "pl39",
+      "homeTeam": "Arsenal",
+      "awayTeam": "Manchester United",
+      "date": "2024-12-04",
+      "time": "20:15",
+      "group": "Matchday 14",
+      "venue": "Emirates Stadium, London",
+      "tournament": "Premier League",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -0.75,
+      "actualHomeScore": 2,
+      "actualAwayScore": 0,
+      "actualCorners": 10,
+      "actualCards": 5
+    },
+    {
+      "id": "pl40",
+      "homeTeam": "Everton",
+      "awayTeam": "Liverpool",
+      "date": "2024-12-07",
+      "time": "12:30",
+      "group": "Matchday 15",
+      "venue": "Goodison Park, Liverpool",
+      "tournament": "Premier League",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": 1,
+      "actualHomeScore": 2,
+      "actualAwayScore": 2,
+      "actualCorners": 8,
+      "actualCards": 4
+    },
+    {
+      "id": "ll11",
+      "homeTeam": "Athletic Bilbao",
+      "awayTeam": "Getafe",
+      "date": "2024-08-15",
+      "time": "19:00",
+      "group": "Matchday 1",
+      "venue": "San Mames, Bilbao",
+      "tournament": "La Liga",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -0.75,
+      "actualHomeScore": 1,
+      "actualAwayScore": 1,
+      "actualCorners": 8,
+      "actualCards": 4
+    },
+    {
+      "id": "ll12",
+      "homeTeam": "Real Betis",
+      "awayTeam": "Girona",
+      "date": "2024-08-15",
+      "time": "21:30",
+      "group": "Matchday 1",
+      "venue": "Benito Villamarin, Seville",
+      "tournament": "La Liga",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -0.25,
+      "actualHomeScore": 1,
+      "actualAwayScore": 1,
+      "actualCorners": 9,
+      "actualCards": 5
+    },
+    {
+      "id": "ll13",
+      "homeTeam": "Girona",
+      "awayTeam": "Osasuna",
+      "date": "2024-08-29",
+      "time": "19:00",
+      "group": "Matchday 3",
+      "venue": "Montilivi, Girona",
+      "tournament": "La Liga",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -0.75,
+      "actualHomeScore": 4,
+      "actualAwayScore": 0,
+      "actualCorners": 10,
+      "actualCards": 2
+    },
+    {
+      "id": "ll14",
+      "homeTeam": "Real Madrid",
+      "awayTeam": "Real Betis",
+      "date": "2024-09-01",
+      "time": "21:30",
+      "group": "Matchday 4",
+      "venue": "Santiago Bernabeu, Madrid",
+      "tournament": "La Liga",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -1.5,
+      "actualHomeScore": 2,
+      "actualAwayScore": 0,
+      "actualCorners": 11,
+      "actualCards": 3
+    },
+    {
+      "id": "ll15",
+      "homeTeam": "Atletico Madrid",
+      "awayTeam": "Valencia",
+      "date": "2024-09-15",
+      "time": "21:00",
+      "group": "Matchday 5",
+      "venue": "Metropolitano Stadium, Madrid",
+      "tournament": "La Liga",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -1.25,
+      "actualHomeScore": 3,
+      "actualAwayScore": 0,
+      "actualCorners": 10,
+      "actualCards": 4
+    },
+    {
+      "id": "ll16",
+      "homeTeam": "Real Madrid",
+      "awayTeam": "Espanyol",
+      "date": "2024-09-21",
+      "time": "21:00",
+      "group": "Matchday 6",
+      "venue": "Santiago Bernabeu, Madrid",
+      "tournament": "La Liga",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -2,
+      "actualHomeScore": 4,
+      "actualAwayScore": 1,
+      "actualCorners": 13,
+      "actualCards": 3
+    },
+    {
+      "id": "ll17",
+      "homeTeam": "Barcelona",
+      "awayTeam": "Getafe",
+      "date": "2024-09-25",
+      "time": "21:00",
+      "group": "Matchday 7",
+      "venue": "Estadi Olimpic Lluis Companys, Barcelona",
+      "tournament": "La Liga",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -1.75,
+      "actualHomeScore": 1,
+      "actualAwayScore": 0,
+      "actualCorners": 12,
+      "actualCards": 3
+    },
+    {
+      "id": "ll18",
+      "homeTeam": "Barcelona",
+      "awayTeam": "Sevilla",
+      "date": "2024-10-20",
+      "time": "21:00",
+      "group": "Matchday 10",
+      "venue": "Estadi Olimpic Lluis Companys, Barcelona",
+      "tournament": "La Liga",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -1.5,
+      "actualHomeScore": 5,
+      "actualAwayScore": 1,
+      "actualCorners": 10,
+      "actualCards": 2
+    },
+    {
+      "id": "ll19",
+      "homeTeam": "Atletico Madrid",
+      "awayTeam": "Leganes",
+      "date": "2024-10-20",
+      "time": "16:15",
+      "group": "Matchday 10",
+      "venue": "Metropolitano Stadium, Madrid",
+      "tournament": "La Liga",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -1.25,
+      "actualHomeScore": 3,
+      "actualAwayScore": 1,
+      "actualCorners": 11,
+      "actualCards": 4
+    },
+    {
+      "id": "ll20",
+      "homeTeam": "Real Madrid",
+      "awayTeam": "Osasuna",
+      "date": "2024-11-09",
+      "time": "14:00",
+      "group": "Matchday 13",
+      "venue": "Santiago Bernabeu, Madrid",
+      "tournament": "La Liga",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -1.5,
+      "actualHomeScore": 4,
+      "actualAwayScore": 0,
+      "actualCorners": 12,
+      "actualCards": 2
+    },
+    {
+      "id": "ll21",
+      "homeTeam": "Barcelona",
+      "awayTeam": "Las Palmas",
+      "date": "2024-11-30",
+      "time": "14:00",
+      "group": "Matchday 15",
+      "venue": "Estadi Olimpic Lluis Companys, Barcelona",
+      "tournament": "La Liga",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -2,
+      "actualHomeScore": 1,
+      "actualAwayScore": 2,
+      "actualCorners": 11,
+      "actualCards": 3
+    },
+    {
+      "id": "ll22",
+      "homeTeam": "Real Madrid",
+      "awayTeam": "Getafe",
+      "date": "2024-12-01",
+      "time": "16:15",
+      "group": "Matchday 15",
+      "venue": "Santiago Bernabeu, Madrid",
+      "tournament": "La Liga",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -1.5,
+      "actualHomeScore": 2,
+      "actualAwayScore": 0,
+      "actualCorners": 9,
+      "actualCards": 4
+    },
+    {
+      "id": "ll23",
+      "homeTeam": "Real Betis",
+      "awayTeam": "Barcelona",
+      "date": "2024-12-07",
+      "time": "16:15",
+      "group": "Matchday 16",
+      "venue": "Benito Villamarin, Seville",
+      "tournament": "La Liga",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": 0.75,
+      "actualHomeScore": 2,
+      "actualAwayScore": 2,
+      "actualCorners": 8,
+      "actualCards": 5
+    },
+    {
+      "id": "ll24",
+      "homeTeam": "Girona",
+      "awayTeam": "Real Madrid",
+      "date": "2024-12-07",
+      "time": "21:00",
+      "group": "Matchday 16",
+      "venue": "Montilivi, Girona",
+      "tournament": "La Liga",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": 0.5,
+      "actualHomeScore": 0,
+      "actualAwayScore": 3,
+      "actualCorners": 9,
+      "actualCards": 6
+    },
+    {
+      "id": "ll25",
+      "homeTeam": "Atletico Madrid",
+      "awayTeam": "Getafe",
+      "date": "2024-12-15",
+      "time": "21:00",
+      "group": "Matchday 17",
+      "venue": "Metropolitano Stadium, Madrid",
+      "tournament": "La Liga",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -1.25,
+      "actualHomeScore": 1,
+      "actualAwayScore": 0,
+      "actualCorners": 10,
+      "actualCards": 4
+    },
+    {
+      "id": "ll26",
+      "homeTeam": "Barcelona",
+      "awayTeam": "Atletico Madrid",
+      "date": "2024-12-21",
+      "time": "21:00",
+      "group": "Matchday 18",
+      "venue": "Estadi Olimpic Lluis Companys, Barcelona",
+      "tournament": "La Liga",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -0.5,
+      "actualHomeScore": 1,
+      "actualAwayScore": 2,
+      "actualCorners": 11,
+      "actualCards": 5
+    },
+    {
+      "id": "ll27",
+      "homeTeam": "Real Madrid",
+      "awayTeam": "Sevilla",
+      "date": "2024-12-22",
+      "time": "16:15",
+      "group": "Matchday 18",
+      "venue": "Santiago Bernabeu, Madrid",
+      "tournament": "La Liga",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -1.5,
+      "actualHomeScore": 4,
+      "actualAwayScore": 2,
+      "actualCorners": 10,
+      "actualCards": 3
+    },
+    {
+      "id": "ll28",
+      "homeTeam": "Athletic Bilbao",
+      "awayTeam": "Real Sociedad",
+      "date": "2024-11-24",
+      "time": "21:00",
+      "group": "Matchday 14",
+      "venue": "San Mames, Bilbao",
+      "tournament": "La Liga",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -0.25,
+      "actualHomeScore": 1,
+      "actualAwayScore": 0,
+      "actualCorners": 9,
+      "actualCards": 5
+    },
+    {
+      "id": "ll29",
+      "homeTeam": "Real Sociedad",
+      "awayTeam": "Atletico Madrid",
+      "date": "2024-10-06",
+      "time": "21:00",
+      "group": "Matchday 9",
+      "venue": "Reale Arena, San Sebastian",
+      "tournament": "La Liga",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": 0.25,
+      "actualHomeScore": 1,
+      "actualAwayScore": 1,
+      "actualCorners": 8,
+      "actualCards": 4
+    },
+    {
+      "id": "ll30",
+      "homeTeam": "Girona",
+      "awayTeam": "Athletic Bilbao",
+      "date": "2024-10-06",
+      "time": "14:00",
+      "group": "Matchday 9",
+      "venue": "Montilivi, Girona",
+      "tournament": "La Liga",
+      "season": "2024-2025",
+      "isTest": true,
+      "marketHandicap": -0.25,
+      "actualHomeScore": 2,
+      "actualAwayScore": 1,
+      "actualCorners": 9,
+      "actualCards": 5
     }
   ]
 }
