@@ -38,6 +38,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
   const [activeTab, setActiveTab] = useState('fixtures'); // 'fixtures', 'test-matches' or 'groups'
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGroupFilter, setSelectedGroupFilter] = useState('All');
+  const [selectedTournamentFilter, setSelectedTournamentFilter] = useState('All');
   const [layout, setLayout] = useState('grid'); // 'grid' or 'list'
   const [sortBy, setSortBy] = useState('date'); // 'date' | 'group' | 'history'
   const [quickPredicting, setQuickPredicting] = useState({});
@@ -83,6 +84,9 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
       const persistedGroupFilter = localStorage.getItem('homepage_group_filter');
       if (persistedGroupFilter) setSelectedGroupFilter(persistedGroupFilter);
 
+      const persistedTournamentFilter = localStorage.getItem('homepage_tournament_filter');
+      if (persistedTournamentFilter) setSelectedTournamentFilter(persistedTournamentFilter);
+
       const persistedSearch = localStorage.getItem('homepage_search_query');
       if (persistedSearch) setSearchQuery(persistedSearch);
       
@@ -120,6 +124,12 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
       localStorage.setItem('homepage_search_query', searchQuery);
     }
   }, [searchQuery, isRestored]);
+
+  useEffect(() => {
+    if (isRestored && typeof window !== 'undefined') {
+      localStorage.setItem('homepage_tournament_filter', selectedTournamentFilter);
+    }
+  }, [selectedTournamentFilter, isRestored]);
 
 
   const handleQuickPredict = async (fixture) => {
@@ -328,7 +338,12 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
     ? localFixtures.filter(f => f.isTest) 
     : localFixtures.filter(f => !f.isTest);
 
-  // Lọc lịch thi đấu dựa trên tìm kiếm và bảng đấu
+  // Lấy danh sách giải đấu duy nhất của các trận đấu hiển thị
+  const uniqueTournaments = Array.from(
+    new Set(displayFixtures.map(f => f.tournament).filter(Boolean))
+  );
+
+  // Lọc lịch thi đấu dựa trên tìm kiếm, bảng đấu và giải đấu
   const filteredFixtures = displayFixtures.filter(fixture => {
     const matchesSearch = 
       fixture.homeTeam.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -336,8 +351,9 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
       fixture.group.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesGroup = selectedGroupFilter === 'All' || fixture.group === selectedGroupFilter;
+    const matchesTournament = selectedTournamentFilter === 'All' || fixture.tournament === selectedTournamentFilter;
     
-    return matchesSearch && matchesGroup;
+    return matchesSearch && matchesGroup && matchesTournament;
   });
 
   // Sắp xếp các trận đấu dựa trên sortBy
@@ -496,6 +512,18 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                     <option value="All">Tất cả bảng đấu</option>
                     {groups.map(g => (
                       <option key={g.name} value={g.name}>{g.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="w-full sm:w-48">
+                  <select
+                    value={selectedTournamentFilter}
+                    onChange={(e) => setSelectedTournamentFilter(e.target.value)}
+                    className="w-full bg-[#0E131F]/80 border border-card-border/80 rounded-lg py-1.5 px-2.5 text-xs text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer"
+                  >
+                    <option value="All">Tất cả giải đấu</option>
+                    {uniqueTournaments.map(t => (
+                      <option key={t} value={t}>{t}</option>
                     ))}
                   </select>
                 </div>

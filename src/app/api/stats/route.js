@@ -28,20 +28,45 @@ function translateRecommendation(text) {
   return translated;
 }
 
-export async function GET() {
+export async function GET(request) {
   try {
     const db = await getDB();
+    const { searchParams } = new URL(request.url);
+    const tournament = searchParams.get('tournament');
+
+    // Helper compiled query
+    const getQuery = (baseSql, conditions = []) => {
+      let sql = baseSql;
+      const params = [];
+      
+      if (conditions.length > 0) {
+        if (sql.toLowerCase().includes('where')) {
+          sql += ' AND ' + conditions.join(' AND ');
+        } else {
+          sql += ' WHERE ' + conditions.join(' AND ');
+        }
+      }
+      
+      if (tournament && tournament !== 'all') {
+        if (sql.toLowerCase().includes('where')) {
+          sql += ' AND tournament = ?';
+        } else {
+          sql += ' WHERE tournament = ?';
+        }
+        params.push(tournament);
+      }
+      return { sql, params };
+    };
 
     // --- 1. LẤY THỐNG KÊ LỊCH SỬ DỰ ĐOÁN ---
     // Tổng số lượt dự đoán đã tạo
-    const totalPredsRow = await db.get(`SELECT COUNT(*) as count FROM predictions`);
+    const qTotalPreds = getQuery(`SELECT COUNT(*) as count FROM predictions`);
+    const totalPredsRow = await db.get(qTotalPreds.sql, qTotalPreds.params);
     const totalPredictions = totalPredsRow.count;
 
     // Số trận đã diễn ra & có kết quả thực tế
-    const evaluatedRow = await db.get(`
-      SELECT COUNT(*) as count FROM predictions 
-      WHERE actual_home_score IS NOT NULL AND actual_away_score IS NOT NULL
-    `);
+    const qEvaluated = getQuery(`SELECT COUNT(*) as count FROM predictions`, [`actual_home_score IS NOT NULL`, `actual_away_score IS NOT NULL`]);
+    const evaluatedRow = await db.get(qEvaluated.sql, qEvaluated.params);
     const evaluatedMatches = evaluatedRow.count;
 
     let stats = {
@@ -58,17 +83,18 @@ export async function GET() {
 
     if (evaluatedMatches > 0) {
       // Đúng tỷ số chính xác
-      const exactRow = await db.get(`
+      const qExact = getQuery(`
         SELECT COUNT(*) as count FROM predictions 
         WHERE actual_home_score IS NOT NULL 
           AND predicted_home_score = actual_home_score 
           AND predicted_away_score = actual_away_score
       `);
+      const exactRow = await db.get(qExact.sql, qExact.params);
       stats.exactScore.correct = exactRow.count;
       stats.exactScore.pct = parseFloat(((exactRow.count / evaluatedMatches) * 100).toFixed(1));
 
       // Đúng kết quả 1X2
-      const outcomeRow = await db.get(`
+      const qOutcome = getQuery(`
         SELECT COUNT(*) as count FROM predictions 
         WHERE actual_home_score IS NOT NULL AND (
           (predicted_home_score > predicted_away_score AND actual_home_score > actual_away_score) OR
@@ -76,40 +102,51 @@ export async function GET() {
           (predicted_home_score = predicted_away_score AND actual_home_score = actual_away_score)
         )
       `);
+      const outcomeRow = await db.get(qOutcome.sql, qOutcome.params);
       stats.outcome1x2.correct = outcomeRow.count;
       stats.outcome1x2.pct = parseFloat(((outcomeRow.count / evaluatedMatches) * 100).toFixed(1));
 
       // Kèo Tài Xỉu 2.5
-      const ouTotalRow = await db.get(`SELECT COUNT(*) as count FROM predictions WHERE actual_home_score IS NOT NULL AND is_correct_ou IS NOT NULL`);
-      const ouCorrectRow = await db.get(`SELECT COUNT(*) as count FROM predictions WHERE actual_home_score IS NOT NULL AND is_correct_ou = 1`);
+      const qOuTotal = getQuery(`SELECT COUNT(*) as count FROM predictions WHERE actual_home_score IS NOT NULL AND is_correct_ou IS NOT NULL`);
+      const ouTotalRow = await db.get(qOuTotal.sql, qOuTotal.params);
+      const qOuCorrect = getQuery(`SELECT COUNT(*) as count FROM predictions WHERE actual_home_score IS NOT NULL AND is_correct_ou = 1`);
+      const ouCorrectRow = await db.get(qOuCorrect.sql, qOuCorrect.params);
       stats.overUnder.total = ouTotalRow.count;
       stats.overUnder.correct = ouCorrectRow.count;
       stats.overUnder.pct = ouTotalRow.count > 0 ? parseFloat(((ouCorrectRow.count / ouTotalRow.count) * 100).toFixed(1)) : 0;
 
       // Kèo Chấp
-      const handicapTotalRow = await db.get(`SELECT COUNT(*) as count FROM predictions WHERE actual_home_score IS NOT NULL AND is_correct_handicap IS NOT NULL`);
-      const handicapCorrectRow = await db.get(`SELECT COUNT(*) as count FROM predictions WHERE actual_home_score IS NOT NULL AND is_correct_handicap = 1`);
+      const qHandicapTotal = getQuery(`SELECT COUNT(*) as count FROM predictions WHERE actual_home_score IS NOT NULL AND is_correct_handicap IS NOT NULL`);
+      const handicapTotalRow = await db.get(qHandicapTotal.sql, qHandicapTotal.params);
+      const qHandicapCorrect = getQuery(`SELECT COUNT(*) as count FROM predictions WHERE actual_home_score IS NOT NULL AND is_correct_handicap = 1`);
+      const handicapCorrectRow = await db.get(qHandicapCorrect.sql, qHandicapCorrect.params);
       stats.handicap.total = handicapTotalRow.count;
       stats.handicap.correct = handicapCorrectRow.count;
       stats.handicap.pct = handicapTotalRow.count > 0 ? parseFloat(((handicapCorrectRow.count / handicapTotalRow.count) * 100).toFixed(1)) : 0;
 
       // Kèo BTTS (Cả hai đội ghi bàn)
-      const bttsTotalRow = await db.get(`SELECT COUNT(*) as count FROM predictions WHERE actual_home_score IS NOT NULL AND is_correct_btts IS NOT NULL`);
-      const bttsCorrectRow = await db.get(`SELECT COUNT(*) as count FROM predictions WHERE actual_home_score IS NOT NULL AND is_correct_btts = 1`);
+      const qBttsTotal = getQuery(`SELECT COUNT(*) as count FROM predictions WHERE actual_home_score IS NOT NULL AND is_correct_btts IS NOT NULL`);
+      const bttsTotalRow = await db.get(qBttsTotal.sql, qBttsTotal.params);
+      const qBttsCorrect = getQuery(`SELECT COUNT(*) as count FROM predictions WHERE actual_home_score IS NOT NULL AND is_correct_btts = 1`);
+      const bttsCorrectRow = await db.get(qBttsCorrect.sql, qBttsCorrect.params);
       stats.btts.total = bttsTotalRow.count;
       stats.btts.correct = bttsCorrectRow.count;
       stats.btts.pct = bttsTotalRow.count > 0 ? parseFloat(((bttsCorrectRow.count / bttsTotalRow.count) * 100).toFixed(1)) : 0;
 
       // Phạt góc
-      const cornersTotalRow = await db.get(`SELECT COUNT(*) as count FROM predictions WHERE actual_home_score IS NOT NULL AND is_correct_corners IS NOT NULL`);
-      const cornersCorrectRow = await db.get(`SELECT COUNT(*) as count FROM predictions WHERE actual_home_score IS NOT NULL AND is_correct_corners = 1`);
+      const qCornersTotal = getQuery(`SELECT COUNT(*) as count FROM predictions WHERE actual_home_score IS NOT NULL AND is_correct_corners IS NOT NULL`);
+      const cornersTotalRow = await db.get(qCornersTotal.sql, qCornersTotal.params);
+      const qCornersCorrect = getQuery(`SELECT COUNT(*) as count FROM predictions WHERE actual_home_score IS NOT NULL AND is_correct_corners = 1`);
+      const cornersCorrectRow = await db.get(qCornersCorrect.sql, qCornersCorrect.params);
       stats.corners.total = cornersTotalRow.count;
       stats.corners.correct = cornersCorrectRow.count;
       stats.corners.pct = cornersTotalRow.count > 0 ? parseFloat(((cornersCorrectRow.count / cornersTotalRow.count) * 100).toFixed(1)) : 0;
 
       // Thẻ phạt
-      const cardsTotalRow = await db.get(`SELECT COUNT(*) as count FROM predictions WHERE actual_home_score IS NOT NULL AND is_correct_cards IS NOT NULL`);
-      const cardsCorrectRow = await db.get(`SELECT COUNT(*) as count FROM predictions WHERE actual_home_score IS NOT NULL AND is_correct_cards = 1`);
+      const qCardsTotal = getQuery(`SELECT COUNT(*) as count FROM predictions WHERE actual_home_score IS NOT NULL AND is_correct_cards IS NOT NULL`);
+      const cardsTotalRow = await db.get(qCardsTotal.sql, qCardsTotal.params);
+      const qCardsCorrect = getQuery(`SELECT COUNT(*) as count FROM predictions WHERE actual_home_score IS NOT NULL AND is_correct_cards = 1`);
+      const cardsCorrectRow = await db.get(qCardsCorrect.sql, qCardsCorrect.params);
       stats.cards.total = cardsTotalRow.count;
       stats.cards.correct = cardsCorrectRow.count;
       stats.cards.pct = cardsTotalRow.count > 0 ? parseFloat(((cardsCorrectRow.count / cardsTotalRow.count) * 100).toFixed(1)) : 0;

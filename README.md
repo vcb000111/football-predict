@@ -90,6 +90,13 @@ npm run dev
 
 ## 🛠️ Nhật Ký Thay Đổi (Changelog)
 
+### [2026-06-07] - Tăng cỡ mẫu qua dữ liệu Euro 2024 & Bộ lọc giải đấu (v1.6.0)
+* **Dữ liệu thực tế Euro 2024:** Nhập 51 trận đấu có sẵn tỉ số thực tế của Euro 2024 dưới dạng trận test (`isTest: true`).
+* **Bộ lọc giải đấu trang chủ & thống kê:** Thêm bộ lọc dropdown chọn giải đấu (World Cup 2026 / Euro 2024) ở cả trang chủ và thống kê giúp dễ dàng phân loại, theo dõi hiệu suất.
+* **Bảng điều khiển Backtesting:** Xây dựng Tab Backtest trong `/admin` với cơ chế Client-Driven Loop gọi API tuần tự (delay 2s), tắt RAG Search chống rò rỉ kết quả và chạy Fast Mode (Gemini Flash) tiết kiệm chi phí.
+* **Tài liệu hóa:** Cập nhật CHANGELOG.md và README.md lên phiên bản v1.6.0.
+* **Sửa lỗi chấm điểm Backtest:** Sửa lỗi logic hiển thị Đúng/Sai ở Client-side admin page và chuẩn hóa cấu trúc kết quả tự động.
+
 ### [2026-06-06] - Tích hợp 4 Option nâng cấp độ tin cậy AI & Cơ chế Model Rotation (v1.5.0)
 * **Consensus đa tác nhân & Groq API:** Tích hợp Groq REST API, chạy song song Gemini + Groq tạo bản nháp và dùng Gemini làm trọng tài phản biện Critic.
 * **Model Rotation (Xoay vòng AI Models):** Tự động chuyển đổi sang mô hình có độ ưu tiên thấp hơn tiếp theo nếu mô hình ưu tiên trước gặp lỗi (413, 429, 503), đi kèm Cool Down thông minh 5 phút.

@@ -4,6 +4,31 @@ Tất cả những thay đổi nổi bật đối với dự án **FIFA World Cu
 
 ---
 
+## [1.7.0] - 2026-06-07
+
+### Added (Thêm mới)
+* **Dữ liệu mẫu Premier League & La Liga 2024-2025:** Tích hợp 20 trận đấu thực tế tiêu biểu (EPL & La Liga) đầy đủ thông số bàn thắng, Handicap, phạt góc và thẻ phạt phục vụ chạy Backtest mở rộng cỡ mẫu.
+* **Logo và cờ Câu lạc bộ:** Nâng cấp hệ thống hiển thị tự động lấy cờ/logo chuẩn của các CLB bóng đá thực tế thay vì fallback cờ quốc gia.
+
+### Changed (Thay đổi logic)
+* **Logic cược Handicap thực tế:** Lưu trữ mốc chấp nhà cái (`handicap_line`) trực tiếp dạng số thực trong SQLite và cập nhật prompt buộc AI đối chiếu tỉ số dự kiến với tỷ lệ kèo chấp thực tế để đưa ra cửa cược tối ưu.
+* **Logic chấm điểm tự động:** So khớp kết quả Handicap trực tiếp từ cột `handicap_line` của DB thay vì dùng Regex parse chuỗi văn bản tự do, triệt tiêu hoàn toàn sai sót hiển thị.
+* **Cải tiến Game States (Kèo phụ):** Nâng cấp prompt Critic phân tích sâu kịch bản trận đấu (đội mạnh bị dẫn bàn ép sân tăng phạt góc, tính chất knock-out/derby tăng thẻ phạt) thay vì dùng Poisson thô.
+* **Bộ lọc giải đấu mở rộng:** Hỗ trợ bộ lọc và biểu đồ cho Premier League & La Liga trên giao diện Admin và Thống kê.
+
+---
+
+## [1.6.0] - 2026-06-07
+
+### Added (Thêm mới)
+* **Dữ liệu thực tế Euro 2024:** Bổ sung kết quả và thông tin của 51 trận đấu thực tế đã diễn ra tại vòng chung kết Euro 2024 làm dữ liệu lịch sử đối chiếu.
+* **Bộ lọc giải đấu trực quan:** Thêm tính năng lọc giải đấu (World Cup 2026 / Euro 2024) ở cả trang chủ và trang thống kê hiệu suất, giúp người dùng dễ dàng theo dõi và phân tích các trận đấu theo giải đấu.
+
+### Fixed (Sửa lỗi)
+* **Sửa lỗi hiển thị kết quả chấm điểm Backtest:** Khắc phục lỗi so sánh kiểu dữ liệu ở Client-side của trang Admin khiến log tiến trình luôn báo dự đoán 'Sai' dù kết quả thực tế trùng khớp. Đồng nhất định dạng trả về của API kết quả tự động (`betEvaluations`) giữa chế độ giả lập (Mock Mode) và thực tế (Real Mode).
+
+---
+
 ## [1.5.0] - 2026-06-06
 
 ### Added (Thêm mới)

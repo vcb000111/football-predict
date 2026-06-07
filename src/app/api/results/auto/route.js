@@ -7,8 +7,8 @@ import fs from 'fs';
 import path from 'path';
 
 
-function evaluateHandicap(recommendation, aHome, aAway, homeTeam, awayTeam) {
-  if (!recommendation) return { outcome: 'n/a', reason: 'Không có thông tin kèo chấp.' };
+function evaluateHandicap(recommendation, aHome, aAway, homeTeam, awayTeam, handicapLine = null) {
+  if (!recommendation) return { outcome: 'n/a', reason: 'Không có thông tin kèo cược chấp.' };
   const lowerRec = recommendation.toLowerCase();
   let selectedTeam = '';
   
@@ -20,36 +20,53 @@ function evaluateHandicap(recommendation, aHome, aAway, homeTeam, awayTeam) {
     return { outcome: 'n/a', reason: `Không xác định được đội chọn từ kèo: ${recommendation}` };
   }
   
-  const numMatch = recommendation.match(/[-+]?\d+(\.\d+)?/);
-  if (!numMatch) {
-    return { outcome: 'n/a', reason: `Không tìm thấy tỷ lệ chấp từ kèo: ${recommendation}` };
+  let handicapValue = 0.0;
+  let hasLine = false;
+  if (handicapLine !== null && handicapLine !== undefined && handicapLine !== '') {
+    handicapValue = parseFloat(handicapLine);
+    hasLine = true;
+  } else {
+    const numMatch = recommendation.match(/[-+]?\d+(\.\d+)?/);
+    if (!numMatch) {
+      return { outcome: 'n/a', reason: `Không tìm thấy tỷ lệ chấp từ kèo: ${recommendation}` };
+    }
+    handicapValue = parseFloat(numMatch[0]);
   }
-  const handicapValue = parseFloat(numMatch[0]);
   
   let netDiff = 0;
-  if (selectedTeam === 'home') {
-    netDiff = aHome - aAway + handicapValue;
+  if (hasLine) {
+    // Nếu sử dụng handicapLine tĩnh từ DB (cố định mốc chấp cho Home)
+    if (selectedTeam === 'home') {
+      netDiff = aHome - aAway + handicapValue;
+    } else {
+      netDiff = aAway - aHome - handicapValue;
+    }
   } else {
-    netDiff = aAway - aHome + handicapValue;
+    // Fallback nếu parse từ recommendation (AI tự đưa ra dấu chấp tương ứng đội chọn)
+    if (selectedTeam === 'home') {
+      netDiff = aHome - aAway + handicapValue;
+    } else {
+      netDiff = aAway - aHome + handicapValue;
+    }
   }
   
   let outcome = 'incorrect';
   let reason = '';
   if (netDiff > 0.25) {
     outcome = 'correct';
-    reason = `Kết quả thực tế ${aHome}-${aAway}. Lựa chọn ${recommendation} thắng cả tiền.`;
+    reason = `Kết quả thực tế ${aHome}-${aAway}. Lựa chọn ${recommendation} thắng cả tiền (Mốc cược: ${handicapValue}).`;
   } else if (netDiff === 0.25) {
     outcome = 'correct';
-    reason = `Kết quả thực tế ${aHome}-${aAway}. Lựa chọn ${recommendation} thắng nửa tiền.`;
+    reason = `Kết quả thực tế ${aHome}-${aAway}. Lựa chọn ${recommendation} thắng nửa tiền (Mốc cược: ${handicapValue}).`;
   } else if (netDiff === 0) {
     outcome = 'refund';
     reason = `Kết quả thực tế ${aHome}-${aAway}. Lựa chọn ${recommendation} hòa tiền (refund).`;
   } else if (netDiff === -0.25) {
     outcome = 'incorrect';
-    reason = `Kết quả thực tế ${aHome}-${aAway}. Lựa chọn ${recommendation} thua nửa tiền.`;
+    reason = `Kết quả thực tế ${aHome}-${aAway}. Lựa chọn ${recommendation} thua nửa tiền (Mốc cược: ${handicapValue}).`;
   } else {
     outcome = 'incorrect';
-    reason = `Kết quả thực tế ${aHome}-${aAway}. Lựa chọn ${recommendation} thua cả tiền.`;
+    reason = `Kết quả thực tế ${aHome}-${aAway}. Lựa chọn ${recommendation} thua cả tiền (Mốc cược: ${handicapValue}).`;
   }
   return { outcome, reason };
 }
@@ -152,7 +169,7 @@ function evaluateAsianOu(recommendation, actualTotal, line) {
   return { outcome, reason };
 }
 
-function evaluateBetOutcome(rec1x2, recOu, recHandicap, recBtts, recCorners, recCards, predictedScore, aHome, aAway, actualCorners, actualCards, homeTeam, awayTeam, ouLine = 2.5, cornersLine = 8.5, cardsLine = 3.5) {
+function evaluateBetOutcome(rec1x2, recOu, recHandicap, recBtts, recCorners, recCards, predictedScore, aHome, aAway, actualCorners, actualCards, homeTeam, awayTeam, ouLine = 2.5, cornersLine = 8.5, cardsLine = 3.5, handicapLine = 0.0) {
   const pHome = predictedScore.home;
   const pAway = predictedScore.away;
 
@@ -191,7 +208,7 @@ function evaluateBetOutcome(rec1x2, recOu, recHandicap, recBtts, recCorners, rec
   }
 
   // 6. Chấm Handicap
-  const handicapEval = evaluateHandicap(recHandicap, aHome, aAway, homeTeam, awayTeam);
+  const handicapEval = evaluateHandicap(recHandicap, aHome, aAway, homeTeam, awayTeam, handicapLine);
   let isCorrect_handicap = 0;
   if (handicapEval.outcome === 'correct') isCorrect_handicap = 1;
   if (handicapEval.outcome === 'refund') isCorrect_handicap = 2;
@@ -345,6 +362,7 @@ export async function POST(request) {
       const mockCards = (homeTeam.length + awayTeam.length) % 5 + 1;
 
       // Chạy vòng lặp cập nhật cho tất cả các bản ghi pending
+      let mockEvalDetails = null;
       for (const pred of pendingPredictions) {
         const evalResults = evaluateBetOutcome(
           pred.recommendation_1x2,
@@ -362,7 +380,8 @@ export async function POST(request) {
           awayTeam,
           pred.ou_line || 2.5,
           pred.corners_line || 8.5,
-          pred.cards_line || 3.5
+          pred.cards_line || 3.5,
+          pred.handicap_line || 0.0
         );
 
         const evalDetails = {
@@ -370,6 +389,10 @@ export async function POST(request) {
           summary: `[Mock AI Grounding] Trận đấu kết thúc với tỷ số ${mockHomeScore}-${mockAwayScore}, phạt góc ${mockCorners} quả, thẻ phạt ${mockCards} thẻ. AI đã chấm điểm các kèo tự động thành công.`,
           modelUsed: 'Dự phòng / Mock'
         };
+
+        if (!mockEvalDetails) {
+          mockEvalDetails = evalDetails;
+        }
 
         await db.run(
           `UPDATE predictions 
@@ -421,6 +444,7 @@ export async function POST(request) {
         success: true,
         status: 'finished',
         actualScore: { home: mockHomeScore, away: mockAwayScore },
+        betEvaluations: mockEvalDetails,
         isMock: true,
         modelUsed: 'Dự phòng / Mock',
         message: 'Đã tự động giả lập kết quả thực tế và chấm điểm AI thành công.'
@@ -637,6 +661,7 @@ Chú ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
       const aCards = updateResultData.actualCards !== undefined ? parseInt(updateResultData.actualCards, 10) : null;
 
       // Chạy vòng lặp chấm điểm và cập nhật tất cả các bản ghi pending
+      let realEvalDetails = null;
       for (const pred of pendingPredictions) {
         const evalResults = evaluateBetOutcome(
           pred.recommendation_1x2,
@@ -654,7 +679,8 @@ Chú ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
           awayTeam,
           pred.ou_line || 2.5,
           pred.corners_line || 8.5,
-          pred.cards_line || 3.5
+          pred.cards_line || 3.5,
+          pred.handicap_line || 0.0
         );
 
         let finalEvalDetails = evalResults.evalDetails;
@@ -675,6 +701,10 @@ Chú ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
           summary: updateResultData.summary || '',
           modelUsed: modelUsed || 'Dự phòng / Mock'
         };
+
+        if (!realEvalDetails) {
+          realEvalDetails = dbEvalDetails;
+        }
 
         const isCorrect_1x2 = dbEvalDetails.oneXTwo?.outcome === 'correct' ? 1 : 0;
         const isCorrect_ou = dbEvalDetails.overUnder?.outcome === 'correct' ? 1 : (dbEvalDetails.overUnder?.outcome === 'refund' ? 2 : 0);
@@ -781,7 +811,7 @@ Hãy trả về duy nhất nội dung bài học bằng tiếng Việt. Không t
         success: true,
         status: 'finished',
         actualScore: { home: aHome, away: aAway },
-        betEvaluations: updateResultData.betEvaluations || {},
+        betEvaluations: realEvalDetails || {},
         summary: updateResultData.summary,
         modelUsed,
         message: 'Đã tự động lấy kết quả trực tuyến và chấm điểm AI thành công.'

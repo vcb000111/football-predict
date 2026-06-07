@@ -33,6 +33,7 @@ export async function getDB() {
       actual_home_score INTEGER DEFAULT NULL,
       actual_away_score INTEGER DEFAULT NULL,
       is_correct INTEGER DEFAULT NULL,
+      tournament TEXT DEFAULT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
@@ -87,6 +88,9 @@ export async function getDB() {
   } catch (e) {}
   try {
     await dbInstance.exec(`ALTER TABLE predictions ADD COLUMN cards_line REAL DEFAULT 3.5`);
+  } catch (e) {}
+  try {
+    await dbInstance.exec(`ALTER TABLE predictions ADD COLUMN handicap_line REAL DEFAULT 0.0`);
   } catch (e) {}
   
   // Tạo bảng api_keys
@@ -302,9 +306,7 @@ export async function getDB() {
     await dbInstance.exec(`ALTER TABLE teams ADD COLUMN style_of_play TEXT DEFAULT 'Cân bằng'`);
   } catch (e) {}
 
-  const teamsCount = await dbInstance.get(`SELECT COUNT(*) as count FROM teams`);
-  if (teamsCount.count === 0) {
-    const defaultTeams = [
+  const defaultTeams = [
       { name: "Mexico", rank: 15, elo: 1785, form: "D,W,L,W,W", goals: 1.6, conceded: 1.1, players: "Santiago Giménez, Edson Álvarez", tactics: "4-3-3 kiểm soát bóng biên và tạt cánh" },
       { name: "South Africa", rank: 59, elo: 1610, form: "D,W,L,D,D", goals: 1.1, conceded: 1.2, players: "Percy Tau, Ronwen Williams", tactics: "4-2-3-1 phòng ngự phản công chủ động" },
       { name: "South Korea", rank: 22, elo: 1750, form: "W,W,D,L,W", goals: 2.0, conceded: 0.9, players: "Son Heung-min, Lee Kang-in", tactics: "4-2-3-1 tấn công áp đặt và khai thác khoảng trống" },
@@ -353,7 +355,23 @@ export async function getDB() {
       { name: "Croatia", rank: 10, elo: 1850, form: "D,D,W,W,L", goals: 1.5, conceded: 1.1, players: "Luka Modric, Mateo Kovacic", tactics: "4-3-3 kiểm soát bóng trung lộ nhịp điệu cao" },
       { name: "England", rank: 4, elo: 1970, form: "D,W,D,L,W", goals: 1.8, conceded: 0.9, players: "Jude Bellingham, Harry Kane", tactics: "4-2-3-1 kiểm soát và áp đảo thế trận" },
       { name: "Ghana", rank: 68, elo: 1580, form: "W,W,L,D,L", goals: 1.2, conceded: 1.4, players: "Mohammed Kudus, Thomas Partey", tactics: "4-2-3-1 phản công dựa vào bứt tốc cá nhân" },
-      { name: "Panama", rank: 45, elo: 1660, form: "W,L,L,W,W", goals: 1.4, conceded: 1.3, players: "Adalberto Carrasquilla, Michael Murillo", tactics: "5-4-1 phòng ngự kỷ luật vững chắc" }
+      { name: "Panama", rank: 45, elo: 1660, form: "W,L,L,W,W", goals: 1.4, conceded: 1.3, players: "Adalberto Carrasquilla, Michael Murillo", tactics: "5-4-1 phòng ngự kỷ luật vững chắc" },
+      
+      // Premier League 2024-2025 Clubs
+      { name: "Manchester City", rank: 1, elo: 2040, form: "W,W,W,W,W", goals: 2.5, conceded: 1.0, players: "Erling Haaland, Kevin De Bruyne", tactics: "3-2-4-1 kiểm soát bóng áp đảo tuyệt đối" },
+      { name: "Arsenal", rank: 2, elo: 2000, form: "W,W,D,W,W", goals: 2.3, conceded: 0.8, players: "Martin Odegaard, Bukayo Saka", tactics: "4-3-3 pressing tầm cao đồng bộ" },
+      { name: "Liverpool", rank: 3, elo: 1980, form: "W,W,W,L,W", goals: 2.2, conceded: 0.9, players: "Mohamed Salah, Virgil van Dijk", tactics: "4-3-3 gegenpressing cường độ cao" },
+      { name: "Chelsea", rank: 4, elo: 1850, form: "W,D,L,W,W", goals: 1.8, conceded: 1.3, players: "Cole Palmer, Enzo Fernandez", tactics: "4-2-3-1 tịnh tiến bóng nhanh biên" },
+      { name: "Manchester United", rank: 5, elo: 1810, form: "L,L,W,D,L", goals: 1.4, conceded: 1.5, players: "Bruno Fernandes, Marcus Rashford", tactics: "4-2-3-1 phòng ngự phản công trực diện" },
+      { name: "Tottenham", rank: 6, elo: 1830, form: "W,L,L,W,W", goals: 1.9, conceded: 1.4, players: "Son Heung-min, James Maddison", tactics: "4-3-3 dâng cao hàng thủ phản công nhanh" },
+      
+      // La Liga 2024-2025 Clubs
+      { name: "Real Madrid", rank: 1, elo: 2050, form: "W,D,W,W,D", goals: 2.4, conceded: 0.7, players: "Jude Bellingham, Vinicius Junior", tactics: "4-3-1-2 chuyển đổi trạng thái chớp nhoáng" },
+      { name: "Barcelona", rank: 2, elo: 1960, form: "W,W,W,W,L", goals: 2.5, conceded: 1.1, players: "Robert Lewandowski, Lamine Yamal", tactics: "4-3-3 kiểm soát bóng định vị cánh rộng" },
+      { name: "Atletico Madrid", rank: 3, elo: 1890, form: "W,D,W,D,W", goals: 1.8, conceded: 0.9, players: "Antoine Griezmann, Koke", tactics: "5-3-2 phòng ngự khối sâu phản công nhanh" },
+      { name: "Girona", rank: 4, elo: 1840, form: "L,W,L,D,W", goals: 2.0, conceded: 1.3, players: "Viktor Tsygankov, Yangel Herrera", tactics: "4-3-3 chồng biên linh hoạt" },
+      { name: "Real Sociedad", rank: 5, elo: 1800, form: "L,D,W,L,D", goals: 1.2, conceded: 1.1, players: "Mikel Oyarzabal, Martin Zubimendi", tactics: "4-3-3 pressing tầm trung kỷ luật" },
+      { name: "Athletic Bilbao", rank: 6, elo: 1830, form: "W,D,L,W,W", goals: 1.5, conceded: 1.2, players: "Inaki Williams, Nico Williams", tactics: "4-2-3-1 bóng dài phản công trực diện biên" }
     ];
 
     for (const team of defaultTeams) {
@@ -362,8 +380,7 @@ export async function getDB() {
         [team.name, team.rank, team.elo, team.form, team.goals, team.conceded, team.players, team.tactics]
       );
     }
-    console.log('🌱 Seeded 49 World Cup 2026 teams statistics successfully.');
-  }
+    console.log('🌱 Seeded 49 World Cup 2026 teams + Euro 2024 teams statistics successfully.');
 
   // --- MIGRATION & SEEDING CHO BẢNG SYSTEM_PROMPTS (QUẢN LÝ PROMPT ĐỘNG) ---
   await dbInstance.exec(`

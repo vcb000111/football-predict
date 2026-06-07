@@ -39,8 +39,13 @@ export default function StatisticsPage() {
   const [updateResult, setUpdateResult] = useState(null);
   const [updateError, setUpdateError] = useState(null);
 
+  const [selectedTournament, setSelectedTournament] = useState('all');
+
   useEffect(() => {
-    fetchStats();
+    fetchStats(selectedTournament);
+  }, [selectedTournament]);
+
+  useEffect(() => {
     fetchTeams();
   }, []);
 
@@ -89,11 +94,11 @@ export default function StatisticsPage() {
     }
   };
 
-  const fetchStats = async () => {
+  const fetchStats = async (tournamentParam = selectedTournament) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/stats?t=${Date.now()}`);
+      const res = await fetch(`/api/stats?tournament=${tournamentParam}&t=${Date.now()}`);
       const data = await res.json();
       if (res.ok && data.success) {
         setStats(data.stats);
@@ -130,20 +135,32 @@ export default function StatisticsPage() {
               Phân tích độ chính xác lịch sử của AI Predictor và đề xuất những lựa chọn đầu tư tối ưu nhất cho các trận đấu sắp tới.
             </p>
           </div>
-          <div className="flex space-x-3">
+          <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
+            <select
+              value={selectedTournament}
+              onChange={(e) => setSelectedTournament(e.target.value)}
+              className="bg-[#0E1321] hover:bg-card-border border border-card-border hover:border-gray-550 text-xs text-gray-300 font-bold py-2 px-3 rounded-xl focus:outline-none cursor-pointer transition-all duration-150"
+            >
+              <option value="all">Tất cả giải đấu</option>
+              <option value="Euro 2024">Euro 2024</option>
+              <option value="Premier League">Premier League</option>
+              <option value="La Liga">La Liga</option>
+              <option value="World Cup 2026">World Cup 2026</option>
+              <option value="Warm-up Friendly">Warm-up Friendly</option>
+            </select>
             <button
-              onClick={fetchStats}
-              className="bg-card-border/50 hover:bg-card-border border border-card-border hover:border-gray-550 text-xs text-gray-300 font-bold py-2 px-4 rounded-xl transition-all duration-150 flex items-center space-x-1.5 cursor-pointer"
+              onClick={() => fetchStats(selectedTournament)}
+              className="bg-[#0E1321]/50 hover:bg-card-border border border-card-border hover:border-gray-550 text-xs text-gray-300 font-bold py-2 px-4 rounded-xl transition-all duration-150 flex items-center space-x-1.5 cursor-pointer justify-center"
             >
               <span>🔄</span>
-              <span>Tải Lại</span>
+              <span>Tải lại</span>
             </button>
             <Link 
               href="/"
-              className="bg-gradient-to-r from-primary to-secondary text-black font-extrabold text-xs py-2 px-4 rounded-xl transition-all duration-150 flex items-center space-x-1.5"
+              className="bg-gradient-to-r from-primary to-secondary text-black font-extrabold text-xs py-2 px-4 rounded-xl transition-all duration-150 flex items-center space-x-1.5 justify-center text-center"
             >
               <span>🏠</span>
-              <span>Trang Chủ</span>
+              <span>Trang chủ</span>
             </Link>
           </div>
         </div>

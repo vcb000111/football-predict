@@ -58,6 +58,137 @@ export default function AdminConfigPage() {
   const [showKeys, setShowKeys] = useState({});
   const [showSearchKeys, setShowSearchKeys] = useState({});
 
+  // --- TRẠNG THÁI CHẠY BACKTEST ---
+  const [backtestFixtures, setBacktestFixtures] = useState([]);
+  const [totalTestMatches, setTotalTestMatches] = useState(0);
+  const [loadingBacktest, setLoadingBacktest] = useState(false);
+  const [backtestRunning, setBacktestRunning] = useState(false);
+  const [backtestLog, setBacktestLog] = useState([]);
+  const [backtestProgress, setBacktestProgress] = useState(0);
+  const [currentBacktestMatch, setCurrentBacktestMatch] = useState(null);
+  const [fastMode, setFastMode] = useState(true);
+  const [backtestTournament, setBacktestTournament] = useState('All');
+
+  const fetchBacktestMatches = async () => {
+    setLoadingBacktest(true);
+    try {
+      const res = await fetch(`/api/admin/backtest?tournament=${backtestTournament}`);
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setBacktestFixtures(data.fixtures || []);
+        setTotalTestMatches(data.totalTestMatches || 0);
+      } else {
+        throw new Error(data.error || 'Không thể lấy danh sách trận test');
+      }
+    } catch (err) {
+      showStatusMessage('🔴 Lỗi tải trận backtest: ' + err.message, 'error');
+    } finally {
+      setLoadingBacktest(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'backtest') {
+      fetchBacktestMatches();
+    }
+  }, [backtestTournament, activeTab]);
+
+  const runBacktest = async () => {
+    if (backtestRunning || backtestFixtures.length === 0) return;
+    setBacktestRunning(true);
+    setBacktestProgress(0);
+    setBacktestLog([]);
+    
+    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    const total = backtestFixtures.length;
+    let successCount = 0;
+
+    for (let i = 0; i < total; i++) {
+      const fixture = backtestFixtures[i];
+      setCurrentBacktestMatch(fixture);
+      
+      const logMsg = `Đang xử lý trận ${i + 1}/${total}: ${fixture.homeTeam} vs ${fixture.awayTeam}`;
+      setBacktestLog(prev => [...prev, `⏳ ${logMsg}...`]);
+
+      try {
+        const predictRes = await fetch('/api/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            homeTeam: fixture.homeTeam,
+            awayTeam: fixture.awayTeam,
+            matchId: fixture.id,
+            fastMode: fastMode,
+            forceRefresh: true,
+            isBacktest: true,
+            marketHandicap: fixture.marketHandicap || 0.0
+          })
+        });
+
+        const predictData = await predictRes.json();
+        if (!predictRes.ok) {
+          throw new Error(predictData.error || 'Dự đoán thất bại');
+        }
+
+        const predictedHome = predictData.predictedScore?.home ?? predictData.predicted_home_score;
+        const predictedAway = predictData.predictedScore?.away ?? predictData.predicted_away_score;
+
+        await delay(2000);
+
+        const resultsRes = await fetch('/api/results/auto', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            homeTeam: fixture.homeTeam,
+            awayTeam: fixture.awayTeam,
+            matchId: fixture.id
+          })
+        });
+
+        const resultsData = await resultsRes.json();
+        if (!resultsRes.ok) {
+          throw new Error(resultsData.error || 'Chấm điểm thất bại');
+        }
+
+        const is1x2Correct = resultsData.betEvaluations?.oneXTwo?.outcome === 'correct';
+        const isOuCorrect = resultsData.betEvaluations?.overUnder?.outcome === 'correct';
+        const isHandicapCorrect = resultsData.betEvaluations?.handicap?.outcome === 'correct';
+        const is1x2Refund = resultsData.betEvaluations?.oneXTwo?.outcome === 'refund';
+        const isOuRefund = resultsData.betEvaluations?.overUnder?.outcome === 'refund';
+        const isHandicapRefund = resultsData.betEvaluations?.handicap?.outcome === 'refund';
+
+        const outcome = is1x2Correct ? 'Đúng' : (is1x2Refund ? 'Hòa' : 'Sai');
+        const ou = isOuCorrect ? 'Đúng' : (isOuRefund ? 'Hòa' : 'Sai');
+        const handicapOutcome = isHandicapCorrect ? 'Đúng' : (isHandicapRefund ? 'Hòa' : 'Sai');
+        
+        successCount++;
+        setBacktestLog(prev => [
+          ...prev,
+          `✅ Trận ${i + 1}/${total} hoàn tất: ${fixture.homeTeam} ${predictedHome}-${predictedAway} ${fixture.awayTeam} (Thực tế: ${fixture.actualHomeScore}-${fixture.actualAwayScore}) | 1X2: ${outcome} | Tài xỉu: ${ou} | Chấp: ${handicapOutcome}`
+        ]);
+
+      } catch (error) {
+        console.error(`Lỗi trận ${fixture.homeTeam} vs ${fixture.awayTeam}:`, error);
+        setBacktestLog(prev => [
+          ...prev,
+          `❌ Trận ${i + 1}/${total} lỗi: ${error.message}`
+        ]);
+      }
+
+      setBacktestProgress(Math.round(((i + 1) / total) * 100));
+
+      if (i < total - 1) {
+        await delay(1000);
+      }
+    }
+
+    setBacktestRunning(false);
+    setCurrentBacktestMatch(null);
+    setBacktestLog(prev => [...prev, `🏁 Đã chạy xong backtest! Hoàn thành dự đoán ${successCount}/${total} trận.`]);
+    showStatusMessage(`🏁 Đã hoàn thành tiến trình backtest tăng cỡ mẫu!`, 'success');
+    fetchBacktestMatches();
+  };
+
   useEffect(() => {
     fetchConfig();
   }, []);
@@ -629,39 +760,51 @@ Lưu ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
         )}
 
         {/* Tab Switcher */}
-        <div className="flex border-b border-card-border/40 pb-0.5 gap-2">
+        <div className="flex border-b border-card-border/40 pb-0.5 gap-2 overflow-x-auto">
           <button
             onClick={() => setActiveTab('config')}
-            className={`py-2.5 px-5 text-xs font-bold transition-all border-b-2 cursor-pointer ${activeTab === 'config'
+            className={`py-2.5 px-5 text-xs font-bold transition-all border-b-2 cursor-pointer whitespace-nowrap ${activeTab === 'config'
                 ? 'border-primary text-primary font-black'
                 : 'border-transparent text-gray-400 hover:text-gray-200'
               }`}
           >
-            ⚙️ Cấu Hình AI & RAG
+            ⚙️ Cấu hình AI & RAG
           </button>
           <button
             onClick={() => {
               setActiveTab('teams');
               fetchTeams();
             }}
-            className={`py-2.5 px-5 text-xs font-bold transition-all border-b-2 cursor-pointer ${activeTab === 'teams'
+            className={`py-2.5 px-5 text-xs font-bold transition-all border-b-2 cursor-pointer whitespace-nowrap ${activeTab === 'teams'
                 ? 'border-secondary text-secondary font-black'
                 : 'border-transparent text-gray-400 hover:text-gray-200'
               }`}
           >
-            🏃 Quản Lý Đội Tuyển
+            🏃 Quản lý đội tuyển
           </button>
           <button
             onClick={() => {
               setActiveTab('prompts');
               fetchPrompts();
             }}
-            className={`py-2.5 px-5 text-xs font-bold transition-all border-b-2 cursor-pointer ${activeTab === 'prompts'
+            className={`py-2.5 px-5 text-xs font-bold transition-all border-b-2 cursor-pointer whitespace-nowrap ${activeTab === 'prompts'
                 ? 'border-indigo-400 text-indigo-400 font-black'
                 : 'border-transparent text-gray-400 hover:text-gray-200'
               }`}
           >
-            📝 Quản Lý Prompt AI
+            📝 Quản lý prompt AI
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('backtest');
+              fetchBacktestMatches();
+            }}
+            className={`py-2.5 px-5 text-xs font-bold transition-all border-b-2 cursor-pointer whitespace-nowrap ${activeTab === 'backtest'
+                ? 'border-accent text-accent font-black'
+                : 'border-transparent text-gray-400 hover:text-gray-200'
+              }`}
+          >
+            🧪 Chạy backtest tăng cỡ mẫu
           </button>
         </div>
 
@@ -1349,6 +1492,118 @@ Lưu ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
                         </>
                       )}
                     </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 4: BACKTEST */}
+            {activeTab === 'backtest' && (
+              <div className="space-y-6 animate-fade-in">
+                <div className="glass-panel border border-card-border/80 rounded-2xl p-6 shadow-xl space-y-6">
+                  <div className="border-b border-card-border/50 pb-3 flex items-center justify-between">
+                    <h2 className="text-sm font-bold text-white flex items-center space-x-2">
+                      <span className="text-accent font-bold">🧪</span>
+                      <span>Tiến trình chạy backtest tăng cỡ mẫu</span>
+                    </h2>
+                    <span className="text-[10px] bg-accent/10 text-accent border border-accent/20 px-2.5 py-0.5 rounded-full font-bold">
+                      {backtestFixtures.length} trận đấu cần chạy
+                    </span>
+                  </div>
+
+                  <div className="bg-[#0f172a] border border-card-border/30 rounded-xl p-4 text-xs text-gray-400 leading-relaxed space-y-2">
+                    <span className="font-bold text-accent block">Giới thiệu cơ chế:</span>
+                    <p>
+                      Cơ chế chạy: Sử dụng giao diện Admin điều khiển gọi API tuần tự từ phía client thay vì chạy vòng lặp ngầm ở backend. Điều này giúp ngăn chặn triệt để lỗi Gateway Timeout (504) và lỗi khóa ghi cơ sở dữ liệu SQLite (<code>SQLITE_BUSY</code>).
+                    </p>
+                    <p>
+                      Hệ thống tự động chạy qua 2 bước cho mỗi trận: 
+                      1. Gọi <code className="text-primary">POST /api/predict</code> (ở Fast Mode, Single-Agent và tắt RAG Search chống rò rỉ dữ liệu).
+                      2. Gọi <code className="text-secondary">POST /api/results/auto</code> để tự động chấm điểm dựa trên tỉ số thực tế có sẵn.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 p-4 bg-card-border/15 rounded-xl border border-card-border/30">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full lg:w-auto">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs font-bold text-gray-400 whitespace-nowrap">Giải đấu:</span>
+                        <select
+                          value={backtestTournament}
+                          onChange={(e) => setBacktestTournament(e.target.value)}
+                          disabled={backtestRunning}
+                          className="bg-[#0E1321] border border-card-border/75 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-accent/60 cursor-pointer"
+                        >
+                          <option value="All">Tất cả giải đấu</option>
+                          <option value="Euro 2024">Euro 2024</option>
+                          <option value="Premier League">Premier League (EPL)</option>
+                          <option value="La Liga">La Liga (LALIGA)</option>
+                          <option value="World Cup 2026">World Cup 2026</option>
+                        </select>
+                      </div>
+                      <label className="flex items-center space-x-2 text-xs font-bold text-gray-300 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={fastMode}
+                          onChange={(e) => setFastMode(e.target.checked)}
+                          disabled={backtestRunning}
+                          className="w-4 h-4 rounded border-card-border text-primary bg-[#0E1321] focus:ring-primary/30 cursor-pointer"
+                        />
+                        <span>Chế độ Fast Mode (Gemini Flash)</span>
+                      </label>
+                    </div>
+
+                    <button
+                      onClick={runBacktest}
+                      disabled={backtestRunning || backtestFixtures.length === 0}
+                      className="w-full lg:w-auto bg-gradient-to-r from-accent to-indigo-500 hover:from-accent hover:to-indigo-600 disabled:opacity-50 text-white font-extrabold text-xs py-2.5 px-6 rounded-xl transition-all duration-150 active:scale-95 shadow-lg shadow-accent/20 cursor-pointer flex items-center justify-center space-x-2"
+                    >
+                      {backtestRunning ? (
+                        <>
+                          <span className="animate-spin">⏳</span>
+                          <span>Đang chạy backtest ({backtestProgress}%)</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>🧪</span>
+                          <span>Bắt đầu chạy backtest</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Thanh tiến trình */}
+                  {backtestRunning && (
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-gray-400 font-medium">Tiến độ chạy:</span>
+                        <span className="font-extrabold text-accent">{backtestProgress}%</span>
+                      </div>
+                      <div className="h-2.5 w-full bg-[#0E1321] rounded-full overflow-hidden border border-card-border/50">
+                        <div 
+                          className="h-full bg-gradient-to-r from-accent to-indigo-500 rounded-full transition-all duration-300"
+                          style={{ width: `${backtestProgress}%` }}
+                        ></div>
+                      </div>
+                      {currentBacktestMatch && (
+                        <p className="text-[10px] text-gray-500 italic">
+                          Đang xử lý trận: <span className="font-bold text-white">{currentBacktestMatch.homeTeam} vs {currentBacktestMatch.awayTeam}</span>
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Log log log */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] text-gray-400 font-black uppercase tracking-wider block">Nhật ký tiến trình chạy (Live logs)</label>
+                    <div className="w-full h-60 bg-[#070b14] border border-card-border/70 rounded-xl p-4 text-xs font-mono text-gray-300 overflow-y-auto custom-scrollbar space-y-1.5 custom-log-console">
+                      {backtestLog.length === 0 ? (
+                        <p className="text-gray-600 italic">Console trống. Hãy bấm nút bắt đầu để xem log thực thi.</p>
+                      ) : (
+                        backtestLog.map((log, idx) => (
+                          <p key={idx} className="leading-relaxed border-b border-card-border/10 pb-0.5 last:border-0">{log}</p>
+                        ))
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

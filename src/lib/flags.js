@@ -106,10 +106,40 @@ export function getTeamFlagEmoji(teamName) {
     "Fiji": "🇫🇯", "New Caledonia": "🇳🇨", "New Zealand": "🇳🇿", "Papua New Guinea": "🇵🇬",
     "Samoa": "🇼🇸", "Solomon Islands": "🇸🇧", "Tahiti": "🇵🇫", "Tonga": "🇹🇴", "Vanuatu": "🇻🇺"
   };
+  
+  if (clubLogos[teamName]) return "⚽";
   return flags[teamName] || "🏳️";
 }
 
+export const clubLogos = {
+  "Manchester City": "https://media.api-sports.io/football/teams/50.png",
+  "Man City": "https://media.api-sports.io/football/teams/50.png",
+  "Arsenal": "https://media.api-sports.io/football/teams/42.png",
+  "Liverpool": "https://media.api-sports.io/football/teams/40.png",
+  "Chelsea": "https://media.api-sports.io/football/teams/49.png",
+  "Manchester United": "https://media.api-sports.io/football/teams/33.png",
+  "Man United": "https://media.api-sports.io/football/teams/33.png",
+  "Tottenham": "https://media.api-sports.io/football/teams/47.png",
+  "Real Madrid": "https://media.api-sports.io/football/teams/541.png",
+  "Barcelona": "https://media.api-sports.io/football/teams/529.png",
+  "Atletico Madrid": "https://media.api-sports.io/football/teams/530.png",
+  "Girona": "https://media.api-sports.io/football/teams/547.png",
+  "Real Sociedad": "https://media.api-sports.io/football/teams/548.png",
+  "Athletic Bilbao": "https://media.api-sports.io/football/teams/531.png"
+};
+
 export function getTeamFlag(teamName, className = "w-6 h-4.5") {
+  if (clubLogos[teamName]) {
+    return (
+      <img 
+        src={clubLogos[teamName]} 
+        alt={teamName}
+        className={`inline-block object-contain ${className}`}
+        loading="lazy"
+      />
+    );
+  }
+
   const code = countryCodes[teamName];
   if (!code) return <span className="inline-block text-xl">🏳️</span>;
   return (
