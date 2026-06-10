@@ -1,32 +1,82 @@
 import { createClient } from '@libsql/client';
+import crypto from 'crypto';
 
 let dbInstance = null;
 
-// --- CƠ CHẾ BẢO MẬT & MÃ HÓA API KEYS (DYNAMIC OBFUSCATION) ---
+// --- CƠ CHẾ BẢO MẬT & MÃ HÓA API KEYS (AES-256-GCM) ---
+const ALGORITHM = 'aes-256-gcm';
+const IV_LENGTH = 12;
+
+// Cấu trúc Obfuscate cũ để tương thích ngược
 const OBFUSCATE_PREFIX = "f_p_";
 const OBFUSCATE_SUFFIX = "_c_t";
 
-function obfuscateKey(key) {
-  if (!key) return key;
-  // Nếu khóa đã được mã hóa trước đó, không mã hóa lại
-  if (key.startsWith(OBFUSCATE_PREFIX) && key.endsWith(OBFUSCATE_SUFFIX)) {
-    return key;
-  }
-  // Thêm muối vào 2 đầu và mã hóa Base64 để ẩn dấu cấu trúc API key (tránh bị bot quét)
-  const padded = OBFUSCATE_PREFIX + key + OBFUSCATE_SUFFIX;
-  return Buffer.from(padded).toString('base64');
+function getEncryptionKey() {
+  const secret = process.env.ENCRYPTION_SECRET || 'default_encryption_secret_football_predict_2026';
+  // Sử dụng scryptSync để tạo khóa 32 bytes từ secret
+  return crypto.scryptSync(secret, 'salt_football_predict', 32);
 }
 
-function deobfuscateKey(obfuscatedKey) {
+function obfuscateKey(key) {
+  if (!key) return key;
+  try {
+    // Nếu khóa đã ở định dạng mã hóa AES-256-GCM mới, không mã hóa lại
+    if (typeof key === 'string' && key.split(':').length === 3) {
+      return key;
+    }
+    const keyBuffer = getEncryptionKey();
+    const iv = crypto.randomBytes(IV_LENGTH);
+    const cipher = crypto.createCipheriv(ALGORITHM, keyBuffer, iv);
+    
+    let encrypted = cipher.update(key, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    
+    const authTag = cipher.getAuthTag().toString('hex');
+    
+    // Trả về định dạng: iv_hex:encrypted_hex:authTag_hex
+    return `${iv.toString('hex')}:${encrypted}:${authTag}`;
+  } catch (err) {
+    console.error('Lỗi mã hóa API key:', err);
+    return key;
+  }
+}
+
+// Export hàm giải mã để các endpoint bảo mật khác (như API decrypt) có thể sử dụng trực tiếp
+export function deobfuscateKey(obfuscatedKey) {
   if (!obfuscatedKey) return obfuscatedKey;
   try {
-    // Thử giải mã Base64
+    const parts = obfuscatedKey.split(':');
+    if (parts.length !== 3) {
+      // Nếu không phải định dạng iv:encrypted:authTag, thử giải mã theo Base64 cũ
+      return deobfuscateOldKey(obfuscatedKey);
+    }
+    
+    const [ivHex, encryptedHex, authTagHex] = parts;
+    const keyBuffer = getEncryptionKey();
+    const iv = Buffer.from(ivHex, 'hex');
+    const authTag = Buffer.from(authTagHex, 'hex');
+    
+    const decipher = crypto.createDecipheriv(ALGORITHM, keyBuffer, iv);
+    decipher.setAuthTag(authTag);
+    
+    let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    
+    return decrypted;
+  } catch (err) {
+    console.warn('⚠️ Lỗi giải mã AES (có thể do xoay vòng khóa ENCRYPTION_SECRET). Fallback về key thô:', err.message);
+    return deobfuscateOldKey(obfuscatedKey);
+  }
+}
+
+function deobfuscateOldKey(obfuscatedKey) {
+  try {
     const decoded = Buffer.from(obfuscatedKey, 'base64').toString('utf-8');
     if (decoded.startsWith(OBFUSCATE_PREFIX) && decoded.endsWith(OBFUSCATE_SUFFIX)) {
       return decoded.slice(OBFUSCATE_PREFIX.length, -OBFUSCATE_SUFFIX.length);
     }
   } catch (e) {
-    // Nếu giải mã lỗi (do key cũ đang lưu thô chưa mã hóa), tự động trả về giá trị thô để tương thích ngược
+    // Không giải mã được Base64 cũ, coi như key thô
   }
   return obfuscatedKey;
 }
@@ -79,11 +129,23 @@ function wrapDbWithObfuscation(db) {
 
   db.get = async (sql, params = []) => {
     const res = await originalGet(sql, params);
+    const cleanSql = sql.toLowerCase();
+    // Bỏ qua giải mã nếu là truy vấn cấu hình quản trị admin (để hiển thị dạng mã hóa và yêu cầu bấm giải mã trên UI)
+    const isConfigQuery = cleanSql.includes('from api_keys') || cleanSql.includes('from search_api_keys');
+    if (isConfigQuery) {
+      return res;
+    }
     return deobfuscateRow(res);
   };
 
   db.all = async (sql, params = []) => {
     const res = await originalAll(sql, params);
+    const cleanSql = sql.toLowerCase();
+    // Bỏ qua giải mã nếu là truy vấn cấu hình quản trị admin (để hiển thị dạng mã hóa và yêu cầu bấm giải mã trên UI)
+    const isConfigQuery = cleanSql.includes('from api_keys') || cleanSql.includes('from search_api_keys');
+    if (isConfigQuery) {
+      return res;
+    }
     return deobfuscateRows(res);
   };
 
@@ -91,6 +153,7 @@ function wrapDbWithObfuscation(db) {
     const interceptedParams = obfuscateParams(sql, params);
     return await originalRun(sql, interceptedParams);
   };
+
 
   if (db.batch) {
     const originalBatch = db.batch.bind(db);

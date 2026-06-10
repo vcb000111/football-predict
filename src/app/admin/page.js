@@ -14,6 +14,14 @@ export default function AdminConfigPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
 
+  // --- TRẠNG THÁI BẢO MẬT & GIẢI MÃ ---
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState(null);
+  const [verifyingPassword, setVerifyingPassword] = useState(false);
+  const [decryptedKeys, setDecryptedKeys] = useState({}); // Lưu trữ { [encryptedKey]: decryptedValue }
+
   // --- TRẠNG THÁI QUẢN LÝ PROMPT AI ---
   const [prompts, setPrompts] = useState([]);
   const [loadingPrompts, setLoadingPrompts] = useState(false);
@@ -69,6 +77,34 @@ export default function AdminConfigPage() {
   const [fastMode, setFastMode] = useState(true);
   const [backtestTournament, setBacktestTournament] = useState('All');
 
+  // --- HÀM FETCH CỤC BỘ TỰ ĐỘNG ĐÍNH KÈM MẬT KHẨU & BẮT LỖI 401 ---
+  const fetch = async (url, options = {}) => {
+    let password = '';
+    if (typeof window !== 'undefined') {
+      password = localStorage.getItem('admin_password') || '';
+    }
+
+    const headers = {
+      ...options.headers,
+      'x-admin-password': password
+    };
+
+    const res = await globalThis.fetch(url, { ...options, headers });
+    
+    // Nếu API trả về 401 Unauthorized và thuộc đường dẫn quản trị
+    if (res.status === 401 && url.toString().includes('/api/admin')) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('admin_password');
+        localStorage.removeItem('admin_auth_timestamp');
+      }
+      setIsAuthenticated(false);
+      setShowPasswordModal(true);
+      throw new Error('Mật khẩu quản trị không đúng hoặc phiên làm việc đã hết hạn.');
+    }
+    
+    return res;
+  };
+
   const fetchBacktestMatches = async () => {
     setLoadingBacktest(true);
     try {
@@ -111,7 +147,7 @@ export default function AdminConfigPage() {
       setBacktestLog(prev => [...prev, `⏳ ${logMsg}...`]);
 
       try {
-        const predictRes = await fetch('/api/predict', {
+        const predictRes = await globalThis.fetch('/api/predict', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -135,7 +171,7 @@ export default function AdminConfigPage() {
 
         await delay(2000);
 
-        const resultsRes = await fetch('/api/results/auto', {
+        const resultsRes = await globalThis.fetch('/api/results/auto', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -189,12 +225,103 @@ export default function AdminConfigPage() {
     fetchBacktestMatches();
   };
 
+  // --- KIỂM TRA MẬT KHẨU VÀ HIỆU LỰC CACHE 8 GIỜ ---
   useEffect(() => {
-    fetchConfig();
+    const checkAuth = () => {
+      if (typeof window !== 'undefined') {
+        const password = localStorage.getItem('admin_password');
+        const timestampStr = localStorage.getItem('admin_auth_timestamp');
+        const isDevelopment = process.env.NODE_ENV === 'development';
+
+        // Nếu ở local development, bypass kiểm tra mật khẩu
+        if (isDevelopment) {
+          setIsAuthenticated(true);
+          fetchConfig();
+          return;
+        }
+
+        if (password && timestampStr) {
+          const timestamp = parseInt(timestampStr, 10);
+          const now = Date.now();
+          const expireTime = 8 * 60 * 60 * 1000; // 8 tiếng
+          
+          if (now - timestamp < expireTime) {
+            setIsAuthenticated(true);
+            fetchConfig();
+            return;
+          }
+        }
+        
+        // Ngược lại, bắt buộc nhập mật khẩu
+        setIsAuthenticated(false);
+        setShowPasswordModal(true);
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
   }, []);
+
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    if (!passwordInput) return;
+    setVerifyingPassword(true);
+    setPasswordError(null);
+    try {
+      const res = await globalThis.fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: passwordInput })
+      });
+      const data = await res.json();
+      
+      if (res.ok && data.success) {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('admin_password', passwordInput);
+          localStorage.setItem('admin_auth_timestamp', Date.now().toString());
+        }
+        setIsAuthenticated(true);
+        setShowPasswordModal(false);
+        setPasswordError(null);
+        setPasswordInput('');
+        
+        // Tải lại cấu hình sau khi đăng nhập thành công
+        fetchConfig();
+      } else {
+        throw new Error(data.error || 'Mật khẩu quản trị không chính xác');
+      }
+    } catch (err) {
+      setPasswordError(err.message);
+    } finally {
+      setVerifyingPassword(false);
+    }
+  };
+
+  // --- GIẢI MÃ API KEY THEO YÊU CẦU ---
+  const handleDecryptKey = async (encryptedKey) => {
+    try {
+      const res = await fetch('/api/admin/decrypt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ encryptedKey })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setDecryptedKeys(prev => ({
+          ...prev,
+          [encryptedKey]: data.decryptedKey
+        }));
+      } else {
+        throw new Error(data.error || 'Giải mã thất bại');
+      }
+    } catch (err) {
+      showStatusMessage('🔴 Lỗi giải mã API key: ' + err.message, 'error');
+    }
+  };
 
   const fetchConfig = async () => {
     setLoading(true);
+    setDecryptedKeys({}); // Dọn dẹp cache giải mã mỗi lần tải lại config
     try {
       const res = await fetch('/api/admin/config');
       const data = await res.json();
@@ -877,14 +1004,24 @@ Lưu ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
                               {key.provider || 'gemini'}
                             </span>
                             <code className="text-xs font-mono text-gray-300 truncate select-all flex-1">
-                              {maskKey(key.key_value, showKeys[key.id || index])}
+                              {decryptedKeys[key.key_value] || maskKey(key.key_value, showKeys[key.id || index])}
                             </code>
                             <button
                               onClick={() => handleToggleKeyShow(key.id || index)}
-                              className="text-gray-550 hover:text-gray-300 cursor-pointer mr-2.5"
+                              className="text-gray-550 hover:text-gray-300 cursor-pointer mr-2"
+                              title={showKeys[key.id || index] ? "Ẩn khóa" : "Hiện khóa dạng che"}
                             >
                               {showKeys[key.id || index] ? '👁️' : '👁️‍'}
                             </button>
+                            {typeof key.key_value === 'string' && key.key_value.includes(':') && !decryptedKeys[key.key_value] && (
+                              <button
+                                onClick={() => handleDecryptKey(key.key_value)}
+                                className="bg-[#151E2E] hover:bg-emerald-500/20 border border-card-border/60 hover:border-emerald-500/50 text-[10px] text-gray-400 hover:text-emerald-400 px-2 py-0.5 rounded-lg transition-all cursor-pointer mr-2"
+                                title="Giải mã khóa"
+                              >
+                                🔓 Giải mã
+                              </button>
+                            )}
                             <div className="flex items-center space-x-2 mr-2">
                               <button
                                 onClick={() => handleCheckKey(key.provider || 'gemini', key.key_value)}
@@ -1120,14 +1257,24 @@ Lưu ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
                                       <div className="flex items-center space-x-2.5 flex-1 min-w-0 pr-4">
                                         <span className="text-[10px] text-gray-600 font-bold font-mono">#{searchApiKeys.filter((k, i) => k.provider_name === provider.provider_name && i <= keyIdx).length}</span>
                                         <code className="text-xs font-mono text-gray-300 truncate select-all">
-                                          {maskKey(key.key_value, showSearchKeys[key.id || keyIdx])}
+                                          {decryptedKeys[key.key_value] || maskKey(key.key_value, showSearchKeys[key.id || keyIdx])}
                                         </code>
                                         <button
                                           onClick={() => setShowSearchKeys(prev => ({ ...prev, [key.id || keyIdx]: !prev[key.id || keyIdx] }))}
-                                          className="text-gray-550 hover:text-gray-300 cursor-pointer mr-2.5"
+                                          className="text-gray-550 hover:text-gray-300 cursor-pointer mr-2"
+                                          title={showSearchKeys[key.id || keyIdx] ? "Ẩn khóa" : "Hiện khóa dạng che"}
                                         >
                                           {showSearchKeys[key.id || keyIdx] ? '👁️' : '👁️‍'}
                                         </button>
+                                        {typeof key.key_value === 'string' && key.key_value.includes(':') && !decryptedKeys[key.key_value] && (
+                                          <button
+                                            onClick={() => handleDecryptKey(key.key_value)}
+                                            className="bg-[#151E2E] hover:bg-emerald-500/20 border border-card-border/60 hover:border-emerald-500/50 text-[9px] text-gray-400 hover:text-emerald-400 px-2 py-0.5 rounded-lg transition-all cursor-pointer mr-2"
+                                            title="Giải mã khóa"
+                                          >
+                                            🔓 Giải mã
+                                          </button>
+                                        )}
                                         <div className="flex items-center space-x-2 mr-2">
                                           <button
                                             onClick={() => handleCheckKey(provider.provider_name, key.key_value)}
@@ -1770,6 +1917,41 @@ Lưu ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL MẬT KHẨU ADMIN (GLASSMORPHISM) */}
+        {showPasswordModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md">
+            <div className="bg-[#0b1220]/90 border border-card-border/80 rounded-2xl p-6 shadow-2xl max-w-sm w-full mx-4 backdrop-filter backdrop-blur-xl">
+              <div className="text-center space-y-4">
+                <span className="text-4xl block">🛡️</span>
+                <h2 className="text-sm font-bold text-white uppercase tracking-wider">Xác Thực Mật Khẩu Admin</h2>
+                <p className="text-[11px] text-gray-500">
+                  Hệ thống đang chạy trên môi trường Production. Vui lòng nhập mật khẩu để quản trị hệ thống.
+                </p>
+                <form onSubmit={handlePasswordSubmit} className="space-y-4 pt-2">
+                  <input
+                    type="password"
+                    value={passwordInput}
+                    onChange={(e) => setPasswordInput(e.target.value)}
+                    placeholder="Nhập mật khẩu..."
+                    className="w-full bg-[#070b14] border border-card-border/70 rounded-xl px-4 py-2.5 text-xs text-white text-center focus:outline-none focus:border-primary/80"
+                    autoFocus
+                  />
+                  {passwordError && (
+                    <p className="text-[10px] text-rose-400 font-semibold">{passwordError}</p>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={verifyingPassword || !passwordInput}
+                    className="w-full bg-primary hover:bg-primary-hover disabled:bg-gray-750 disabled:opacity-50 text-black text-xs font-black py-2.5 rounded-xl transition-all cursor-pointer active:scale-95"
+                  >
+                    {verifyingPassword ? 'Đang xác thực...' : 'Xác nhận'}
+                  </button>
+                </form>
+              </div>
             </div>
           </div>
         )}
