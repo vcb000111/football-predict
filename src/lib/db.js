@@ -2,6 +2,115 @@ import { createClient } from '@libsql/client';
 
 let dbInstance = null;
 
+// --- CƠ CHẾ BẢO MẬT & MÃ HÓA API KEYS (DYNAMIC OBFUSCATION) ---
+const OBFUSCATE_PREFIX = "f_p_";
+const OBFUSCATE_SUFFIX = "_c_t";
+
+function obfuscateKey(key) {
+  if (!key) return key;
+  // Nếu khóa đã được mã hóa trước đó, không mã hóa lại
+  if (key.startsWith(OBFUSCATE_PREFIX) && key.endsWith(OBFUSCATE_SUFFIX)) {
+    return key;
+  }
+  // Thêm muối vào 2 đầu và mã hóa Base64 để ẩn dấu cấu trúc API key (tránh bị bot quét)
+  const padded = OBFUSCATE_PREFIX + key + OBFUSCATE_SUFFIX;
+  return Buffer.from(padded).toString('base64');
+}
+
+function deobfuscateKey(obfuscatedKey) {
+  if (!obfuscatedKey) return obfuscatedKey;
+  try {
+    // Thử giải mã Base64
+    const decoded = Buffer.from(obfuscatedKey, 'base64').toString('utf-8');
+    if (decoded.startsWith(OBFUSCATE_PREFIX) && decoded.endsWith(OBFUSCATE_SUFFIX)) {
+      return decoded.slice(OBFUSCATE_PREFIX.length, -OBFUSCATE_SUFFIX.length);
+    }
+  } catch (e) {
+    // Nếu giải mã lỗi (do key cũ đang lưu thô chưa mã hóa), tự động trả về giá trị thô để tương thích ngược
+  }
+  return obfuscatedKey;
+}
+
+function obfuscateParams(sql, args) {
+  if (!args || args.length === 0) return args;
+  const cleanSql = sql.toLowerCase();
+  
+  // Chỉ can thiệp khi ghi (INSERT/UPDATE) vào các bảng chứa API keys
+  if (cleanSql.includes('api_keys') || cleanSql.includes('search_api_keys')) {
+    if (cleanSql.includes('insert') || cleanSql.includes('update')) {
+      const newArgs = [...args];
+      
+      // Đối với search_api_keys INSERT: args[1] (key_value) là khóa cần mã hóa
+      if (cleanSql.includes('search_api_keys') && cleanSql.includes('insert')) {
+        if (typeof newArgs[1] === 'string') newArgs[1] = obfuscateKey(newArgs[1]);
+      } else {
+        // Đối với api_keys INSERT/UPDATE và search_api_keys UPDATE: args[0] (key_value) là khóa cần mã hóa
+        if (typeof newArgs[0] === 'string') newArgs[0] = obfuscateKey(newArgs[0]);
+      }
+      return newArgs;
+    }
+  }
+  return args;
+}
+
+function deobfuscateRow(row) {
+  if (!row) return row;
+  if (typeof row === 'object') {
+    if ('key_value' in row && typeof row.key_value === 'string') {
+      row.key_value = deobfuscateKey(row.key_value);
+    }
+  }
+  return row;
+}
+
+function deobfuscateRows(rows) {
+  if (!rows) return rows;
+  if (Array.isArray(rows)) {
+    return rows.map(deobfuscateRow);
+  }
+  return deobfuscateRow(rows);
+}
+
+// Hàm bọc (Wrapper) để tự động hóa quá trình mã hóa/giải mã API Keys
+function wrapDbWithObfuscation(db) {
+  const originalGet = db.get.bind(db);
+  const originalAll = db.all.bind(db);
+  const originalRun = db.run.bind(db);
+
+  db.get = async (sql, params = []) => {
+    const res = await originalGet(sql, params);
+    return deobfuscateRow(res);
+  };
+
+  db.all = async (sql, params = []) => {
+    const res = await originalAll(sql, params);
+    return deobfuscateRows(res);
+  };
+
+  db.run = async (sql, params = []) => {
+    const interceptedParams = obfuscateParams(sql, params);
+    return await originalRun(sql, interceptedParams);
+  };
+
+  if (db.batch) {
+    const originalBatch = db.batch.bind(db);
+    db.batch = async (statements) => {
+      const interceptedStatements = statements.map(stmt => {
+        let sqlStr = typeof stmt === 'string' ? stmt : stmt.sql;
+        let sqlArgs = typeof stmt === 'string' ? [] : (stmt.args || []);
+        return {
+          sql: sqlStr,
+          args: obfuscateParams(sqlStr, sqlArgs)
+        };
+      });
+      return await originalBatch(interceptedStatements);
+    };
+  }
+
+  return db;
+}
+
+// --- KHỞI TẠO KẾT NỐI DATABASE ---
 export async function getDB() {
   if (dbInstance) return dbInstance;
 
@@ -19,8 +128,7 @@ export async function getDB() {
       authToken: process.env.TURSO_AUTH_TOKEN || ''
     });
 
-    // Đối tượng adapter tương thích ngược với API sqlite hiện tại
-    dbInstance = {
+    const rawAdapter = {
       get: async (sql, params = []) => {
         const res = await client.execute({ sql, args: params });
         return res.rows[0];
@@ -52,10 +160,11 @@ export async function getDB() {
         return await client.batch(formattedStatements, 'write');
       }
     };
+
+    dbInstance = wrapDbWithObfuscation(rawAdapter);
   } else {
     console.log('💻 [DB INITIALIZATION] Sử dụng SQLite cục bộ (Dynamic Import)...');
     
-    // Dynamic import các gói native SQLite để tránh Vercel cố gắng bundle chúng khi chạy build
     const sqlite3 = (await import('sqlite3')).default;
     const { open } = (await import('sqlite'));
     const path = (await import('path')).default;
@@ -67,7 +176,7 @@ export async function getDB() {
       driver: sqlite3.Database
     });
 
-    // Tạo bảng lưu trữ lịch sử dự đoán nếu chưa tồn tại
+    // Tạo bảng nếu chưa tồn tại
     await localDb.exec(`
       CREATE TABLE IF NOT EXISTS predictions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -90,7 +199,7 @@ export async function getDB() {
       )
     `);
 
-    // Thực hiện migration bổ sung các cột đánh giá kèo nếu chưa tồn tại
+    // Thực hiện migrations bổ sung cột
     try {
       await localDb.exec(`ALTER TABLE predictions ADD COLUMN is_correct_ou INTEGER DEFAULT NULL`);
     } catch (e) {}
@@ -134,7 +243,6 @@ export async function getDB() {
       await localDb.exec(`ALTER TABLE predictions ADD COLUMN handicap_line REAL DEFAULT 0.0`);
     } catch (e) {}
     
-    // Tạo bảng api_keys
     await localDb.exec(`
       CREATE TABLE IF NOT EXISTS api_keys (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -145,7 +253,6 @@ export async function getDB() {
       )
     `);
 
-    // Tạo bảng ai_models
     await localDb.exec(`
       CREATE TABLE IF NOT EXISTS ai_models (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -164,7 +271,6 @@ export async function getDB() {
       await localDb.exec(`ALTER TABLE ai_models ADD COLUMN provider TEXT DEFAULT 'gemini'`);
     } catch (e) {}
 
-    // Tạo bảng ai_lessons lưu trữ bài học rút kinh nghiệm
     await localDb.exec(`
       CREATE TABLE IF NOT EXISTS ai_lessons (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -176,63 +282,6 @@ export async function getDB() {
       )
     `);
 
-    // Seed dữ liệu mặc định cho ai_models nếu bảng trống
-    const modelsCount = await localDb.get(`SELECT COUNT(*) as count FROM ai_models`);
-    if (modelsCount.count === 0) {
-      const defaultModels = [
-        { name: 'gemini-3.5-flash', provider: 'gemini' },
-        { name: 'gemini-3-flash-preview', provider: 'gemini' },
-        { name: 'gemini-3.1-flash-lite', provider: 'gemini' },
-        { name: 'gemini-2.5-flash', provider: 'gemini' },
-        { name: 'gemini-2.5-flash-lite', provider: 'gemini' },
-        { name: 'llama-3.1-8b-instant', provider: 'groq' },
-        { name: 'gemma2-9b-it', provider: 'groq' },
-        { name: 'llama-3.3-70b-specdec', provider: 'groq' }
-      ];
-      for (let i = 0; i < defaultModels.length; i++) {
-        await localDb.run(
-          `INSERT OR IGNORE INTO ai_models (model_name, priority, status, provider) VALUES (?, ?, 1, ?)`,
-          [defaultModels[i].name, i + 1, defaultModels[i].provider]
-        );
-      }
-    }
-
-    // Seed dữ liệu mặc định cho api_keys từ biến môi trường nếu bảng trống
-    const keysCount = await localDb.get(`SELECT COUNT(*) as count FROM api_keys`);
-    if (keysCount.count === 0) {
-      const apiKeysList = [];
-      if (process.env.GEMINI_API_KEY) {
-        apiKeysList.push(process.env.GEMINI_API_KEY.trim());
-      }
-      if (process.env.GEMINI_API_KEYS) {
-        const splitKeys = process.env.GEMINI_API_KEYS.split(',')
-          .map((k) => k.trim())
-          .filter(Boolean);
-        apiKeysList.push(...splitKeys);
-      }
-      const numberedKeys = Object.keys(process.env)
-        .filter((key) => key.startsWith('GEMINI_API_KEY_'))
-        .sort((a, b) => {
-          const numA = parseInt(a.replace('GEMINI_API_KEY_', ''), 10);
-          const numB = parseInt(b.replace('GEMINI_API_KEY_', ''), 10);
-          return numA - numB;
-        });
-      numberedKeys.forEach((key) => {
-        if (process.env[key]) {
-          apiKeysList.push(process.env[key].trim());
-        }
-      });
-
-      const uniqueKeys = Array.from(new Set(apiKeysList));
-      for (const key of uniqueKeys) {
-        await localDb.run(
-          `INSERT OR IGNORE INTO api_keys (key_value, status) VALUES (?, 1)`,
-          [key]
-        );
-      }
-    }
-
-    // Tạo bảng search_providers
     await localDb.exec(`
       CREATE TABLE IF NOT EXISTS search_providers (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -243,7 +292,6 @@ export async function getDB() {
       )
     `);
 
-    // Tạo bảng search_api_keys
     await localDb.exec(`
       CREATE TABLE IF NOT EXISTS search_api_keys (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -255,7 +303,7 @@ export async function getDB() {
       )
     `);
 
-    // Seed dữ liệu mặc định cho search_providers nếu bảng trống
+    // Seed search_providers
     const providersCount = await localDb.get(`SELECT COUNT(*) as count FROM search_providers`);
     if (providersCount.count === 0) {
       const defaultProviders = [
@@ -271,26 +319,6 @@ export async function getDB() {
       }
     }
 
-    // Seed dữ liệu mặc định cho search_api_keys từ biến môi trường nếu bảng trống
-    const searchKeysCount = await localDb.get(`SELECT COUNT(*) as count FROM search_api_keys`);
-    if (searchKeysCount.count === 0) {
-      const defaultKeys = [
-        { provider: 'tavily', envVar: 'TAVILY_API_KEY' },
-        { provider: 'brave', envVar: 'BRAVE_SEARCH_API_KEY' },
-        { provider: 'serper', envVar: 'SERPER_API_KEY' }
-      ];
-      for (const item of defaultKeys) {
-        const keyValue = process.env[item.envVar];
-        if (keyValue && keyValue.trim()) {
-          await localDb.run(
-            `INSERT OR IGNORE INTO search_api_keys (provider_name, key_value, status) VALUES (?, ?, 1)`,
-            [item.provider, keyValue.trim()]
-          );
-        }
-      }
-    }
-
-    // Tạo bảng teams
     await localDb.exec(`
       CREATE TABLE IF NOT EXISTS teams (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -310,7 +338,6 @@ export async function getDB() {
       )
     `);
 
-    // Migrations cho bảng teams nếu đã tồn tại trước đó
     try {
       await localDb.exec(`ALTER TABLE teams ADD COLUMN avg_corners_won REAL DEFAULT 4.5`);
     } catch (e) {}
@@ -324,7 +351,6 @@ export async function getDB() {
       await localDb.exec(`ALTER TABLE teams ADD COLUMN style_of_play TEXT DEFAULT 'Cân bằng'`);
     } catch (e) {}
 
-    // Tạo bảng system_prompts
     await localDb.exec(`
       CREATE TABLE IF NOT EXISTS system_prompts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -353,7 +379,7 @@ export async function getDB() {
       }
     };
 
-    dbInstance = localDb;
+    dbInstance = wrapDbWithObfuscation(localDb);
   }
 
   return dbInstance;

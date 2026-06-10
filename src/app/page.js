@@ -3,13 +3,20 @@ import HomePageClient from './HomePageClient';
 import { getDB } from '@/lib/db';
 
 export default async function Page() {
-  const isKeyConfigured = !!process.env.GEMINI_API_KEYS || !!process.env.GEMINI_API_KEY;
+  let isKeyConfigured = !!process.env.GEMINI_API_KEYS || !!process.env.GEMINI_API_KEY;
   
   let historyCounts = {};
   let scoreMap = {};
   let latestPredictions = {};
   try {
     const db = await getDB();
+    
+    // Tự động kiểm tra API Key hoạt động trong Database để đồng bộ trạng thái UI
+    const keyCount = await db.get('SELECT COUNT(*) as count FROM api_keys WHERE status = 1');
+    if (keyCount && keyCount.count > 0) {
+      isKeyConfigured = true;
+    }
+
     const counts = await db.all(
       'SELECT match_id, COUNT(*) as count FROM predictions WHERE match_id IS NOT NULL GROUP BY match_id'
     );
