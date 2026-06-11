@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { deobfuscateKey } from '@/lib/db';
 
 export async function POST(request) {
   try {
@@ -11,7 +12,8 @@ export async function POST(request) {
       );
     }
 
-    const trimmedKey = apiKey.trim();
+    const decryptedKey = deobfuscateKey(apiKey);
+    const trimmedKey = decryptedKey.trim();
 
     if (provider === 'gemini') {
       try {

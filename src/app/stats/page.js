@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getTeamFlag } from '@/lib/flags';
+import { getVNTime } from '@/lib/timezone';
 function translateRecommendation(text) {
   if (!text) return '';
   const trimmed = text.trim();
@@ -284,7 +285,7 @@ export default function StatisticsPage() {
                           }`}>
                             {rec.confidence}
                           </span>
-                          <span className="text-gray-500 font-bold">{rec.fixture.date} • {rec.fixture.time}</span>
+                          <span className="text-gray-500 font-bold">{getVNTime(rec.fixture.date, rec.fixture.time, rec.fixture.venue).formatted} (VN)</span>
                         </div>
 
                         {/* Teams Info */}

@@ -983,6 +983,14 @@ Lưu ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
                         <span>{syncingEnv ? '⏳' : '🔄'}</span>
                         <span>Đồng bộ từ env</span>
                       </button>
+                      <button
+                        onClick={handleSaveConfig}
+                        disabled={saving}
+                        className="bg-primary hover:bg-primary-hover disabled:bg-gray-700 disabled:opacity-50 text-[10px] text-black font-black px-2.5 py-1 rounded-xl transition-all cursor-pointer disabled:opacity-50 flex items-center space-x-1"
+                      >
+                        <span>{saving ? '⏳' : '💾'}</span>
+                        <span>Lưu cấu hình</span>
+                      </button>
                       <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2.5 py-0.5 rounded-full font-bold">
                         {apiKeys.length} Keys
                       </span>

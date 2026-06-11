@@ -55,6 +55,11 @@ Hệ thống dự đoán kết quả bóng đá và phân tích kèo đấu thô
 * **Mô phỏng Monte Carlo 10,000 lần:** Giả lập trận đấu 10,000 lần trực tuyến bằng toán học Poisson để tính xác suất động (thập phân), tỷ lệ BTTS, Tài Xỉu, và xếp hạng 5 tỷ số dễ xảy ra nhất.
 * **Giao diện trực quan cao cấp:** Hiển thị biểu đồ phân phối Monte Carlo, nhãn trạng thái Cache rõ ràng và nút làm mới dự đoán bằng AI.
 
+### 8. Tự Động Quy Đổi & Hiển Thị Giờ Việt Nam (UTC+7)
+* **Timezone Converter Helper:** Xây dựng cơ chế tự động phát hiện múi giờ địa phương dựa trên địa điểm thi đấu (`venue`) của 16 sân vận động World Cup 2026 và các trận giao hữu ở châu Âu, quy đổi chuẩn xác sang giờ Việt Nam (UTC+7).
+* **Hiển thị song song thông minh:** Thiết kế hiển thị giờ Việt Nam nổi bật làm chủ đạo trên trang chủ (Grid/List) và hiển thị song song giờ VN cùng giờ địa phương tại header chi tiết trận đấu giúp dễ dàng đối chiếu.
+* **Đồng bộ Sắp xếp & Hydration Safety:** Sắp xếp danh sách trận đấu trên trang chủ chạy tuyến tính chuẩn xác theo ngày giờ Việt Nam thực tế, đồng thời triệt tiêu hoàn toàn lỗi Hydration Mismatch đặc thù của Next.js SSR.
+
 ---
 
 ## 💻 Công Nghệ Sử Dụng

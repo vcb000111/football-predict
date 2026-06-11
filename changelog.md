@@ -6,6 +6,12 @@ Tất cả những thay đổi nổi bật đối với dự án **FIFA World Cu
 
 ### Added (Thêm mới)
 * **Tính năng đồng bộ cấu hình nhanh:** Bổ sung tùy chọn đồng bộ nhanh các cài đặt và khóa chức năng từ hệ thống máy chủ vào ứng dụng thông qua giao diện quản trị, tự động loại bỏ các cài đặt trùng lặp để tối ưu hóa hiệu năng.
+* **Tích hợp hiển thị giờ Việt Nam (UTC+7):** Tự động quy đổi thời gian thi đấu từ giờ địa phương của 16 sân vận động World Cup 2026 (Mỹ, Canada, Mexico) và các trận giao hữu warm-up tại châu Âu sang giờ Việt Nam.
+* **Hiển thị song song hai múi giờ:** Hiển thị giờ VN làm chủ đạo trên trang chủ (Grid/List) và hiển thị song song giờ VN cùng giờ địa phương trên trang chi tiết trận đấu để người dùng dễ dàng đối chiếu.
+
+### Changed (Thay đổi logic)
+* **Đồng bộ logic sắp xếp (Sorting):** Điều chỉnh cơ chế sắp xếp mặc định theo ngày giờ của danh sách trận đấu trên trang chủ dựa trên thời gian Việt Nam sau quy đổi, đảm bảo các trận đấu được sắp xếp tuyến tính chuẩn xác.
+* **Cơ chế Hydration Safety:** Xây dựng helper timezone độc lập giúp server-side rendering và client-side rendering trả về kết quả thời gian đồng nhất, khắc phục triệt để lỗi Hydration Mismatch của React/Next.js.
 
 ### Fixed (Sửa lỗi)
 * **Khắc phục lỗi dự đoán:** Sửa lỗi phân tích trận đấu bị gián đoạn và không hiển thị kết quả khi chạy thực tế.

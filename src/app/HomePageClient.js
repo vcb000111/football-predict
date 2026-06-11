@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { saveLastUsedModel, formatModelName } from '@/lib/models-client';
 import { getTeamFlag, getTeamFlagEmoji } from '@/lib/flags';
+import { getVNTime } from '@/lib/timezone';
 
 export function getPredictionStatus(predHome, predAway, actHome, actAway) {
   if (actHome === null || actHome === undefined || actAway === null || actAway === undefined) {
@@ -395,11 +396,13 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
         return countB - countA; // Sắp xếp giảm dần theo số lượt dự đoán
       }
     }
-    // Mặc định: sắp xếp theo ngày giờ
-    if (a.date !== b.date) {
-      return a.date.localeCompare(b.date);
+    // Mặc định: sắp xếp theo ngày giờ VN
+    const timeA = getVNTime(a.date, a.time, a.venue);
+    const timeB = getVNTime(b.date, b.time, b.venue);
+    if (timeA.date !== timeB.date) {
+      return timeA.date.localeCompare(timeB.date);
     }
-    return a.time.localeCompare(b.time);
+    return timeA.time.localeCompare(timeB.time);
   });
 
   return (
@@ -684,7 +687,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                           {/* Card Header */}
                           <div className="flex justify-between items-center text-[10px] text-gray-500 mb-2.5">
                             <span className="bg-card-border px-2 py-0.5 rounded-full font-semibold">{fixture.group}</span>
-                            <span>{fixture.date} • {fixture.time}</span>
+                            <span>{getVNTime(fixture.date, fixture.time, fixture.venue).formatted} (Giờ VN)</span>
                           </div>
 
                           {/* Teams Matchup */}
@@ -818,7 +821,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                             {fixture.group}
                           </span>
                           <span className="text-[10px] text-gray-500 font-medium whitespace-nowrap">
-                            {fixture.date} • {fixture.time}
+                            {getVNTime(fixture.date, fixture.time, fixture.venue).formatted} (VN)
                           </span>
                         </div>
 
@@ -1004,7 +1007,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
             {/* Teams Matchup Header */}
             <div className="bg-[#0B0F17]/50 rounded-xl p-3.5 border border-card-border/50 text-center mb-4 relative overflow-hidden">
               <div className="absolute top-0 right-0 text-[8px] text-gray-550 font-bold bg-card-border/40 px-2 py-0.5 rounded-bl">
-                {modalData.fixture.date} • {modalData.fixture.time}
+                {getVNTime(modalData.fixture.date, modalData.fixture.time, modalData.fixture.venue).formatted} (VN)
               </div>
               
               {modalData.prediction.modelUsed && (
@@ -1290,7 +1293,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
             {/* Teams Matchup & Score Header */}
             <div className="bg-[#0B0F17]/50 rounded-xl p-4 border border-card-border/50 text-center mb-4 relative overflow-hidden">
               <div className="absolute top-0 right-0 text-[8px] text-gray-550 font-bold bg-card-border/40 px-2 py-0.5 rounded-bl">
-                {resultModalData.fixture.date} • {resultModalData.fixture.time}
+                {getVNTime(resultModalData.fixture.date, resultModalData.fixture.time, resultModalData.fixture.venue).formatted} (VN)
               </div>
               
               {resultModalData.modelUsed && (

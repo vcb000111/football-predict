@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { getTeamFlag } from '@/lib/flags';
 import { saveLastUsedModel } from '@/lib/models-client';
+import { getVNTime } from '@/lib/timezone';
 
 function getPredictionStatus(predHome, predAway, actHome, actAway) {
   if (actHome === null || actHome === undefined || actAway === null || actAway === undefined) {
@@ -255,7 +256,7 @@ export default function MatchClient({ match }) {
           <div className="text-center text-[10px] text-gray-500 font-semibold mb-3 flex items-center justify-center space-x-2">
             <span className="bg-card-border px-2.5 py-0.5 rounded-full uppercase tracking-wider">{match.group}</span>
             <span>•</span>
-            <span>{match.date} • {match.time}</span>
+            <span>{getVNTime(match.date, match.time, match.venue).formatted} (Giờ VN) • {match.time} {match.date} (Giờ địa phương)</span>
           </div>
 
           <div className="flex flex-row items-center justify-between px-2 sm:px-8">
