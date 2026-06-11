@@ -8,10 +8,12 @@ Tất cả những thay đổi nổi bật đối với dự án **FIFA World Cu
 * **Tính năng đồng bộ cấu hình nhanh:** Bổ sung tùy chọn đồng bộ nhanh các cài đặt và khóa chức năng từ hệ thống máy chủ vào ứng dụng thông qua giao diện quản trị, tự động loại bỏ các cài đặt trùng lặp để tối ưu hóa hiệu năng.
 * **Tích hợp hiển thị giờ Việt Nam (UTC+7):** Tự động quy đổi thời gian thi đấu từ giờ địa phương của 16 sân vận động World Cup 2026 (Mỹ, Canada, Mexico) và các trận giao hữu warm-up tại châu Âu sang giờ Việt Nam.
 * **Hiển thị song song hai múi giờ:** Hiển thị giờ VN làm chủ đạo trên trang chủ (Grid/List) và hiển thị song song giờ VN cùng giờ địa phương trên trang chi tiết trận đấu để người dùng dễ dàng đối chiếu.
+* **Bổ sung Critic Guardrails (Ràng buộc logic):** Đưa thêm bộ quy tắc chống mâu thuẫn kèo vào prompt phản biện của Critic (ví dụ: cấm khuyên cược Hòa khi dự đoán có đội thắng, bắt buộc kèo chấp và tài xỉu phải nhất quán toán học với dự đoán tỉ số).
 
 ### Changed (Thay đổi logic)
 * **Đồng bộ logic sắp xếp (Sorting):** Điều chỉnh cơ chế sắp xếp mặc định theo ngày giờ của danh sách trận đấu trên trang chủ dựa trên thời gian Việt Nam sau quy đổi, đảm bảo các trận đấu được sắp xếp tuyến tính chuẩn xác.
 * **Cơ chế Hydration Safety:** Xây dựng helper timezone độc lập giúp server-side rendering và client-side rendering trả về kết quả thời gian đồng nhất, khắc phục triệt để lỗi Hydration Mismatch của React/Next.js.
+* **Khóa Temperature = 0:** Cố định nhiệt độ sinh chữ (`temperature = 0`) cho cả API Gemini và Groq Cloud, triệt tiêu tính ngẫu nhiên giữa các lần dự đoán với cùng một đầu vào.
 
 ### Fixed (Sửa lỗi)
 * **Khắc phục lỗi dự đoán:** Sửa lỗi phân tích trận đấu bị gián đoạn và không hiển thị kết quả khi chạy thực tế.

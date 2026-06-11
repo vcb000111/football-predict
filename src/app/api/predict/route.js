@@ -216,6 +216,7 @@ async function callSingleModel(model, apiKeys, prompt) {
         contents: prompt,
         config: {
           abortSignal: AbortSignal.timeout(35000), // Timeout sau 35 giây
+          temperature: 0,
         },
       });
       return {
