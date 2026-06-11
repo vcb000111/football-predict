@@ -127,23 +127,31 @@ function wrapDbWithObfuscation(db) {
   const originalAll = db.all.bind(db);
   const originalRun = db.run.bind(db);
 
-  db.get = async (sql, params = []) => {
-    const res = await originalGet(sql, params);
-    const cleanSql = sql.toLowerCase();
-    // Bỏ qua giải mã nếu là truy vấn cấu hình quản trị admin (để hiển thị dạng mã hóa và yêu cầu bấm giải mã trên UI)
-    const isConfigQuery = cleanSql.includes('from api_keys') || cleanSql.includes('from search_api_keys');
-    if (isConfigQuery) {
+  db.get = async (sql, params = [], options = {}) => {
+    let actualParams = params;
+    let actualOptions = options;
+    if (params && typeof params === 'object' && !Array.isArray(params)) {
+      actualOptions = params;
+      actualParams = [];
+    }
+
+    const res = await originalGet(sql, actualParams);
+    if (actualOptions.raw) {
       return res;
     }
     return deobfuscateRow(res);
   };
 
-  db.all = async (sql, params = []) => {
-    const res = await originalAll(sql, params);
-    const cleanSql = sql.toLowerCase();
-    // Bỏ qua giải mã nếu là truy vấn cấu hình quản trị admin (để hiển thị dạng mã hóa và yêu cầu bấm giải mã trên UI)
-    const isConfigQuery = cleanSql.includes('from api_keys') || cleanSql.includes('from search_api_keys');
-    if (isConfigQuery) {
+  db.all = async (sql, params = [], options = {}) => {
+    let actualParams = params;
+    let actualOptions = options;
+    if (params && typeof params === 'object' && !Array.isArray(params)) {
+      actualOptions = params;
+      actualParams = [];
+    }
+
+    const res = await originalAll(sql, actualParams);
+    if (actualOptions.raw) {
       return res;
     }
     return deobfuscateRows(res);

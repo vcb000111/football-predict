@@ -6,7 +6,7 @@ export async function GET() {
     const db = await getDB();
     
     // Lấy danh sách API Keys
-    const apiKeys = await db.all(`SELECT * FROM api_keys ORDER BY id ASC`);
+    const apiKeys = await db.all(`SELECT * FROM api_keys ORDER BY id ASC`, [], { raw: true });
     
     // Lấy danh sách AI Models sắp xếp theo priority
     const models = await db.all(`SELECT * FROM ai_models ORDER BY priority ASC`);
@@ -15,7 +15,7 @@ export async function GET() {
     const searchProviders = await db.all(`SELECT * FROM search_providers ORDER BY priority ASC`);
 
     // Lấy danh sách Search API Keys
-    const searchApiKeys = await db.all(`SELECT * FROM search_api_keys ORDER BY id ASC`);
+    const searchApiKeys = await db.all(`SELECT * FROM search_api_keys ORDER BY id ASC`, [], { raw: true });
     
     return NextResponse.json({
       apiKeys,
@@ -141,10 +141,10 @@ export async function POST(request) {
     }
     
     // Lấy lại dữ liệu mới sau khi lưu thành công để cập nhật UI
-    const updatedApiKeys = await db.all(`SELECT * FROM api_keys ORDER BY id ASC`);
+    const updatedApiKeys = await db.all(`SELECT * FROM api_keys ORDER BY id ASC`, [], { raw: true });
     const updatedModels = await db.all(`SELECT * FROM ai_models ORDER BY priority ASC`);
     const updatedSearchProviders = await db.all(`SELECT * FROM search_providers ORDER BY priority ASC`);
-    const updatedSearchApiKeys = await db.all(`SELECT * FROM search_api_keys ORDER BY id ASC`);
+    const updatedSearchApiKeys = await db.all(`SELECT * FROM search_api_keys ORDER BY id ASC`, [], { raw: true });
     
     return NextResponse.json({
       success: true,

@@ -90,6 +90,10 @@ npm run dev
 
 ## 🛠️ Nhật Ký Thay Đổi (Changelog)
 
+### [2026-06-11] - Tính năng đồng bộ cấu hình nhanh và sửa lỗi dự đoán (v1.7.1)
+* **Tính năng đồng bộ cấu hình nhanh:** Bổ sung tùy chọn đồng bộ nhanh các cài đặt và khóa chức năng từ hệ thống máy chủ vào ứng dụng thông qua giao diện quản trị, tự động loại bỏ các cài đặt trùng lặp để tối ưu hóa hiệu năng.
+* **Khắc phục lỗi dự đoán:** Sửa lỗi phân tích trận đấu bị gián đoạn và không hiển thị kết quả khi chạy thực tế.
+
 ### [2026-06-07] - Nạp 50 trận đấu CLB mới, bộ lọc Mùa giải, Cải tiến Logic Handicap & Phạt góc & Chống Look-ahead Bias (v1.7.0)
 * **Tích hợp 50 trận đấu thực tế mới**: Thêm 30 trận EPL và 20 trận La Liga mùa giải 2024-2025 vào dữ liệu. Bổ sung thuộc tính `season` cho toàn bộ 187 trận đấu trong `fixtures.json`.
 * **Bộ lọc mùa giải trên Trang chủ**: Thiết kế bộ lọc Mùa giải (Season Filter) cạnh dropdown Giải đấu, hỗ trợ khôi phục/lưu `localStorage` (`homepage_season_filter`) và UX Gating tự động reset tránh màn hình trống.

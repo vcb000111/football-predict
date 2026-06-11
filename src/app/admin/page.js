@@ -13,6 +13,7 @@ export default function AdminConfigPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
+  const [syncingEnv, setSyncingEnv] = useState(false);
 
   // --- TRẠNG THÁI BẢO MẬT & GIẢI MÃ ---
   const [isAuthenticated, setIsAuthenticated] = useState(true);
@@ -366,6 +367,26 @@ export default function AdminConfigPage() {
 
   const handleToggleKeyShow = (id) => {
     setShowKeys(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleSyncEnvKeys = async () => {
+    setSyncingEnv(true);
+    try {
+      const res = await fetch('/api/admin/config/sync-env-keys', {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showStatusMessage(data.message, 'success');
+        fetchConfig();
+      } else {
+        throw new Error(data.error || 'Đồng bộ thất bại');
+      }
+    } catch (err) {
+      showStatusMessage('🔴 Lỗi khi đồng bộ keys: ' + err.message, 'error');
+    } finally {
+      setSyncingEnv(false);
+    }
   };
 
   // --- API KEY ACTIONS (Google Gemini) ---
@@ -953,9 +974,19 @@ Lưu ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
                       <span className="text-primary">🔑</span>
                       <span>Danh Sách API Keys (Google Gemini / Groq Cloud)</span>
                     </h2>
-                    <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2.5 py-0.5 rounded-full font-bold">
-                      {apiKeys.length} Keys
-                    </span>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={handleSyncEnvKeys}
+                        disabled={syncingEnv}
+                        className="bg-[#151E2E] hover:bg-primary/20 border border-card-border/60 hover:border-primary/50 text-[10px] text-gray-400 hover:text-primary px-2.5 py-1 rounded-xl transition-all cursor-pointer disabled:opacity-50 flex items-center space-x-1"
+                      >
+                        <span>{syncingEnv ? '⏳' : '🔄'}</span>
+                        <span>Đồng bộ từ env</span>
+                      </button>
+                      <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2.5 py-0.5 rounded-full font-bold">
+                        {apiKeys.length} Keys
+                      </span>
+                    </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-2">
