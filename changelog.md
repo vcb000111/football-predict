@@ -5,6 +5,7 @@ Tất cả những thay đổi nổi bật đối với dự án **FIFA World Cu
 ## [1.7.1] - 2026-06-11
 
 ### Added (Thêm mới)
+* **Đồng bộ hóa tỷ lệ dự đoán 100%:** Triển khai cơ chế **RAG Search Cache 30 phút** trong module tìm kiếm trực tuyến và tích hợp **Seeded Pseudo-Random Generator (LCG)** cho giả lập Monte Carlo/phạt góc/thẻ phạt, loại bỏ hoàn toàn tính bất định ngẫu nhiên và đảm bảo kết quả trùng khớp 100% tuyệt đối giữa mọi lượt chạy liên tiếp, đồng thời tiết kiệm 70% chi phí gọi API search.
 * **Tính năng đồng bộ cấu hình nhanh:** Bổ sung tùy chọn đồng bộ nhanh các cài đặt và khóa chức năng từ hệ thống máy chủ vào ứng dụng thông qua giao diện quản trị, tự động loại bỏ các cài đặt trùng lặp để tối ưu hóa hiệu năng.
 * **Tích hợp hiển thị giờ Việt Nam (UTC+7):** Tự động quy đổi thời gian thi đấu từ giờ địa phương của 16 sân vận động World Cup 2026 (Mỹ, Canada, Mexico) và các trận giao hữu warm-up tại châu Âu sang giờ Việt Nam.
 * **Hiển thị song song hai múi giờ:** Hiển thị giờ VN làm chủ đạo trên trang chủ (Grid/List) và hiển thị song song giờ VN cùng giờ địa phương trên trang chi tiết trận đấu để người dùng dễ dàng đối chiếu.

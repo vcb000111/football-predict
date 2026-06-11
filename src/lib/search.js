@@ -131,7 +131,10 @@ async function searchDuckDuckGoFallback(query) {
   }
 }
 
-export async function searchInternet(query) {
+const searchCache = new Map();
+const CACHE_TTL = 30 * 60 * 1000; // Cache 30 phút
+
+async function performSearch(query) {
   try {
     const db = await getDB();
     
@@ -185,3 +188,30 @@ export async function searchInternet(query) {
   console.log('   - ⚠️ [SEARCH] Fallback: Sử dụng công cụ cào DuckDuckGo Scraper làm dự phòng cuối cùng.');
   return await searchDuckDuckGoFallback(query);
 }
+
+export async function searchInternet(query) {
+  const cacheKey = query.trim();
+  if (searchCache.has(cacheKey)) {
+    const cached = searchCache.get(cacheKey);
+    const age = Date.now() - cached.timestamp;
+    if (age < CACHE_TTL) {
+      console.log(`   - ⚡ [SEARCH CACHE HIT] Sử dụng kết quả tìm kiếm đã lưu cho: "${cacheKey}" (tuổi: ${(age/1000).toFixed(1)}s)`);
+      return cached.data;
+    } else {
+      searchCache.delete(cacheKey);
+    }
+  }
+
+  const data = await performSearch(query);
+  
+  // Chỉ cache nếu lấy được dữ liệu hợp lệ
+  if (data && data.length > 0) {
+    searchCache.set(cacheKey, {
+      data,
+      timestamp: Date.now()
+    });
+  }
+  
+  return data;
+}
+

@@ -379,6 +379,7 @@ export async function POST(request) {
 
     // --- OPTION 1: TRUY VẤN DỮ LIỆU ĐỊNH LƯỢNG (ELO & FIFA RANK) TỪ SQLITE ---
     let homeTeamData = { 
+      team_name: homeTeam,
       fifa_rank: 50, 
       elo_rating: 1600, 
       recent_form: "D,D,D,D,D", 
@@ -392,6 +393,7 @@ export async function POST(request) {
       tactical_analysis: "Đang cập nhật" 
     };
     let awayTeamData = { 
+      team_name: awayTeam,
       fifa_rank: 50, 
       elo_rating: 1600, 
       recent_form: "D,D,D,D,D", 

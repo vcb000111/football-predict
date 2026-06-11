@@ -147,17 +147,46 @@ export function calculateMatchPoisson(homeStats, awayStats, isHomeAdvantage = fa
   };
 }
 
-// Sinh số ngẫu nhiên theo phân phối Poisson (Thuật toán Knuth)
-function getPoissonRandom(lambda) {
+// Bộ sinh số giả ngẫu nhiên có Seed (LCG) để đảm bảo tính deterministic cho Monte Carlo
+function createSeedRandom(seed) {
+  const m = 0x80000000; // 2**31
+  const a = 1103515245;
+  const c = 12345;
+  let state = seed ? seed : 123456789;
+  
+  return function() {
+    state = (a * state + c) % m;
+    return state / (m - 1);
+  };
+}
+
+function getSeedFromStats(homeStats, awayStats) {
+  const name1 = homeStats.team_name || 'Home';
+  const name2 = awayStats.team_name || 'Away';
+  const elo1 = homeStats.elo_rating || 1600;
+  const elo2 = awayStats.elo_rating || 1600;
+  
+  const str = `${name1}-${name2}-${elo1}-${elo2}`;
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash) || 123456;
+}
+
+// Sinh số ngẫu nhiên theo phân phối Poisson (Thuật toán Knuth) với randomFn tùy chỉnh
+function getPoissonRandom(lambda, randomFn = Math.random) {
   const L = Math.exp(-lambda);
   let k = 0;
   let p = 1;
   do {
     k++;
-    p *= Math.random();
+    p *= randomFn();
   } while (p > L);
   return k - 1;
 }
+
 
 /**
  * Mô phỏng Monte Carlo 10,000 lần để dự báo xác suất và tỉ số dựa trên Poisson
@@ -186,6 +215,10 @@ export function runMonteCarloSimulation(homeStats, awayStats, isHomeAdvantage = 
   lambdaHome = Math.max(0.1, lambdaHome);
   lambdaAway = Math.max(0.1, lambdaAway);
 
+  // Tạo seed giả ngẫu nhiên dựa trên thực lực 2 đội
+  const seed = getSeedFromStats(homeStats, awayStats);
+  const randomFn = createSeedRandom(seed);
+
   let homeWins = 0;
   let draws = 0;
   let awayWins = 0;
@@ -197,8 +230,8 @@ export function runMonteCarloSimulation(homeStats, awayStats, isHomeAdvantage = 
   const scoreCounts = {};
 
   for (let i = 0; i < iterations; i++) {
-    const hGoals = getPoissonRandom(lambdaHome);
-    const aGoals = getPoissonRandom(lambdaAway);
+    const hGoals = getPoissonRandom(lambdaHome, randomFn);
+    const aGoals = getPoissonRandom(lambdaAway, randomFn);
 
     if (hGoals > aGoals) {
       homeWins++;
@@ -357,18 +390,21 @@ export function calculateCornersAndCards(homeStats, awayStats, iterations = 1000
   }
 
   // 3. Chạy Monte Carlo giả lập
+  const seed = getSeedFromStats(homeStats, awayStats) + 999;
+  const randomFn = createSeedRandom(seed);
+
   let overCorners = 0;
   let overCards = 0;
 
   for (let i = 0; i < iterations; i++) {
-    const hc = getPoissonRandom(lambdaHomeCorners);
-    const ac = getPoissonRandom(lambdaAwayCorners);
+    const hc = getPoissonRandom(lambdaHomeCorners, randomFn);
+    const ac = getPoissonRandom(lambdaAwayCorners, randomFn);
     if (hc + ac > corners_line) {
       overCorners++;
     }
 
-    const hcard = getPoissonRandom(lambdaHomeCards);
-    const acard = getPoissonRandom(lambdaAwayCards);
+    const hcard = getPoissonRandom(lambdaHomeCards, randomFn);
+    const acard = getPoissonRandom(lambdaAwayCards, randomFn);
     if (hcard + acard > cards_line) {
       overCards++;
     }
