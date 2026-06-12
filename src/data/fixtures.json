@@ -145,7 +145,9 @@
       "group": "Group B",
       "venue": "BMO Field, Toronto",
       "tournament": "World Cup 2026",
-      "season": "2026"
+      "season": "2026",
+      "actualHomeScore": 2,
+      "actualAwayScore": 1
     },
     {
       "id": "m4",

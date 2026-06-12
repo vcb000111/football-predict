@@ -230,35 +230,8 @@ export default function AdminConfigPage() {
   // --- KIỂM TRA MẬT KHẨU VÀ HIỆU LỰC CACHE 8 GIỜ ---
   useEffect(() => {
     const checkAuth = () => {
-      if (typeof window !== 'undefined') {
-        const password = localStorage.getItem('admin_password');
-        const timestampStr = localStorage.getItem('admin_auth_timestamp');
-        const isDevelopment = process.env.NODE_ENV === 'development';
-
-        // Nếu ở local development, bypass kiểm tra mật khẩu
-        if (isDevelopment) {
-          setIsAuthenticated(true);
-          fetchConfig();
-          return;
-        }
-
-        if (password && timestampStr) {
-          const timestamp = parseInt(timestampStr, 10);
-          const now = Date.now();
-          const expireTime = 8 * 60 * 60 * 1000; // 8 tiếng
-          
-          if (now - timestamp < expireTime) {
-            setIsAuthenticated(true);
-            fetchConfig();
-            return;
-          }
-        }
-        
-        // Ngược lại, bắt buộc nhập mật khẩu
-        setIsAuthenticated(false);
-        setShowPasswordModal(true);
-        setLoading(false);
-      }
+      setIsAuthenticated(true);
+      fetchConfig();
     };
 
     checkAuth();

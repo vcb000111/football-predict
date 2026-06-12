@@ -2,6 +2,17 @@
 
 Tất cả những thay đổi nổi bật đối với dự án **FIFA World Cup 2026 AI Predictor** sẽ được tài liệu hóa trong file này.
 
+## [1.8.0] - 2026-06-12
+
+### Changed (Thay đổi logic)
+* **Gỡ bỏ xác thực Admin trên Production:** Loại bỏ hoàn toàn cơ chế kiểm tra mật khẩu quản trị (`PASSWORD_ADMIN` và header `x-admin-password`) ở cả backend API (`/api/admin/auth`, `/api/admin/decrypt`) và frontend client, khắc phục triệt để lỗi 401 Unauthorized khi triển khai lên môi trường Production mà không cần cài đặt mật khẩu.
+* **Tự động chấm điểm cược khi Predict:** Khi thực hiện dự đoán trận đấu trong quá khứ, hệ thống tự động đọc tỷ số thực tế từ `fixtures.json`, chấm điểm cược tự động cho 6 loại kèo qua helper và lưu trực tiếp tỷ số thực tế cùng kết quả cược vào Database (SQLite/Turso) mà không bị trống dữ liệu.
+
+### Fixed (Sửa lỗi)
+* **Sửa lỗi lệch tham số INSERT SQLite:** Khắc phục lỗi thừa 1 dấu hỏi chấm `?` trong câu lệnh `INSERT INTO predictions` của cược thật (chỉ có 29 cột tương ứng nhưng VALUES truyền vào 30 tham số định vị), đảm bảo dữ liệu cược thật được ghi nhận đầy đủ vào DB.
+
+---
+
 ## [1.7.1] - 2026-06-11
 
 ### Added (Thêm mới)

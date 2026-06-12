@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { getDB } from '@/lib/db';
+import { updateMatchResult, evaluateBetOutcome } from '@/lib/results-updater';
 import { searchInternet } from '@/lib/search';
 import { calculateMatchPoisson, runMonteCarloSimulation, calculateCornersAndCards } from '@/lib/poisson';
 import { callGroqModel } from '@/lib/groq';
@@ -371,6 +372,27 @@ export async function POST(request) {
       }
     }
 
+    // --- TỰ ĐỘNG CẬP NHẬT KẾT QUẢ CHO CÁC TRẬN ĐẤU ĐÃ DIỄN RA ---
+    const currentTime = new Date();
+    let isPastMatch = false;
+    if (fixture && fixture.date) {
+      const matchDateStr = fixture.date;
+      const matchTimeStr = fixture.time || '12:00';
+      const fixtureTime = new Date(`${matchDateStr}T${matchTimeStr}:00`);
+      if (fixtureTime < currentTime) {
+        isPastMatch = true;
+      }
+    }
+
+    if (isPastMatch && !hasActualResult && db && !isBacktest) {
+      console.log(`🔁 [Auto Result Update on Predict] Trận đấu ${homeTeam} vs ${awayTeam} đã diễn ra nhưng chưa có tỷ số thực tế. Tự động lấy kết quả...`);
+      const autoResult = await updateMatchResult({ homeTeam, awayTeam, matchId, force: false, db });
+      if (autoResult && autoResult.success) {
+        hasActualResult = true;
+        console.log(`🟢 [Auto Result Update on Predict] Tự động cập nhật kết quả thành công: ${autoResult.actualScore.home}-${autoResult.actualScore.away}`);
+      }
+    }
+
     // --- TỰ ĐỘNG CẬP NHẬT ELO QUA RAG TRƯỚC TRẬN ĐẤU ---
     // Bỏ qua khi chạy Backtest để tránh rò rỉ dữ liệu và tiết kiệm tài nguyên
     if (!isBacktest && db && geminiKeys.length > 0 && geminiModels.length > 0) {
@@ -612,12 +634,55 @@ Tỷ lệ dự đoán đúng kết quả chung cuộc (1X2) gần đây của b�
       }
     }
 
+    // --- LẤY TỶ SỐ THỰC TẾ ĐỂ CHẤM ĐIỂM NẾU TRẬN ĐẤU ĐÃ KẾT THÚC ---
+    let actualHomeScore = null;
+    let actualAwayScore = null;
+    if (hasActualResult) {
+      try {
+        const fixturesPath = path.join(process.cwd(), 'src', 'data', 'fixtures.json');
+        if (fs.existsSync(fixturesPath)) {
+          const fixturesData = JSON.parse(fs.readFileSync(fixturesPath, 'utf8'));
+          const f = fixturesData.fixtures?.find(x => x.id === matchId || (x.homeTeam === homeTeam && x.awayTeam === awayTeam));
+          if (f && f.actualHomeScore !== null && f.actualHomeScore !== undefined) {
+            actualHomeScore = parseInt(f.actualHomeScore, 10);
+            actualAwayScore = parseInt(f.actualAwayScore, 10);
+            console.log(`🏆 [Predict Route Score Retrieval] Đọc được tỷ số thực tế từ fixtures.json: ${actualHomeScore}-${actualAwayScore}`);
+          }
+        }
+      } catch (e) {
+        console.error('Lỗi khi đọc tỷ số thực tế từ fixtures.json:', e);
+      }
+    }
+
     // Chế độ giả lập (Mock Mode) nếu thiếu cấu hình
     if (apiKeys.length === 0 || MODELS.length === 0) {
       console.log(`💡 [MOCK MODE] Không có API Key/Model hoạt động. Chạy giả lập cho: ${homeTeam} vs ${awayTeam}`);
       const mockData = getMockPrediction(homeTeam, awayTeam, true, 'Thiếu cấu hình API Key hoặc Model trong DB. Đang chạy giả lập.', historicalAccuracy, homeTeamData, awayTeamData, isHomeAdvantage);
       if (db) {
         try {
+          let evalResultsMock = null;
+          if (actualHomeScore !== null && actualAwayScore !== null) {
+            evalResultsMock = evaluateBetOutcome(
+              mockData.bets.oneXTwo.recommendation,
+              mockData.bets.overUnder.recommendation,
+              mockData.bets.handicap.recommendation,
+              mockData.bets.btts.recommendation,
+              mockData.bets.corners.recommendation,
+              mockData.bets.cards.recommendation,
+              { home: mockData.predictedScore.home, away: mockData.predictedScore.away },
+              actualHomeScore,
+              actualAwayScore,
+              null,
+              null,
+              homeTeam,
+              awayTeam,
+              parseFloat(mockData.bets.overUnder.line),
+              parseFloat(mockData.bets.corners.line),
+              parseFloat(mockData.bets.cards.line),
+              parseFloat(marketHandicap || 0.0)
+            );
+          }
+
           await db.run(
             `INSERT INTO predictions (
               match_id, home_team, away_team, 
@@ -626,8 +691,11 @@ Tỷ lệ dự đoán đúng kết quả chung cuộc (1X2) gần đây của b�
               recommendation_1x2, recommendation_ou, recommendation_handicap,
               recommendation_btts, recommendation_corners, recommendation_cards,
               ou_line, corners_line, cards_line, handicap_line,
-              raw_prediction_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              actual_home_score, actual_away_score,
+              is_correct, is_correct_ou, is_correct_handicap,
+              is_correct_btts, is_correct_corners, is_correct_cards,
+              bet_evaluation_details, raw_prediction_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               matchId || null, homeTeam, awayTeam,
               mockData.predictedScore.home, mockData.predictedScore.away,
@@ -638,6 +706,14 @@ Tỷ lệ dự đoán đúng kết quả chung cuộc (1X2) gần đây của b�
               parseFloat(mockData.bets.corners.line),
               parseFloat(mockData.bets.cards.line),
               parseFloat(marketHandicap || 0.0),
+              actualHomeScore, actualAwayScore,
+              evalResultsMock ? evalResultsMock.isCorrect_1x2 : null,
+              evalResultsMock ? evalResultsMock.isCorrect_ou : null,
+              evalResultsMock ? evalResultsMock.isCorrect_handicap : null,
+              evalResultsMock ? evalResultsMock.isCorrect_btts : null,
+              evalResultsMock ? evalResultsMock.isCorrect_corners : null,
+              evalResultsMock ? evalResultsMock.isCorrect_cards : null,
+              evalResultsMock ? JSON.stringify({ ...evalResultsMock.evalDetails, summary: 'Giả lập chấm điểm tự động', modelUsed: 'Dự phòng / Mock' }) : null,
               JSON.stringify(mockData)
             ]
           );
@@ -1202,6 +1278,29 @@ Hãy đánh giá bản nháp và tự lập luận logic dựa trên các chỉ 
           } catch (e) { /* bỏ qua lỗi đọc tournament */ }
         }
 
+        let evalResults = null;
+        if (actualHomeScore !== null && actualAwayScore !== null) {
+          evalResults = evaluateBetOutcome(
+            predictionData.bets.oneXTwo.recommendation,
+            predictionData.bets.overUnder.recommendation,
+            predictionData.bets.handicap.recommendation,
+            predictionData.bets.btts?.recommendation || 'No',
+            predictionData.bets.corners?.recommendation || 'Under 8.5 Corners',
+            predictionData.bets.cards?.recommendation || 'Under 3.5 Cards',
+            { home: predictionData.predictedScore.home, away: predictionData.predictedScore.away },
+            actualHomeScore,
+            actualAwayScore,
+            null,
+            null,
+            homeTeam,
+            awayTeam,
+            predictionData.bets.overUnder.line,
+            predictionData.bets.corners.line,
+            predictionData.bets.cards.line,
+            parseFloat(marketHandicap || 0.0)
+          );
+        }
+
         await db.run(
           `INSERT INTO predictions (
             match_id, home_team, away_team, 
@@ -1210,8 +1309,11 @@ Hãy đánh giá bản nháp và tự lập luận logic dựa trên các chỉ 
             recommendation_1x2, recommendation_ou, recommendation_handicap,
             recommendation_btts, recommendation_corners, recommendation_cards,
             ou_line, corners_line, cards_line, handicap_line,
-            raw_prediction_json, tournament
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            actual_home_score, actual_away_score,
+            is_correct, is_correct_ou, is_correct_handicap,
+            is_correct_btts, is_correct_corners, is_correct_cards,
+            bet_evaluation_details, raw_prediction_json, tournament
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             matchId || null, homeTeam, awayTeam,
             predictionData.predictedScore.home, predictionData.predictedScore.away,
@@ -1222,6 +1324,14 @@ Hãy đánh giá bản nháp và tự lập luận logic dựa trên các chỉ 
             predictionData.bets.corners.line,
             predictionData.bets.cards.line,
             parseFloat(marketHandicap || 0.0),
+            actualHomeScore, actualAwayScore,
+            evalResults ? evalResults.isCorrect_1x2 : null,
+            evalResults ? evalResults.isCorrect_ou : null,
+            evalResults ? evalResults.isCorrect_handicap : null,
+            evalResults ? evalResults.isCorrect_btts : null,
+            evalResults ? evalResults.isCorrect_corners : null,
+            evalResults ? evalResults.isCorrect_cards : null,
+            evalResults ? JSON.stringify({ ...evalResults.evalDetails, summary: 'Chấm điểm tự động qua dự đoán', modelUsed }) : null,
             JSON.stringify(responsePayload),
             tournamentName
           ]
