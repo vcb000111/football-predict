@@ -189,13 +189,19 @@ async function performSearch(query) {
   return await searchDuckDuckGoFallback(query);
 }
 
+const LIVE_CACHE_TTL = 5 * 60 * 1000; // Cache 5 phút cho kết quả trực tiếp
+
 export async function searchInternet(query) {
   const cacheKey = query.trim();
+  const queryLower = cacheKey.toLowerCase();
+  const isLiveQuery = queryLower.includes('score') || queryLower.includes('result') || queryLower.includes('goals') || queryLower.includes('corners') || queryLower.includes('cards');
+  const activeTTL = isLiveQuery ? LIVE_CACHE_TTL : CACHE_TTL;
+
   if (searchCache.has(cacheKey)) {
     const cached = searchCache.get(cacheKey);
     const age = Date.now() - cached.timestamp;
-    if (age < CACHE_TTL) {
-      console.log(`   - ⚡ [SEARCH CACHE HIT] Sử dụng kết quả tìm kiếm đã lưu cho: "${cacheKey}" (tuổi: ${(age/1000).toFixed(1)}s)`);
+    if (age < activeTTL) {
+      console.log(`   - ⚡ [SEARCH CACHE HIT] Sử dụng kết quả tìm kiếm đã lưu cho: "${cacheKey}" (tuổi: ${(age/1000).toFixed(1)}s, TTL: ${(activeTTL/1000).toFixed(0)}s)`);
       return cached.data;
     } else {
       searchCache.delete(cacheKey);
@@ -214,4 +220,5 @@ export async function searchInternet(query) {
   
   return data;
 }
+
 

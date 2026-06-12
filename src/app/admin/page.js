@@ -178,7 +178,8 @@ export default function AdminConfigPage() {
           body: JSON.stringify({
             homeTeam: fixture.homeTeam,
             awayTeam: fixture.awayTeam,
-            matchId: fixture.id
+            matchId: fixture.id,
+            force: true
           })
         });
 

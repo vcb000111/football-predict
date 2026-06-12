@@ -811,6 +811,8 @@ Lưu ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
         .replace(/{{total}}/g, history.length);
     }
 
+    const systemTimeStr = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+
     // Lắp ráp final system prompt
     let finalSystemPrompt = systemPromptTemplate
       .replace(/{{homeTeam}}/g, homeTeam)
@@ -819,6 +821,11 @@ Lưu ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
       .replace(/{{awayStats}}/g, awayStatsString)
       .replace(/{{poissonMonteCarlo}}/g, poissonMonteCarloString)
       .replace(/{{feedbackSection}}/g, feedbackPromptSection);
+
+    // Tiêm mốc thời gian hệ thống nếu không có sẵn trong template
+    if (!finalSystemPrompt.includes('Thời điểm hiện tại của hệ thống')) {
+      finalSystemPrompt = `Thời điểm hiện tại của hệ thống: ${systemTimeStr} (Sử dụng mốc thời gian này để đối chiếu với thời gian diễn ra trận đấu thực tế).\n\n` + finalSystemPrompt;
+    }
 
     if (lessonsString) {
       finalSystemPrompt += `\n\n--- CÁC BÀI HỌC RÚT KINH NGHIỆM TỪ CÁC DỰ ĐOÁN SAI TRONG QUÁ KHỨ ---\n${lessonsString}\nLưu ý: Hãy đặc biệt chú ý đến các bài học rút kinh nghiệm trên để tinh chỉnh nhận định tránh sai lầm cũ.`;
@@ -1017,6 +1024,10 @@ Hãy tự lập luận logic dựa trên các chỉ số định lượng ELO, P
           .replace(/{{draftPrediction}}/g, draftsCombinedText)
           .replace(/{{poissonMonteCarlo}}/g, poissonMonteCarloString)
           .replace(/{{searchContext}}/g, searchContext);
+
+        if (!criticPrompt.includes('Thời điểm hiện tại của hệ thống')) {
+          criticPrompt = `Thời điểm hiện tại của hệ thống: ${systemTimeStr} (Sử dụng mốc thời gian này để đối chiếu với thời gian diễn ra trận đấu thực tế).\n\n` + criticPrompt;
+        }
 
         if (hasActualResult) {
           criticPrompt += `\n\n--- [CHỈ THỊ KIỂM THỬ KHÁCH QUAN] ---

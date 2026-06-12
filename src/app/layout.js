@@ -24,8 +24,8 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="vi" className={`${outfit.variable} ${inter.variable} h-full`}>
-      <body className="min-h-full flex flex-col bg-background text-foreground antialiased font-sans">
+    <html lang="vi" className={`${outfit.variable} ${inter.variable} h-full`} suppressHydrationWarning>
+      <body className="min-h-full flex flex-col bg-background text-foreground antialiased font-sans" suppressHydrationWarning>
         
         {/* Navigation Bar */}
         <header className="sticky top-0 z-50 glass-panel border-b border-card-border">

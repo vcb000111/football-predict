@@ -182,6 +182,20 @@ export default function MatchClient({ match }) {
 
 
   const handleAutoUpdateResult = async () => {
+    // Nếu trận đấu đã có kết quả thực tế, hỏi xác nhận để Force Update
+    let isForce = false;
+    const hasResult = (match.actualHomeScore !== null && match.actualHomeScore !== undefined) || 
+                      (prediction && prediction.actual_home_score !== null && prediction.actual_home_score !== undefined);
+    
+    if (hasResult) {
+      const currentScore = match.actualHomeScore !== null && match.actualHomeScore !== undefined
+        ? `${match.actualHomeScore} - ${match.actualAwayScore}` 
+        : `${prediction.actual_home_score} - ${prediction.actual_away_score}`;
+      const confirmForce = window.confirm(`Trận đấu này đã được cập nhật kết quả trước đó (${currentScore}). Bạn có muốn ép cập nhật lại (Force Update) bằng AI để ghi đè dữ liệu cũ không?`);
+      if (!confirmForce) return;
+      isForce = true;
+    }
+
     setUpdatingAuto(true);
     setResMessage(null);
     try {
@@ -191,7 +205,8 @@ export default function MatchClient({ match }) {
         body: JSON.stringify({
           homeTeam: match.homeTeam,
           awayTeam: match.awayTeam,
-          matchId: match.id
+          matchId: match.id,
+          force: isForce
         })
       });
 

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { getDB } from '@/lib/db';
 import { searchInternet } from '@/lib/search';
+import { callGroqModel } from '@/lib/groq';
 import fixturesData from '@/data/fixtures.json';
 import fs from 'fs';
 import path from 'path';
@@ -241,7 +242,7 @@ function evaluateBetOutcome(rec1x2, recOu, recHandicap, recBtts, recCorners, rec
 
 export async function POST(request) {
   try {
-    const { homeTeam, awayTeam, matchId } = await request.json();
+    const { homeTeam, awayTeam, matchId, force } = await request.json();
 
     if (!homeTeam || !awayTeam) {
       return NextResponse.json(
@@ -253,18 +254,25 @@ export async function POST(request) {
     let db = null;
     let apiKeys = [];
     let MODELS = [];
+    let geminiKeys = [];
+    let groqKeys = [];
 
     // Mở cơ sở dữ liệu SQLite trước để lấy cấu hình
     try {
       db = await getDB();
       
       // Đọc các API Keys hoạt động từ DB
-      const activeKeysRows = await db.all("SELECT key_value FROM api_keys WHERE status = 1");
-      apiKeys = Array.from(new Set(activeKeysRows.map(row => row.key_value.trim())));
+      const activeKeysRows = await db.all("SELECT key_value, provider FROM api_keys WHERE status = 1");
+      geminiKeys = Array.from(new Set(activeKeysRows.filter(r => (r.provider || 'gemini') === 'gemini').map(row => row.key_value.trim())));
+      groqKeys = Array.from(new Set(activeKeysRows.filter(r => r.provider === 'groq').map(row => row.key_value.trim())));
+      apiKeys = geminiKeys; // Dành cho tương thích ngược Mock Mode
       
       // Đọc các AI Models hoạt động từ DB theo độ ưu tiên
-      const activeModelsRows = await db.all("SELECT model_name FROM ai_models WHERE status = 1 ORDER BY priority ASC");
-      MODELS = activeModelsRows.map(row => row.model_name.trim());
+      const activeModelsRows = await db.all("SELECT model_name, provider FROM ai_models WHERE status = 1 ORDER BY priority ASC");
+      MODELS = activeModelsRows.map(row => ({
+        name: row.model_name.trim(),
+        provider: row.provider ? row.provider.trim().toLowerCase() : 'gemini'
+      }));
     } catch (dbInitError) {
       console.error('Lỗi khi tải API keys/models từ SQLite:', dbInitError);
     }
@@ -328,16 +336,32 @@ export async function POST(request) {
       );
     }
 
-    // Nếu không có bản ghi nào chưa chấm, ta cập nhật lại cho bản ghi mẫu gần nhất để tránh lỗi giao diện
+    // Nếu không có bản ghi nào chưa chấm
     if (pendingPredictions.length === 0) {
-      pendingPredictions = [sampleRecord];
+      if (force === true) {
+        // Force Update: Lấy lại toàn bộ cược của trận đấu này để cập nhật đè
+        if (matchId) {
+          pendingPredictions = await db.all(
+            'SELECT * FROM predictions WHERE match_id = ?',
+            [matchId]
+          );
+        } else {
+          pendingPredictions = await db.all(
+            'SELECT * FROM predictions WHERE home_team = ? AND away_team = ?',
+            [homeTeam, awayTeam]
+          );
+        }
+      } else {
+        // Mặc định: Giữ nguyên logic cũ cập nhật cho bản ghi mẫu gần nhất
+        pendingPredictions = [sampleRecord];
+      }
     }
 
     // 4. CHẾ ĐỘ GIẢ LẬP (MOCK MODE) khi không có API Key hoặc Model hoạt động
     if (apiKeys.length === 0 || MODELS.length === 0) {
       console.log(`\n💡 [MOCK MODE - AUTO UPDATE] Không có API Key hoặc Model hoạt động trong DB. Chạy giả lập chấm điểm cho: ${homeTeam} vs ${awayTeam}`);
 
-      const currentTime = new Date('2026-06-05T23:42:17+07:00'); // Lấy mốc thời gian hệ thống cung cấp
+      const currentTime = new Date(); // Lấy thời gian thực của hệ thống
       let isFuture = false;
       if (matchDate) {
         const fixtureTime = new Date(`${matchDate}T12:00:00`);
@@ -465,12 +489,15 @@ export async function POST(request) {
       searchDateStr = `${monthName} ${dayNum}, ${yearStr}`;
     }
 
+    const systemTimeStr = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+
     // 5. CHẾ ĐỘ REAL MODE: Gọi Gemini AI cùng Search Grounding
     const prompt = `Hãy phân tích kết quả tỷ số thực tế và trạng thái của trận đấu bóng đá giữa:
 Đội nhà (Home Team): ${homeTeam}
 Đội khách (Away Team): ${awayTeam}
 ${matchDate ? `Ngày diễn ra trận đấu: ${matchDate} (${searchDateStr})` : ''}
 ${matchVenue ? `Địa điểm/Sân vận động: ${matchVenue}` : ''}
+Thời điểm hiện tại của hệ thống: ${systemTimeStr} (Sử dụng mốc thời gian này để đối chiếu với thời gian diễn ra trận đấu thực tế).
 
 Hãy sử dụng thông tin kết quả tra cứu từ internet được cung cấp dưới đây về trận đấu thực tế diễn ra vào ngày ${searchDateStr || 'gần đây nhất'}. Hãy lấy kết quả thực tế của trận đấu đó (tỉ số, phạt góc, thẻ phạt) để chấm điểm và trả về trạng thái "finished".
 
@@ -529,27 +556,32 @@ Chú ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
     let searchContext = '';
     try {
       const dateSuffix = searchDateStr ? ` ${searchDateStr}` : '';
+      const yearSuffix = matchDate ? ` ${matchDate.split('-')[0]}` : ' 2026';
       
-      // Tạo 3 query song song tập trung đúng trọng tâm
+      // Tạo 4 query song song tập trung đúng trọng tâm, bao gồm cả tìm kiếm theo năm để tăng khả năng khớp
       const q1 = `${homeTeam} vs ${awayTeam}${dateSuffix} score goals match result`;
-      const q2 = `${homeTeam} vs ${awayTeam}${dateSuffix} corners stats`;
-      const q3 = `${homeTeam} vs ${awayTeam}${dateSuffix} cards stats`;
+      const q2 = `${homeTeam} vs ${awayTeam} ${yearSuffix} score goals match result`;
+      const q3 = `${homeTeam} vs ${awayTeam}${dateSuffix} corners stats`;
+      const q4 = `${homeTeam} vs ${awayTeam}${dateSuffix} cards stats`;
 
-      console.log(`   - 🔍 [RAG SEARCH] Chạy 3 truy vấn song song cho kết quả trận đấu...`);
+      console.log(`   - 🔍 [RAG SEARCH] Chạy 4 truy vấn song song cho kết quả trận đấu...`);
       console.log(`     [Q1]: "${q1}"`);
       console.log(`     [Q2]: "${q2}"`);
       console.log(`     [Q3]: "${q3}"`);
+      console.log(`     [Q4]: "${q4}"`);
 
-      const [r1, r2, r3] = await Promise.all([
+      const [r1, r2, r3, r4] = await Promise.all([
         searchInternet(q1),
         searchInternet(q2),
-        searchInternet(q3)
+        searchInternet(q3),
+        searchInternet(q4)
       ]);
 
       const allResults = [
-        { name: 'KẾT QUẢ & TỶ SỐ (Score/Goals)', data: r1 },
-        { name: 'PHẠT GÓC (Corners)', data: r2 },
-        { name: 'THẺ PHẠT (Cards)', data: r3 }
+        { name: 'KẾT QUẢ & TỶ SỐ (Theo ngày)', data: r1 },
+        { name: 'KẾT QUẢ & TỶ SỐ (Theo năm)', data: r2 },
+        { name: 'PHẠT GÓC (Corners)', data: r3 },
+        { name: 'THẺ PHẠT (Cards)', data: r4 }
       ];
 
       searchContext = `\n--- THÔNG TIN KẾT QUẢ TRA CỨU THỰC TẾ TỪ INTERNET ---`;
@@ -578,36 +610,53 @@ Chú ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
     let lastError = null;
 
     for (let modelIdx = 0; modelIdx < MODELS.length; modelIdx++) {
-      const currentModel = MODELS[modelIdx];
-      for (let keyIdx = 0; keyIdx < apiKeys.length; keyIdx++) {
-        const currentKey = apiKeys[keyIdx];
+      const currentModelObj = MODELS[modelIdx];
+      const currentModel = currentModelObj.name;
+      const provider = currentModelObj.provider;
+      const targetKeys = provider === 'groq' ? groqKeys : geminiKeys;
+
+      for (let keyIdx = 0; keyIdx < targetKeys.length; keyIdx++) {
+        const currentKey = targetKeys[keyIdx];
         const startTime = Date.now();
         try {
           console.log(`\n🤖 [AI REQUEST - AUTO UPDATE] Tra cứu kết quả trận đấu: ${homeTeam} vs ${awayTeam}`);
-          console.log(`   - Model: ${currentModel}`);
-          console.log(`   - API Key: #${keyIdx + 1}/${apiKeys.length}`);
+          console.log(`   - Model: ${currentModel} (${provider.toUpperCase()})`);
+          console.log(`   - API Key: #${keyIdx + 1}/${targetKeys.length}`);
           console.log(`   - Custom Search RAG: Bật (DuckDuckGo/Tavily)`);
           
-          const ai = new GoogleGenAI({ apiKey: currentKey });
+          let responseText = '';
+          let rawResponse = null;
 
-          const response = await ai.models.generateContent({
-            model: currentModel,
-            contents: finalPrompt,
-            config: {
-              abortSignal: AbortSignal.timeout(300000), // 5 minutes timeout
-            },
-          });
+          if (provider === 'gemini') {
+            const ai = new GoogleGenAI({ apiKey: currentKey });
+
+            rawResponse = await ai.models.generateContent({
+              model: currentModel,
+              contents: finalPrompt,
+              config: {
+                abortSignal: AbortSignal.timeout(300000), // 5 minutes timeout
+              },
+            });
+            responseText = rawResponse.text;
+          } else if (provider === 'groq') {
+            rawResponse = await callGroqModel(currentModel, [currentKey], finalPrompt);
+            responseText = rawResponse.response.text;
+          } else {
+            throw new Error(`Nhà cung cấp không được hỗ trợ: ${provider}`);
+          }
 
           const duration = ((Date.now() - startTime) / 1000).toFixed(2);
           console.log(`🟢 [AI RESPONSE - AUTO UPDATE] Thành công!`);
           console.log(`   - Model đã trả lời: ${currentModel}`);
           console.log(`   - Thời gian phản hồi: ${duration}s`);
-          console.log(`   - Độ dài phản hồi: ${response.text?.length || 0} ký tự`);
+          console.log(`   - Độ dài phản hồi: ${responseText?.length || 0} ký tự`);
 
           callResult = {
-            response,
+            response: { text: responseText },
             modelUsed: currentModel,
-            keyIndexUsed: keyIdx
+            keyIndexUsed: keyIdx,
+            providerUsed: provider,
+            keyUsed: currentKey
           };
           break;
         } catch (err) {
@@ -620,7 +669,13 @@ Chú ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
     }
 
     if (!callResult) {
-      throw lastError || new Error('Không có API Key hoặc Model nào hoạt động thành công.');
+      console.error('🔴 [AI ERROR - AUTO UPDATE] Tất cả API Key hoặc Model đều thất bại. Chi tiết lỗi cuối:', lastError?.message);
+      return NextResponse.json({
+        success: false,
+        status: 'api_failed',
+        message: 'Không có API Key hoặc Model nào hoạt động thành công. Vui lòng cấu hình API Key hợp lệ trong Admin.',
+        details: lastError?.message
+      });
     }
 
     const { response, modelUsed } = callResult;
@@ -798,17 +853,23 @@ Hãy trả về duy nhất nội dung bài học bằng tiếng Việt. Không t
 `;
 
             // Tái sử dụng API Key và Model thành công từ bước trước để tránh lỗi Rate Limit / Quota Exceeded (429)
-            const successfulKey = apiKeys[callResult.keyIndexUsed];
+            const successfulKey = callResult.keyUsed;
             const successfulModel = callResult.modelUsed;
+            const successfulProvider = callResult.providerUsed;
 
-            const aiInstance = new GoogleGenAI({ apiKey: successfulKey });
-            const lessonRes = await aiInstance.models.generateContent({
-              model: successfulModel,
-              contents: lessonPrompt,
-              config: { abortSignal: AbortSignal.timeout(15000) }
-            });
-            
-            const lessonContent = lessonRes.text?.trim() || '';
+            let lessonContent = '';
+            if (successfulProvider === 'gemini') {
+              const aiInstance = new GoogleGenAI({ apiKey: successfulKey });
+              const lessonRes = await aiInstance.models.generateContent({
+                model: successfulModel,
+                contents: lessonPrompt,
+                config: { abortSignal: AbortSignal.timeout(15000) }
+              });
+              lessonContent = lessonRes.text?.trim() || '';
+            } else if (successfulProvider === 'groq') {
+              const lessonRes = await callGroqModel(successfulModel, [successfulKey], lessonPrompt);
+              lessonContent = lessonRes.response?.text?.trim() || '';
+            }
             if (lessonContent) {
               console.log(`💾 [Self-Retrospective] Đã tạo bài học: "${lessonContent}"`);
               await db.run(
