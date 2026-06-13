@@ -258,13 +258,27 @@ export async function POST(request) {
         season
       }));
 
-      // Lọc các trận chưa tồn tại trong fixtures.json
+      // Lấy danh sách trận đấu hiện tại từ database để lọc trùng
+      let existingFixtures = [];
+      try {
+        if (!db) db = await getDB();
+        existingFixtures = await db.all("SELECT * FROM fixtures");
+      } catch (dbErr) {
+        console.warn('⚠️ Lỗi lấy fixtures từ DB, dùng local fallback:', dbErr.message);
+        existingFixtures = currentData.fixtures.map(f => ({
+          home_team: f.homeTeam,
+          away_team: f.awayTeam,
+          match_date: f.date
+        }));
+      }
+
+      // Lọc các trận chưa tồn tại trong DB
       const newFixtures = processedMock.filter((newF) => {
-        return !currentData.fixtures.some(
+        return !existingFixtures.some(
           (f) =>
-            normalizeTeamName(f.homeTeam) === normalizeTeamName(newF.homeTeam) &&
-            normalizeTeamName(f.awayTeam) === normalizeTeamName(newF.awayTeam) &&
-            f.date === newF.date
+            normalizeTeamName(f.home_team) === normalizeTeamName(newF.homeTeam) &&
+            normalizeTeamName(f.away_team) === normalizeTeamName(newF.awayTeam) &&
+            f.match_date === newF.date
         );
       });
 
@@ -433,13 +447,27 @@ ${searchResults.slice(0, 6).map((s, idx) => `[${idx + 1}] ${s}`).join('\n')}
       season
     }));
 
-    // Lọc ra danh sách các trận đấu thực sự mới chưa tồn tại trong fixtures.json
+    // Lấy danh sách trận đấu hiện tại từ database để lọc trùng
+    let existingFixtures = [];
+    try {
+      if (!db) db = await getDB();
+      existingFixtures = await db.all("SELECT * FROM fixtures");
+    } catch (dbErr) {
+      console.warn('⚠️ Lỗi lấy fixtures từ DB, dùng local fallback:', dbErr.message);
+      existingFixtures = currentData.fixtures.map(f => ({
+        home_team: f.homeTeam,
+        away_team: f.awayTeam,
+        match_date: f.date
+      }));
+    }
+
+    // Lọc ra danh sách các trận đấu thực sự mới chưa tồn tại trong DB
     const newFixtures = processedFixtures.filter((newF) => {
-      return !currentData.fixtures.some(
+      return !existingFixtures.some(
         (f) =>
-          normalizeTeamName(f.homeTeam) === normalizeTeamName(newF.homeTeam) &&
-          normalizeTeamName(f.awayTeam) === normalizeTeamName(newF.awayTeam) &&
-          f.date === newF.date
+          normalizeTeamName(f.home_team) === normalizeTeamName(newF.homeTeam) &&
+          normalizeTeamName(f.away_team) === normalizeTeamName(newF.awayTeam) &&
+          f.match_date === newF.date
       );
     });
 

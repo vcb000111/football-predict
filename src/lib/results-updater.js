@@ -1,7 +1,41 @@
 import { GoogleGenAI } from '@google/genai';
 import { searchInternet } from '@/lib/search';
 import { callOpenRouterModel } from '@/lib/openrouter';
-import fixturesData from '@/data/fixtures.json';
+// helper normalize và map
+function normalizeTeamName(name) {
+  if (!name) return '';
+  const lower = name.trim().toLowerCase();
+  const aliases = {
+    'usa': 'united states',
+    'türkiye': 'turkey',
+    'côte d\'ivoire': 'ivory coast',
+    'cote d\'ivoire': 'ivory coast',
+    'korea republic': 'south korea',
+    'republic of korea': 'south korea'
+  };
+  return aliases[lower] || lower;
+}
+
+function mapDbFixtureToJSON(dbFixture) {
+  if (!dbFixture) return null;
+  return {
+    id: dbFixture.id,
+    homeTeam: dbFixture.home_team,
+    awayTeam: dbFixture.away_team,
+    date: dbFixture.match_date,
+    time: dbFixture.match_time,
+    group: dbFixture.group_name,
+    venue: dbFixture.venue,
+    tournament: dbFixture.tournament,
+    season: dbFixture.season,
+    actualHomeScore: dbFixture.actual_home_score,
+    actualAwayScore: dbFixture.actual_away_score,
+    actualFirstHalfScore: dbFixture.actual_first_half_home_score !== null && dbFixture.actual_first_half_away_score !== null ? {
+      home: dbFixture.actual_first_half_home_score,
+      away: dbFixture.actual_first_half_away_score
+    } : null
+  };
+}
 import { getVNTime } from '@/lib/timezone';
 import fs from 'fs';
 import path from 'path';
@@ -314,12 +348,14 @@ function buildFixtureSearchContext(fixture) {
 // --- HÀM HELPER CHÍNH CẬP NHẬT KẾT QUẢ ---
 export async function updateMatchResult({ homeTeam, awayTeam, matchId, force, db }) {
   try {
-    // 0. Tìm thông tin trận đấu (fixture) và kiểm tra thời gian thi đấu thực tế
-    const fixture = fixturesData.fixtures.find(
-      (f) =>
-        f.id === matchId ||
-        (f.homeTeam === homeTeam && f.awayTeam === awayTeam)
-    );
+    // 0. Tìm thông tin trận đấu (fixture) từ DB và kiểm tra thời gian thi đấu thực tế
+    let dbFixture = null;
+    if (matchId) {
+      dbFixture = await db.get('SELECT * FROM fixtures WHERE id = ?', [matchId]);
+    } else {
+      dbFixture = await db.get('SELECT * FROM fixtures WHERE home_team = ? AND away_team = ?', [homeTeam, awayTeam]);
+    }
+    const fixture = mapDbFixtureToJSON(dbFixture);
 
     if (fixture) {
       const matchTime = getMatchTime(fixture);
@@ -451,8 +487,8 @@ export async function updateMatchResult({ homeTeam, awayTeam, matchId, force, db
         }
       }
 
-      // Cập nhật fixtures.json
-      updateFixturesFile(matchId || (sampleRecord ? sampleRecord.match_id : null), homeTeam, awayTeam, mockHomeScore, mockAwayScore, mockFirstHalfHome, mockFirstHalfAway);
+      // Cập nhật database và file fixtures.json
+      await updateFixturesDbAndFile(db, matchId || (sampleRecord ? sampleRecord.match_id : null), homeTeam, awayTeam, mockHomeScore, mockAwayScore, mockFirstHalfHome, mockFirstHalfAway);
 
       return {
         success: true,
@@ -697,8 +733,8 @@ Chỉ trả về JSON thô. Do NOT include markdown blocks.
         }
       }
 
-      // Cập nhật fixtures.json
-      updateFixturesFile(matchId || (sampleRecord ? sampleRecord.match_id : null), homeTeam, awayTeam, aHome, aAway, aFirstHalfHome, aFirstHalfAway);
+      // Cập nhật database và file fixtures.json
+      await updateFixturesDbAndFile(db, matchId || (sampleRecord ? sampleRecord.match_id : null), homeTeam, awayTeam, aHome, aAway, aFirstHalfHome, aFirstHalfAway);
 
       // --- TỰ ĐỘNG VIẾT BÀI HỌC KINH NGHIỆM ---
       if (sampleRecord) {
@@ -729,14 +765,29 @@ Chỉ trả về JSON thô. Do NOT include markdown blocks.
   }
 }
 
-// Helper nhỏ để ghi file fixtures.json
-function updateFixturesFile(matchId, homeTeam, awayTeam, aHome, aAway, aFirstHalfHome = null, aFirstHalfAway = null) {
+// Helper để cập nhật cả database và file fixtures.json local
+async function updateFixturesDbAndFile(db, matchId, homeTeam, awayTeam, aHome, aAway, aFirstHalfHome = null, aFirstHalfAway = null) {
   try {
+    // 1. Cập nhật database
+    if (db) {
+      await db.run(
+        `UPDATE fixtures 
+         SET actual_home_score = ?, 
+             actual_away_score = ?, 
+             actual_first_half_home_score = ?, 
+             actual_first_half_away_score = ? 
+         WHERE id = ? OR (home_team = ? AND away_team = ?)`,
+        [aHome, aAway, aFirstHalfHome, aFirstHalfAway, matchId, homeTeam, awayTeam]
+      );
+      console.log(`🟢 [DB fixtures] Đã cập nhật tỉ số cho trận ${homeTeam} vs ${awayTeam}: ${aHome}-${aAway}`);
+    }
+
+    // 2. Cập nhật file fixtures.json local để giữ đồng bộ
     const fixturesFilePath = path.join(process.cwd(), 'src', 'data', 'fixtures.json');
     if (fs.existsSync(fixturesFilePath)) {
       const fileData = JSON.parse(fs.readFileSync(fixturesFilePath, 'utf8'));
       const fixtureIndex = fileData.fixtures.findIndex(
-        (f) => f.id === matchId || (f.homeTeam === homeTeam && f.awayTeam === awayTeam)
+        (f) => f.id === matchId || (normalizeTeamName(f.homeTeam) === normalizeTeamName(homeTeam) && normalizeTeamName(f.awayTeam) === normalizeTeamName(awayTeam))
       );
       if (fixtureIndex !== -1) {
         fileData.fixtures[fixtureIndex].actualHomeScore = aHome;
@@ -751,8 +802,8 @@ function updateFixturesFile(matchId, homeTeam, awayTeam, aHome, aAway, aFirstHal
         console.log(`🟢 [fixtures.json] Đã cập nhật tỉ số: ${aHome}-${aAway}, Hiệp 1: ${aFirstHalfHome}-${aFirstHalfAway}`);
       }
     }
-  } catch (fsError) {
-    console.error('Lỗi ghi fixtures.json:', fsError);
+  } catch (err) {
+    console.error('Lỗi khi cập nhật fixtures (DB/File):', err);
   }
 }
 

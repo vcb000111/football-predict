@@ -127,13 +127,41 @@ export async function POST(request) {
       ]
     );
 
-    // Cập nhật fixtures.json
+    // Cập nhật database fixtures và fixtures.json
     try {
+      // 1. Cập nhật DB
+      await db.run(
+        `UPDATE fixtures 
+         SET actual_home_score = ?, 
+             actual_away_score = ?, 
+             actual_first_half_home_score = ?, 
+             actual_first_half_away_score = ? 
+         WHERE id = ? OR (home_team = ? AND away_team = ?)`,
+        [aHome, aAway, aFirstHalfHome, aFirstHalfAway, predictionRecord.match_id, homeTeam, awayTeam]
+      );
+      console.log(`🟢 [DB fixtures - MANUAL] Đã cập nhật tỉ số cho trận đấu ${homeTeam} vs ${awayTeam}: ${aHome}-${aAway}`);
+
+      // Helper normalize để so sánh tên đội
+      const normalizeTeamName = (name) => {
+        if (!name) return '';
+        const lower = name.trim().toLowerCase();
+        const aliases = {
+          'usa': 'united states',
+          'türkiye': 'turkey',
+          'côte d\'ivoire': 'ivory coast',
+          'cote d\'ivoire': 'ivory coast',
+          'korea republic': 'south korea',
+          'republic of korea': 'south korea'
+        };
+        return aliases[lower] || lower;
+      };
+
+      // 2. Cập nhật file JSON
       const fixturesFilePath = path.join(process.cwd(), 'src', 'data', 'fixtures.json');
       if (fs.existsSync(fixturesFilePath)) {
         const fileData = JSON.parse(fs.readFileSync(fixturesFilePath, 'utf8'));
         const fixtureIndex = fileData.fixtures.findIndex(
-          (f) => f.id === predictionRecord.match_id || (f.homeTeam === homeTeam && f.awayTeam === awayTeam)
+          (f) => f.id === predictionRecord.match_id || (normalizeTeamName(f.homeTeam) === normalizeTeamName(homeTeam) && normalizeTeamName(f.awayTeam) === normalizeTeamName(awayTeam))
         );
         if (fixtureIndex !== -1) {
           fileData.fixtures[fixtureIndex].actualHomeScore = aHome;
@@ -149,7 +177,7 @@ export async function POST(request) {
         }
       }
     } catch (fsError) {
-      console.error('Lỗi khi cập nhật fixtures.json:', fsError);
+      console.error('Lỗi khi cập nhật fixtures (DB/File - MANUAL):', fsError);
     }
 
     // --- OPTION 2: SELF-RETROSPECTIVE LESSON GENERATION ---

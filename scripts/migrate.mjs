@@ -40,6 +40,9 @@ async function runMigration() {
       },
       exec: async (sql) => {
         await client.executeMultiple(sql);
+      },
+      batch: async (statements) => {
+        return await client.batch(statements, 'write');
       }
     };
   } else {
@@ -54,6 +57,19 @@ async function runMigration() {
       filename: dbPath,
       driver: sqlite3.Database
     });
+
+    db.batch = async function(statements) {
+      await this.run('BEGIN TRANSACTION');
+      try {
+        for (const stmt of statements) {
+          await this.run(stmt.sql, stmt.args || []);
+        }
+        await this.run('COMMIT');
+      } catch (err) {
+        await this.run('ROLLBACK');
+        throw err;
+      }
+    };
   }
 
   // 1. Tạo bảng predictions
@@ -241,6 +257,46 @@ async function runMigration() {
   await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_match_chats_match_id ON match_chats (match_id)
   `);
+
+  // 9. Tạo bảng tournament_groups
+  console.log('9. Khởi tạo bảng tournament_groups...');
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS tournament_groups (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tournament TEXT,
+      season TEXT,
+      group_name TEXT,
+      team_name TEXT,
+      UNIQUE(tournament, season, group_name, team_name)
+    )
+  `);
+
+  // 10. Tạo bảng fixtures
+  console.log('10. Khởi tạo bảng fixtures...');
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS fixtures (
+      id TEXT PRIMARY KEY,
+      home_team TEXT,
+      away_team TEXT,
+      match_date TEXT,
+      match_time TEXT,
+      group_name TEXT,
+      venue TEXT,
+      tournament TEXT,
+      season TEXT,
+      actual_home_score INTEGER DEFAULT NULL,
+      actual_away_score INTEGER DEFAULT NULL,
+      actual_first_half_home_score INTEGER DEFAULT NULL,
+      actual_first_half_away_score INTEGER DEFAULT NULL,
+      is_test INTEGER DEFAULT 0
+    )
+  `);
+  try {
+    await db.exec(`ALTER TABLE fixtures ADD COLUMN is_test INTEGER DEFAULT 0`);
+  } catch (e) {}
+  try {
+    await db.exec(`UPDATE fixtures SET is_test = 1 WHERE id LIKE 't%' OR LOWER(tournament) LIKE '%friendly%'`);
+  } catch (e) {}
 
   // --- SEEDING DỮ LIỆU MẶC ĐỊNH ---
   console.log('🌱 Bắt đầu seeding dữ liệu...');
@@ -589,6 +645,142 @@ Tỷ lệ dự đoán đúng kết quả chung cuộc (1X2) gần đây của b�
     } catch (e) {}
   }
   console.log('Seeded system prompts.');
+
+  // Seed fixtures và groups từ fixtures.json
+  console.log('🌱 Khởi tạo và seeding fixtures/tournament_groups...');
+  try {
+    // Chỉ dọn dẹp fixtures và tournament_groups để đồng bộ mới hoàn toàn từ fixtures.json
+    await db.run("DELETE FROM fixtures");
+    await db.run("DELETE FROM tournament_groups");
+    console.log('🧹 Đã dọn dẹp dữ liệu cũ trong fixtures và tournament_groups.');
+
+    // --- ĐỒNG BỘ DỰ ĐOÁN (PREDICTIONS) TỪ SQLITE LOCAL LÊN CLOUD ---
+    if (isProduction) {
+      console.log('🔄 Đang kiểm tra và đồng bộ predictions từ SQLite cục bộ lên Turso DB...');
+      try {
+        const sqlite3 = (await import('sqlite3')).default;
+        const { open } = await import('sqlite');
+        const path = (await import('path')).default;
+        const fs = await import('fs');
+        const localDbPath = path.join(process.cwd(), 'worldcup_predictions.db');
+
+        if (fs.existsSync(localDbPath)) {
+          const localDb = await open({
+            filename: localDbPath,
+            driver: sqlite3.Database
+          });
+
+          // Kiểm tra xem bảng predictions có tồn tại ở local không
+          const tableCheck = await localDb.get(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='predictions'"
+          );
+
+          if (tableCheck) {
+            const localPredictions = await localDb.all("SELECT * FROM predictions");
+            console.log(`Tìm thấy ${localPredictions.length} bản ghi predictions cục bộ.`);
+
+            if (localPredictions.length > 0) {
+              // Chia nhỏ (chunk) để chèn theo mẻ 50 bản ghi
+              const chunkSize = 50;
+              let syncedCount = 0;
+
+              for (let i = 0; i < localPredictions.length; i += chunkSize) {
+                const chunk = localPredictions.slice(i, i + chunkSize);
+                const statements = chunk.map(row => {
+                  const keys = Object.keys(row).filter(k => row[k] !== undefined && row[k] !== null);
+                  return {
+                    sql: `INSERT OR REPLACE INTO predictions (${keys.join(', ')}) VALUES (${keys.map(() => '?').join(', ')})`,
+                    args: keys.map(k => row[k])
+                  };
+                });
+
+                await db.batch(statements);
+                syncedCount += chunk.length;
+                console.log(`   - Đã chèn mẻ ${syncedCount}/${localPredictions.length} bản ghi.`);
+              }
+              console.log(`✅ Đồng bộ thành công ${syncedCount} bản ghi predictions lên Turso DB.`);
+            }
+          } else {
+            console.log('⚠️ Bảng predictions không tồn tại trong SQLite cục bộ, bỏ qua đồng bộ.');
+          }
+          await localDb.close();
+        } else {
+          console.log('⚠️ Không tìm thấy tệp worldcup_predictions.db cục bộ để đồng bộ predictions.');
+        }
+      } catch (syncErr) {
+        console.error('⚠️ Lỗi trong quá trình đồng bộ predictions cục bộ:', syncErr.message);
+      }
+    }
+
+    const fs = await import('fs');
+    const path = await import('path');
+    const fixturesFilePath = path.join(process.cwd(), 'src', 'data', 'fixtures.json');
+    if (fs.existsSync(fixturesFilePath)) {
+      const fileData = JSON.parse(fs.readFileSync(fixturesFilePath, 'utf8'));
+      
+      // Seed tournament_groups
+      const groupsStatements = [];
+      if (fileData.groups && Array.isArray(fileData.groups)) {
+        const defaultTournament = 'World Cup 2026';
+        const defaultSeason = '2026';
+        for (const grp of fileData.groups) {
+          const groupName = grp.name;
+          if (grp.teams && Array.isArray(grp.teams)) {
+            for (const team of grp.teams) {
+              groupsStatements.push({
+                sql: `INSERT OR IGNORE INTO tournament_groups (tournament, season, group_name, team_name) VALUES (?, ?, ?, ?)`,
+                args: [defaultTournament, defaultSeason, groupName, team]
+              });
+            }
+          }
+        }
+      }
+
+      // Seed fixtures
+      const fixturesStatements = [];
+      if (fileData.fixtures && Array.isArray(fileData.fixtures)) {
+        for (const f of fileData.fixtures) {
+          const actualHome = f.actualHomeScore !== undefined && f.actualHomeScore !== null ? parseInt(f.actualHomeScore, 10) : null;
+          const actualAway = f.actualAwayScore !== undefined && f.actualAwayScore !== null ? parseInt(f.actualAwayScore, 10) : null;
+          const firstHalfHome = f.actualFirstHalfScore && f.actualFirstHalfScore.home !== undefined && f.actualFirstHalfScore.home !== null ? parseInt(f.actualFirstHalfScore.home, 10) : null;
+          const firstHalfAway = f.actualFirstHalfScore && f.actualFirstHalfScore.away !== undefined && f.actualFirstHalfScore.away !== null ? parseInt(f.actualFirstHalfScore.away, 10) : null;
+          
+          const isTestVal = f.isTest || (f.tournament && f.tournament.toLowerCase().includes('friendly')) ? 1 : 0;
+
+          fixturesStatements.push({
+            sql: `INSERT OR IGNORE INTO fixtures (id, home_team, away_team, match_date, match_time, group_name, venue, tournament, season, actual_home_score, actual_away_score, actual_first_half_home_score, actual_first_half_away_score, is_test) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            args: [
+              f.id,
+              f.homeTeam,
+              f.awayTeam,
+              f.date,
+              f.time,
+              f.group || '',
+              f.venue || '',
+              f.tournament || 'World Cup 2026',
+              f.season || '2026',
+              actualHome,
+              actualAway,
+              firstHalfHome,
+              firstHalfAway,
+              isTestVal
+            ]
+          });
+        }
+      }
+
+      const allStatements = [...groupsStatements, ...fixturesStatements];
+      if (allStatements.length > 0) {
+        await db.batch(allStatements);
+      }
+      console.log(`✅ Seeded ${groupsStatements.length} group-teams và ${fixturesStatements.length} fixtures thành công.`);
+    } else {
+      console.warn('⚠️ File fixtures.json không tồn tại để seed.');
+    }
+  } catch (dbError) {
+    console.error('⚠️ Lỗi khi seed fixtures từ fixtures.json:', dbError.message);
+  }
+
 
   console.log('🎉 Quá trình Migration hoàn tất thành công!');
 }

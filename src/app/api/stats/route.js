@@ -163,10 +163,27 @@ export async function GET(request) {
     }
 
     // --- 2. TẠO GỢI Ý KÈO NGON ĂN SẮP TỚI (BA & RAG ENGINE) ---
-    // Lọc các trận chưa diễn ra (ở cả fixtures.json và predictions)
-    const upcomingFixtures = fixturesData.fixtures.filter(
-      (f) => f.actualHomeScore === undefined && f.actualAwayScore === undefined
-    );
+    // Lấy các trận chưa diễn ra từ database
+    let upcomingFixtures = [];
+    try {
+      const dbFixtures = await db.all("SELECT * FROM fixtures WHERE actual_home_score IS NULL");
+      upcomingFixtures = dbFixtures.map(f => ({
+        id: f.id,
+        homeTeam: f.home_team,
+        awayTeam: f.away_team,
+        date: f.match_date,
+        time: f.match_time,
+        group: f.group_name,
+        venue: f.venue,
+        tournament: f.tournament,
+        season: f.season
+      }));
+    } catch (dbErr) {
+      console.warn('⚠️ Lỗi truy vấn database fixtures, sử dụng currentData làm fallback:', dbErr.message);
+      upcomingFixtures = fixturesData.fixtures.filter(
+        (f) => f.actualHomeScore === undefined && f.actualAwayScore === undefined
+      );
+    }
 
     const recommendations = [];
 

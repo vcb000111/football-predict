@@ -12,12 +12,27 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const tournament = searchParams.get('tournament') || 'All';
     
-    // Lấy danh sách các trận test từ fixtures.json
-    let testFixtures = fixturesData.fixtures.filter(f => f.isTest === true);
-    
+    // Lấy danh sách các trận test từ database
+    let dbTestFixtures = [];
     if (tournament !== 'All') {
-      testFixtures = testFixtures.filter(f => f.tournament === tournament);
+      dbTestFixtures = await db.all("SELECT * FROM fixtures WHERE is_test = 1 AND tournament = ?", [tournament]);
+    } else {
+      dbTestFixtures = await db.all("SELECT * FROM fixtures WHERE is_test = 1");
     }
+
+    // Map DB fixture sang định dạng JSON mà client yêu cầu
+    const testFixtures = dbTestFixtures.map(f => ({
+      id: f.id,
+      homeTeam: f.home_team,
+      awayTeam: f.away_team,
+      date: f.match_date,
+      time: f.match_time,
+      group: f.group_name,
+      venue: f.venue,
+      tournament: f.tournament,
+      season: f.season,
+      isTest: f.is_test === 1
+    }));
  
     // Lấy danh sách match_id đã được dự đoán trong SQLite
     const predictions = await db.all('SELECT DISTINCT match_id FROM predictions WHERE match_id IS NOT NULL');

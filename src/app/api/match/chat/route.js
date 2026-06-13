@@ -1,23 +1,6 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { getDB } from '@/lib/db';
-import fs from 'fs';
-import path from 'path';
-
-// Helper làm sạch và tìm trận đấu từ fixtures.json
-function getMatchFromFixtures(matchId) {
-  try {
-    const fixturesPath = path.join(process.cwd(), 'src', 'data', 'fixtures.json');
-    if (!fs.existsSync(fixturesPath)) return null;
-    
-    const fileContent = fs.readFileSync(fixturesPath, 'utf8');
-    const data = JSON.parse(fileContent);
-    return (data.fixtures || []).find(f => f.id === matchId);
-  } catch (error) {
-    console.error('Lỗi khi đọc fixtures.json:', error);
-    return null;
-  }
-}
 
 // Helper xoay vòng API Key
 async function callGeminiModel(model, apiKeys, prompt) {
@@ -88,11 +71,22 @@ export async function POST(request) {
       [matchId, message.trim()]
     );
 
-    // 2. Lấy thông tin trận đấu để làm context
-    const match = getMatchFromFixtures(matchId);
-    if (!match) {
+    // 2. Lấy thông tin trận đấu để làm context từ DB
+    const dbFixture = await db.get('SELECT * FROM fixtures WHERE id = ?', [matchId]);
+    if (!dbFixture) {
       return NextResponse.json({ error: 'Không tìm thấy trận đấu' }, { status: 404 });
     }
+    const match = {
+      id: dbFixture.id,
+      homeTeam: dbFixture.home_team,
+      awayTeam: dbFixture.away_team,
+      date: dbFixture.match_date,
+      time: dbFixture.match_time,
+      group: dbFixture.group_name,
+      venue: dbFixture.venue,
+      tournament: dbFixture.tournament,
+      season: dbFixture.season
+    };
 
     // Lấy thêm dự đoán gần nhất của trận đấu từ DB
     const prediction = await db.get(

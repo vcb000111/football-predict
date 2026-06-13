@@ -432,6 +432,40 @@ export async function getDB() {
       )
     `);
 
+    await localDb.exec(`
+      CREATE TABLE IF NOT EXISTS tournament_groups (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tournament TEXT,
+        season TEXT,
+        group_name TEXT,
+        team_name TEXT,
+        UNIQUE(tournament, season, group_name, team_name)
+      )
+    `);
+
+    await localDb.exec(`
+      CREATE TABLE IF NOT EXISTS fixtures (
+        id TEXT PRIMARY KEY,
+        home_team TEXT,
+        away_team TEXT,
+        match_date TEXT,
+        match_time TEXT,
+        group_name TEXT,
+        venue TEXT,
+        tournament TEXT,
+        season TEXT,
+        actual_home_score INTEGER DEFAULT NULL,
+        actual_away_score INTEGER DEFAULT NULL,
+        actual_first_half_home_score INTEGER DEFAULT NULL,
+        actual_first_half_away_score INTEGER DEFAULT NULL,
+        is_test INTEGER DEFAULT 0
+      )
+    `);
+
+    try {
+      await localDb.exec(`ALTER TABLE fixtures ADD COLUMN is_test INTEGER DEFAULT 0`);
+    } catch (e) {}
+
     // Thêm hàm batch thích ứng cho SQLite cục bộ
     localDb.batch = async function(statements) {
       await this.run('BEGIN TRANSACTION');

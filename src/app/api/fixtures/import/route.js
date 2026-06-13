@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import currentData from '@/data/fixtures.json';
+import { getDB } from '@/lib/db';
 
 function normalizeTeamName(name) {
   if (!name) return '';
@@ -38,9 +39,22 @@ export async function POST(request) {
       });
     }
 
-    // Đọc lịch thi đấu cũ
-    const mergedFixtures = [...currentData.fixtures];
+    const db = await getDB();
+    const existingFixtures = await db.all("SELECT * FROM fixtures");
+    const mergedFixtures = existingFixtures.map(f => ({
+      id: f.id,
+      homeTeam: f.home_team,
+      awayTeam: f.away_team,
+      date: f.match_date,
+      time: f.match_time,
+      group: f.group_name,
+      venue: f.venue,
+      tournament: f.tournament,
+      season: f.season
+    }));
+
     let addedCount = 0;
+    const statements = [];
 
     fixturesToImport.forEach((newF) => {
       // Kiểm tra trùng lặp
@@ -92,17 +106,36 @@ export async function POST(request) {
           fixtureRecord.isTest = true;
         }
 
+        statements.push({
+          sql: `INSERT INTO fixtures (id, home_team, away_team, match_date, match_time, group_name, venue, tournament, season) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          args: [
+            fixtureRecord.id,
+            fixtureRecord.homeTeam,
+            fixtureRecord.awayTeam,
+            fixtureRecord.date,
+            fixtureRecord.time,
+            fixtureRecord.group,
+            fixtureRecord.venue,
+            fixtureRecord.tournament,
+            fixtureRecord.season
+          ]
+        });
+
         mergedFixtures.push(fixtureRecord);
         addedCount++;
       }
     });
+
+    if (statements.length > 0) {
+      await db.batch(statements);
+    }
 
     const updatedData = {
       groups: currentData.groups,
       fixtures: mergedFixtures
     };
 
-    // Ghi đè vào file fixtures.json
+    // Ghi đè vào file fixtures.json local
     fs.writeFileSync(FIXTURES_FILE_PATH, JSON.stringify(updatedData, null, 2), 'utf-8');
 
     return NextResponse.json({
