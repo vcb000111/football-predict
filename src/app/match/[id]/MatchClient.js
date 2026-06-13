@@ -1101,8 +1101,8 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
                                 : 'bg-[#151E2E] text-gray-200 border border-card-border rounded-tl-none'
                             }`}
                           >
-                            {msg.image && (
-                              <img src={msg.image} alt="Đính kèm" className="max-w-[180px] sm:max-w-[240px] rounded-xl mb-1.5 border border-card-border shadow-md object-cover animate-fade-in" />
+                            {(msg.imageUrl || msg.image) && (
+                              <img src={msg.imageUrl || msg.image} alt="Đính kèm" className="max-w-[180px] sm:max-w-[240px] rounded-xl mb-1.5 border border-card-border shadow-md object-cover animate-fade-in" />
                             )}
                             {isUser ? (
                               <p className="whitespace-pre-line">{msg.message}</p>

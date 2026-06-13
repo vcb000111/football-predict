@@ -74,6 +74,7 @@ Hệ thống dự đoán kết quả bóng đá và phân tích kèo đấu thô
 * **Database:** SQLite (sqlite3 & open) lưu trữ cấu hình hệ thống, thông tin đội tuyển và lịch sử dự đoán.
 * **AI Model:** Google Gemini API (hỗ trợ xoay vòng và đồng thuận gemini-3.5-flash, gemini-3-flash-preview, ...).
 * **RAG Search APIs:** Tavily API, Brave Search API, Serper API, DuckDuckGo Web Scraper.
+* **Image Cloud Storage:** Cloudinary (lưu trữ lâu dài hình ảnh chat cược, hỗ trợ tối ưu qua URL).
 
 ---
 
@@ -101,7 +102,10 @@ npm run dev
 
 ## 🛠️ Nhật Ký Thay Đổi (Changelog)
 
-### [2026-06-13] - Dự đoán Hiệp 1 & Hiệp 2, tích hợp form cập nhật thủ công (v1.9.0)
+### [2026-06-13] - Dự đoán Hiệp 1 & Hiệp 2, tích hợp Cloudinary và Cấu hình động AI Model (v1.9.0)
+* **Lưu trữ hình ảnh hội thoại vĩnh viễn:** Tích hợp Cloudinary lưu trữ lâu dài hình ảnh bảng cược hoặc ảnh do người dùng gửi trong chat, hiển thị lại đầy đủ khi xem lịch sử.
+* **Cấu hình động tính năng xử lý ảnh:** Bổ sung switch bật/tắt khả năng phân tích ảnh của từng mô hình AI trong trang quản trị.
+* **Tự động phục hồi khi lỗi máy chủ ảnh:** Thiết lập bẫy lỗi try-catch cho luồng upload, nếu Cloudinary lỗi, hệ thống tự động fallback tiếp tục chat text bình thường.
 * **Tính năng dự đoán Hiệp 1 và Hiệp 2:** Dự đoán, lưu trữ và thống kê hiệu suất riêng biệt.
 * **Cập nhật tỷ lệ Poisson:** Hiệp 1 (góc * 0.47, thẻ * 0.35, lambda * 0.45); Hiệp 2 (góc * 0.53, thẻ * 0.65, lambda * 0.55 + cộng dồn tỷ số H1 thực tế).
 * **Tích hợp form cập nhật thủ công:** Cho phép admin nhập tỷ số cả trận và tỷ số hiệp 1 thực tế trên trang chi tiết trận đấu để chấm cược.

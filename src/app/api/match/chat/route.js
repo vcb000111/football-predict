@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { getDB } from '@/lib/db';
+import { v2 as cloudinary } from 'cloudinary';
 
 // Helper xoay vòng API Key
 async function callGeminiModel(model, apiKeys, contents) {
@@ -41,11 +42,19 @@ export async function GET(request) {
 
     const db = await getDB();
     const messages = await db.all(
-      `SELECT sender, message, model_used, created_at FROM match_chats WHERE match_id = ? ORDER BY id ASC`,
+      `SELECT sender, message, model_used, image_url, created_at FROM match_chats WHERE match_id = ? ORDER BY id ASC`,
       [matchId]
     );
 
-    return NextResponse.json({ success: true, messages });
+    const formattedMessages = messages.map(msg => ({
+      sender: msg.sender,
+      message: msg.message,
+      modelUsed: msg.model_used,
+      imageUrl: msg.image_url,
+      createdAt: msg.created_at
+    }));
+
+    return NextResponse.json({ success: true, messages: formattedMessages });
   } catch (error) {
     console.error('Lỗi khi lấy lịch sử chat:', error);
     return NextResponse.json(
@@ -66,10 +75,23 @@ export async function POST(request) {
     const db = await getDB();
     const cleanMessage = (message || '').trim();
 
+    let imageUrl = null;
+    if (image) {
+      try {
+        const uploadResponse = await cloudinary.uploader.upload(image, {
+          folder: 'football-predict-chats',
+        });
+        imageUrl = uploadResponse.secure_url;
+        console.log('✅ Upload Cloudinary thành công:', imageUrl);
+      } catch (cloudinaryErr) {
+        console.error('❌ Lỗi upload Cloudinary (tiến hành fallback chỉ chat text):', cloudinaryErr.message);
+      }
+    }
+
     // 1. Lưu tin nhắn của User vào DB
     await db.run(
-      `INSERT INTO match_chats (match_id, sender, message) VALUES (?, 'user', ?)`,
-      [matchId, cleanMessage || '[Hình ảnh]']
+      `INSERT INTO match_chats (match_id, sender, message, image_url) VALUES (?, 'user', ?, ?)`,
+      [matchId, cleanMessage || '[Hình ảnh]', imageUrl]
     );
 
     // 2. Lấy thông tin trận đấu để làm context từ DB

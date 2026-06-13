@@ -256,11 +256,16 @@ async function runMigration() {
       sender TEXT, -- 'user' hoặc 'ai'
       message TEXT,
       model_used TEXT,
+      image_url TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
   try {
     await db.exec(`ALTER TABLE match_chats ADD COLUMN model_used TEXT`);
+  } catch (e) {}
+  try {
+    await db.exec(`ALTER TABLE match_chats ADD COLUMN image_url TEXT`);
+    console.log('✅ Đã bổ sung cột image_url vào bảng match_chats thành công.');
   } catch (e) {}
   await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_match_chats_match_id ON match_chats (match_id)

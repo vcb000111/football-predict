@@ -5,10 +5,13 @@ Tất cả những thay đổi nổi bật đối với dự án **FIFA World Cu
 ## [1.9.0] - 2026-06-13
 
 ### Added (Thêm mới)
+* **Lưu trữ hình ảnh hội thoại vĩnh viễn:** Tích hợp dịch vụ đám mây lưu trữ lâu dài hình ảnh bảng kèo hoặc ảnh bất kỳ do người dùng gửi trong khung chat, hiển thị lại đầy đủ khi xem lịch sử.
+* **Cấu hình động tính năng xử lý ảnh:** Bổ sung tùy chọn bật/tắt khả năng phân tích hình ảnh của từng mô hình trí tuệ nhân tạo (AI) trực tiếp tại trang quản trị.
 * **Tính năng dự đoán Hiệp 1 và Hiệp 2:** Cho phép người dùng chạy dự đoán kết quả thi đấu riêng cho Hiệp 1 (First Half) hoặc Hiệp 2 (Second Half), hỗ trợ lưu trữ trong database và hiển thị thống kê riêng biệt.
 * **Tích hợp form cập nhật kết quả thủ công:** Bổ sung giao diện và form nhập tỷ số cả trận và tỷ số hiệp 1 thực tế thủ công ngay trên giao diện chi tiết trận đấu, đồng bộ hóa với hệ thống chấm điểm cược.
 
 ### Changed (Thay đổi logic)
+* **Tự động phục hồi khi có lỗi máy chủ ảnh:** Xây dựng cơ chế tự phát hiện và xử lý lỗi kết nối khi lưu trữ hình ảnh. Nếu dịch vụ lưu trữ ảnh gặp sự cố, hội thoại bằng văn bản vẫn được duy trì bình thường mà không bị gián đoạn.
 * **Thuật toán toán học Poisson:** Tách biệt tỷ lệ Lambda cho Hiệp 1 (phạt góc * 0.47, thẻ * 0.35, lambda * 0.45) và Hiệp 2 (phạt góc * 0.53, thẻ * 0.65, lambda * 0.55). Đối với Hiệp 2, tự động cộng dồn tỷ số Hiệp 1 thực tế để mô phỏng chính xác kết quả cả trận.
 * **Chấm điểm cược theo Hiệp đấu:** Đồng bộ hóa logic chấm điểm cược tự động (trọng tài AI) và thủ công. Nếu dự đoán là Hiệp 1, hệ thống đối chiếu với tỷ số Hiệp 1 thực tế thay vì tỷ số cả trận.
 * **Tách biệt thống kê Stats:** Nâng cấp query SQL trong API thống kê để tính toán tỷ lệ chính xác (đúng tỷ số & đúng kết quả 1X2) phân biệt rõ ràng theo từng loại dự đoán.
