@@ -462,12 +462,16 @@ export async function getDB() {
         actual_away_score INTEGER DEFAULT NULL,
         actual_first_half_home_score INTEGER DEFAULT NULL,
         actual_first_half_away_score INTEGER DEFAULT NULL,
-        is_test INTEGER DEFAULT 0
+        is_test INTEGER DEFAULT 0,
+        match_timeline TEXT DEFAULT NULL
       )
     `);
 
     try {
       await localDb.exec(`ALTER TABLE fixtures ADD COLUMN is_test INTEGER DEFAULT 0`);
+    } catch (e) {}
+    try {
+      await localDb.exec(`ALTER TABLE fixtures ADD COLUMN match_timeline TEXT DEFAULT NULL`);
     } catch (e) {}
 
     // Thêm hàm batch thích ứng cho SQLite cục bộ

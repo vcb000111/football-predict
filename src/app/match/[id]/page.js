@@ -56,7 +56,15 @@ export default async function MatchPage({ params }) {
         actualFirstHalfScore: dbFixture.actual_first_half_home_score !== null && dbFixture.actual_first_half_away_score !== null ? {
           home: dbFixture.actual_first_half_home_score,
           away: dbFixture.actual_first_half_away_score
-        } : null
+        } : null,
+        matchTimeline: dbFixture.match_timeline ? (() => {
+          try {
+            return JSON.parse(dbFixture.match_timeline);
+          } catch (e) {
+            console.error('Lỗi parse match_timeline:', e);
+            return null;
+          }
+        })() : null
       };
     }
   } catch (err) {

@@ -168,7 +168,93 @@
       "actualFirstHalfScore": {
         "home": 3,
         "away": 0
-      }
+      },
+      "matchTimeline": [
+        {
+          "minute": 1,
+          "team": "none",
+          "type": "kickoff",
+          "player": "",
+          "detail": "Trận đấu chính thức bắt đầu tại SoFi Stadium."
+        },
+        {
+          "minute": 2,
+          "team": "away",
+          "type": "shoot",
+          "player": "Tiền đạo Paraguay",
+          "detail": "Cơ hội nguy hiểm đầu tiên từ phía Paraguay nhưng thủ môn Freese đã cản phá kịp thời."
+        },
+        {
+          "minute": 7,
+          "team": "home",
+          "type": "goal",
+          "player": "D. Bobadilla (OG)",
+          "detail": "⚽ VÀOOO! Mỹ mở tỷ số nhờ bàn phản lưới nhà của Bobadilla sau pha căng ngang của Pulisic."
+        },
+        {
+          "minute": 23,
+          "team": "home",
+          "type": "goal",
+          "player": "Folarin Balogun",
+          "detail": "⚽ VÀOOO! Balogun nhân đôi cách biệt cho đội chủ nhà."
+        },
+        {
+          "minute": 45,
+          "team": "home",
+          "type": "goal",
+          "player": "Folarin Balogun",
+          "detail": "⚽ VÀOOO! Balogun lập cú đúp, nâng tỷ số lên 3-0 trước khi hết hiệp 1."
+        },
+        {
+          "minute": 45,
+          "team": "none",
+          "type": "half_time",
+          "player": "",
+          "detail": "⏱️ Hết hiệp 1! Mỹ áp đảo hoàn toàn với tỷ số 3-0."
+        },
+        {
+          "minute": 46,
+          "team": "home",
+          "type": "substitution",
+          "player": "Pulisic",
+          "detail": "Christian Pulisic rời sân sau hiệp 1 do bị đau ở bắp chân."
+        },
+        {
+          "minute": 65,
+          "team": "away",
+          "type": "goal",
+          "player": "Mauricio",
+          "detail": "⚽ VÀOOO! Paraguay rút ngắn tỷ số xuống còn 1-3 sau đường kiến tạo của Enciso."
+        },
+        {
+          "minute": 72,
+          "team": "away",
+          "type": "yellow_card",
+          "player": "Hậu vệ Paraguay",
+          "detail": "🟨 Thẻ vàng cảnh cáo lỗi phản ứng."
+        },
+        {
+          "minute": 85,
+          "team": "home",
+          "type": "yellow_card",
+          "player": "Hậu vệ Mỹ",
+          "detail": "🟨 Thẻ vàng cho pha ngăn chặn đợt phản công."
+        },
+        {
+          "minute": 90,
+          "team": "home",
+          "type": "goal",
+          "player": "Gio Reyna",
+          "detail": "⚽ VÀOOO! Gio Reyna tung cú sút má ngoài đẳng cấp ấn định chiến thắng 4-1."
+        },
+        {
+          "minute": 90,
+          "team": "none",
+          "type": "full_time",
+          "player": "",
+          "detail": "🏁 Trận đấu khép lại với chiến thắng đậm đà 4-1 cho United States."
+        }
+      ]
     },
     {
       "id": "m5",

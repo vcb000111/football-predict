@@ -301,11 +301,15 @@ async function runMigration() {
       actual_away_score INTEGER DEFAULT NULL,
       actual_first_half_home_score INTEGER DEFAULT NULL,
       actual_first_half_away_score INTEGER DEFAULT NULL,
-      is_test INTEGER DEFAULT 0
+      is_test INTEGER DEFAULT 0,
+      match_timeline TEXT DEFAULT NULL
     )
   `);
   try {
     await db.exec(`ALTER TABLE fixtures ADD COLUMN is_test INTEGER DEFAULT 0`);
+  } catch (e) {}
+  try {
+    await db.exec(`ALTER TABLE fixtures ADD COLUMN match_timeline TEXT DEFAULT NULL`);
   } catch (e) {}
   try {
     await db.exec(`UPDATE fixtures SET is_test = 1 WHERE id LIKE 't%' OR LOWER(tournament) LIKE '%friendly%'`);

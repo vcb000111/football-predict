@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { getTeamFlag } from '@/lib/flags';
 import { saveLastUsedModel } from '@/lib/models-client';
 import { getVNTime } from '@/lib/timezone';
+import MatchSimulator from './MatchSimulator';
 
 function getPredictionStatus(predHome, predAway, actHome, actAway, predictType = 'full_time', actFirstHalfHome = null, actFirstHalfAway = null) {
   const isFirstHalf = predictType === 'first_half';
@@ -637,6 +638,8 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
             <span className="text-gray-300 font-semibold">{match.venue}</span>
           </div>
         </div>
+
+        <MatchSimulator match={match} />
 
         {/* LOADING STATE */}
         {loading && !prediction && (

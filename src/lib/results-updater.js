@@ -36,6 +36,130 @@ function mapDbFixtureToJSON(dbFixture) {
     } : null
   };
 }
+
+export function generateMockTimeline(homeTeam, awayTeam, homeScore, awayScore, firstHalfHome, firstHalfAway) {
+  const timeline = [];
+  
+  timeline.push({
+    minute: 1,
+    team: 'none',
+    type: 'kickoff',
+    player: '',
+    detail: `Trận đấu bắt đầu! Trọng tài chính thổi còi khai cuộc cho trận đấu giữa ${homeTeam} và ${awayTeam}.`
+  });
+
+  const homeGoals = [];
+  const awayGoals = [];
+  
+  for (let i = 0; i < (firstHalfHome || 0); i++) {
+    homeGoals.push(Math.floor(Math.random() * 40) + 5);
+  }
+  for (let i = 0; i < (firstHalfAway || 0); i++) {
+    awayGoals.push(Math.floor(Math.random() * 40) + 5);
+  }
+
+  const secondHalfHomeCount = Math.max(0, (homeScore || 0) - (firstHalfHome || 0));
+  const secondHalfAwayCount = Math.max(0, (awayScore || 0) - (firstHalfAway || 0));
+  for (let i = 0; i < secondHalfHomeCount; i++) {
+    homeGoals.push(Math.floor(Math.random() * 40) + 47);
+  }
+  for (let i = 0; i < secondHalfAwayCount; i++) {
+    awayGoals.push(Math.floor(Math.random() * 40) + 47);
+  }
+
+  homeGoals.sort((a, b) => a - b);
+  awayGoals.sort((a, b) => a - b);
+
+  const mockHomePlayers = ["Tiền đạo", "Tiền vệ", "Hậu vệ", "Ngôi sao cánh", "Trung phong"];
+  const mockAwayPlayers = ["Cầu thủ số 9", "Đội trưởng", "Tiền đạo biên", "Tiền vệ công", "Cầu thủ chạy cánh"];
+
+  homeGoals.forEach((min, idx) => {
+    const player = mockHomePlayers[idx % mockHomePlayers.length];
+    timeline.push({
+      minute: min,
+      team: 'home',
+      type: 'goal',
+      player: player,
+      detail: `⚽ VÀOOO! ${player} dứt điểm hiểm hóc tung lưới ${awayTeam}, ghi bàn thắng cho ${homeTeam}.`
+    });
+  });
+
+  awayGoals.forEach((min, idx) => {
+    const player = mockAwayPlayers[idx % mockAwayPlayers.length];
+    timeline.push({
+      minute: min,
+      team: 'away',
+      type: 'goal',
+      player: player,
+      detail: `⚽ VÀOOO! ${player} tận dụng sai lầm hàng thủ đối phương, ghi bàn thắng cho ${awayTeam}.`
+    });
+  });
+
+  const extraEvents = [
+    { type: 'yellow_card', team: 'home', min: 18, player: 'Hậu vệ quét', detail: '🟨 Trọng tài rút thẻ vàng cảnh cáo sau pha vào bóng nguy hiểm từ phía sau.' },
+    { type: 'yellow_card', team: 'away', min: 35, player: 'Tiền vệ phòng ngự', detail: '🟨 Thẻ vàng cho cầu thủ bên phía khách vì lỗi kéo người chiến thuật.' },
+    { type: 'shoot', team: 'home', min: 22, player: 'Tiền vệ cánh', detail: '💥 KHÔNG VÀO! Pha sút bóng căng dội xà ngang khung thành đầy đáng tiếc.' },
+    { type: 'save', team: 'away', min: 28, player: 'Thủ môn', detail: '🧤 CỨU THUA XUẤT THẦN! Thủ môn bay người đấm bóng chịu quả phạt góc.' },
+    { type: 'corner', team: 'home', min: 29, player: 'Tiền vệ công', detail: '🚩 Phạt góc! Quả đá phạt góc khó chịu đưa bóng cuộn vào vòng cấm địa.' },
+    { type: 'substitution', team: 'away', min: 60, player: 'Cầu thủ dự bị', detail: '🔄 Thay đổi người! Huấn luyện viên quyết định thay người chiến thuật.' },
+    { type: 'yellow_card', team: 'away', min: 72, player: 'Trung vệ', detail: '🟨 Thẻ vàng phạt lỗi cản người không bóng ngăn đợt tấn công nguy hiểm.' },
+    { type: 'shoot', team: 'away', min: 78, player: 'Tiền đạo', detail: '💥 NGUY HIỂM! Pha dứt điểm chéo góc đưa bóng đi chệch cột dọc trong gang tấc.' },
+    { type: 'foul', team: 'home', min: 82, player: 'Trung vệ', detail: '🛑 Trọng tài cắt còi! Pha phạm lỗi ngay sát vòng cấm địa, cơ hội đá phạt nguy hiểm.' }
+  ];
+
+  const usedMinutes = new Set([...homeGoals, ...awayGoals, 1, 45, 46, 90]);
+  extraEvents.forEach(evt => {
+    let min = evt.min;
+    while (usedMinutes.has(min)) {
+      min += 1;
+    }
+    if (min < 90) {
+      usedMinutes.add(min);
+      timeline.push({
+        minute: min,
+        team: evt.team,
+        type: evt.type,
+        player: evt.player,
+        detail: evt.detail
+      });
+    }
+  });
+
+  timeline.push({
+    minute: 45,
+    team: 'none',
+    type: 'half_time',
+    player: '',
+    detail: `⏱️ Hết hiệp 1! Hai đội tạm nghỉ với tỷ số tạm thời là ${firstHalfHome || 0}-${firstHalfAway || 0}.`
+  });
+
+  timeline.push({
+    minute: 46,
+    team: 'none',
+    type: 'kickoff',
+    player: '',
+    detail: '⏱️ Hiệp 2 bắt đầu! Quyền giao bóng thuộc về đội khách.'
+  });
+
+  timeline.push({
+    minute: 90,
+    team: 'none',
+    type: 'full_time',
+    player: '',
+    detail: `🏁 HẾT GIỜ! Trọng tài thổi còi kết thúc trận đấu. Kết quả chung cuộc: ${homeTeam} ${homeScore}-${awayScore} ${awayTeam}.`
+  });
+
+  timeline.sort((a, b) => {
+    if (a.minute !== b.minute) {
+      return a.minute - b.minute;
+    }
+    const order = { kickoff: 0, goal: 2, yellow_card: 3, red_card: 4, substitution: 5, half_time: 9, full_time: 10 };
+    return (order[a.type] || 5) - (order[b.type] || 5);
+  });
+
+  return timeline;
+}
+
 import { getVNTime } from '@/lib/timezone';
 import fs from 'fs';
 import path from 'path';
@@ -488,7 +612,8 @@ export async function updateMatchResult({ homeTeam, awayTeam, matchId, force, db
       }
 
       // Cập nhật database và file fixtures.json
-      await updateFixturesDbAndFile(db, matchId || (sampleRecord ? sampleRecord.match_id : null), homeTeam, awayTeam, mockHomeScore, mockAwayScore, mockFirstHalfHome, mockFirstHalfAway);
+      const mockTimeline = generateMockTimeline(homeTeam, awayTeam, mockHomeScore, mockAwayScore, mockFirstHalfHome, mockFirstHalfAway);
+      await updateFixturesDbAndFile(db, matchId || (sampleRecord ? sampleRecord.match_id : null), homeTeam, awayTeam, mockHomeScore, mockAwayScore, mockFirstHalfHome, mockFirstHalfAway, JSON.stringify(mockTimeline));
 
       return {
         success: true,
@@ -552,7 +677,10 @@ Hãy trích xuất:
 3. Tỷ số thực tế kết thúc HIỆP 1 (actualFirstHalfScore): { "home": X, "away": Y } (trả về null hoặc bỏ trống nếu Internet không có dữ liệu hiệp 1).
 4. Tổng số phạt góc của trận đấu.
 5. Tổng số thẻ phạt của trận đấu.
-6. So sánh đề xuất cược ban đầu của mô hình tại mẫu cược sau đây và chấm điểm cược "correct" (Đúng), "incorrect" (Sai) hoặc "refund" (Hòa tiền):
+6. Diễn biến trận đấu chi tiết (matchTimeline): Trích xuất mảng các sự kiện chính theo thời gian trận đấu (từ 12 đến 20 sự kiện quan trọng nhất bao gồm bàn sút, thẻ phạt, thay người, phạt góc, phạm lỗi thô bạo, cứu thua, v.v.). Mỗi sự kiện có cấu trúc: { "minute": number, "team": "home" | "away" | "none", "type": "kickoff" | "pass" | "shoot" | "goal" | "yellow_card" | "red_card" | "substitution" | "foul" | "corner" | "offside" | "save" | "referee_warning" | "half_time" | "full_time", "player": "tên cầu thủ", "detail": "Mô tả chi tiết bằng tiếng Việt" }.
+Nếu dữ liệu Internet thiếu chi tiết, hãy suy luận logic để điền các sự kiện hợp lý tương thích với tỷ số thực tế.
+7. So sánh đề xuất cược ban đầu của mô hình tại mẫu cược sau đây và chấm điểm cược "correct" (Đúng), "incorrect" (Sai) hoặc "refund" (Hòa tiền):
+
 Mẫu cược: ${sampleRecord ? JSON.stringify(sampleRecord) : 'Chưa có cược trước đó'}
 
 ${searchContext}
@@ -572,7 +700,18 @@ Hãy trả về chuỗi JSON thô có cấu trúc chính xác như sau:
     "btts": { "outcome": "incorrect", "reason": "Lý do..." },
     "corners": { "outcome": "correct", "reason": "Lý do..." },
     "cards": { "outcome": "correct", "reason": "Lý do..." }
-  }
+  },
+  "matchTimeline": [
+    { "minute": 1, "team": "none", "type": "kickoff", "player": "", "detail": "Trận đấu bắt đầu! Trọng tài chính thổi còi khai cuộc." },
+    { "minute": 15, "team": "home", "type": "shoot", "player": "Tiền đạo cánh", "detail": "💥 Sút bóng! Cú sút chéo góc nguy hiểm đưa bóng đi chệch cột dọc." },
+    { "minute": 24, "team": "home", "type": "goal", "player": "Ngôi sao công", "detail": "⚽ VÀOOO! Đệm bóng cận thành mở tỷ số từ pha căng ngang dọn cỗ." },
+    { "minute": 45, "team": "none", "type": "half_time", "player": "", "detail": "⏱️ Hết hiệp 1! Tỷ số tạm thời là 1-0." },
+    { "minute": 46, "team": "none", "type": "kickoff", "player": "", "detail": "Hiệp 2 bắt đầu!" },
+    { "minute": 58, "team": "away", "type": "goal", "player": "Cầu thủ số 9", "detail": "⚽ VÀOOO! Cú đánh đầu hiểm hóc đưa trận đấu về vạch xuất phát." },
+    { "minute": 72, "team": "away", "type": "yellow_card", "player": "Hậu vệ quét", "detail": "🟨 Thẻ vàng vì pha phạm lỗi cản người không bóng nguy hiểm." },
+    { "minute": 88, "team": "home", "type": "goal", "player": "Đội trưởng", "detail": "⚽ VÀOOO! Cú sút phạt hàng rào đẳng cấp nâng tỷ số lên 2-1." },
+    { "minute": 90, "team": "none", "type": "full_time", "player": "", "detail": "🏁 Trận đấu kết thúc với kết quả 2-1 nghiêng về đội nhà." }
+  ]
 }
 Chỉ trả về JSON thô. Do NOT include markdown blocks.
 `;
@@ -734,7 +873,8 @@ Chỉ trả về JSON thô. Do NOT include markdown blocks.
       }
 
       // Cập nhật database và file fixtures.json
-      await updateFixturesDbAndFile(db, matchId || (sampleRecord ? sampleRecord.match_id : null), homeTeam, awayTeam, aHome, aAway, aFirstHalfHome, aFirstHalfAway);
+      const matchTimeline = parsedData.matchTimeline ? JSON.stringify(parsedData.matchTimeline) : JSON.stringify(generateMockTimeline(homeTeam, awayTeam, aHome, aAway, aFirstHalfHome, aFirstHalfAway));
+      await updateFixturesDbAndFile(db, matchId || (sampleRecord ? sampleRecord.match_id : null), homeTeam, awayTeam, aHome, aAway, aFirstHalfHome, aFirstHalfAway, matchTimeline);
 
       // --- TỰ ĐỘNG VIẾT BÀI HỌC KINH NGHIỆM ---
       if (sampleRecord) {
@@ -766,20 +906,47 @@ Chỉ trả về JSON thô. Do NOT include markdown blocks.
 }
 
 // Helper để cập nhật cả database và file fixtures.json local
-async function updateFixturesDbAndFile(db, matchId, homeTeam, awayTeam, aHome, aAway, aFirstHalfHome = null, aFirstHalfAway = null) {
+async function updateFixturesDbAndFile(db, matchId, homeTeam, awayTeam, aHome, aAway, aFirstHalfHome = null, aFirstHalfAway = null, matchTimeline = null) {
   try {
     // 1. Cập nhật database
     if (db) {
-      await db.run(
-        `UPDATE fixtures 
-         SET actual_home_score = ?, 
-             actual_away_score = ?, 
-             actual_first_half_home_score = ?, 
-             actual_first_half_away_score = ? 
-         WHERE id = ? OR (home_team = ? AND away_team = ?)`,
-        [aHome, aAway, aFirstHalfHome, aFirstHalfAway, matchId, homeTeam, awayTeam]
-      );
-      console.log(`🟢 [DB fixtures] Đã cập nhật tỉ số cho trận ${homeTeam} vs ${awayTeam}: ${aHome}-${aAway}`);
+      try {
+        await db.run(
+          `UPDATE fixtures 
+           SET actual_home_score = ?, 
+               actual_away_score = ?, 
+               actual_first_half_home_score = ?, 
+               actual_first_half_away_score = ?,
+               match_timeline = ?
+           WHERE id = ? OR (home_team = ? AND away_team = ?)`,
+          [aHome, aAway, aFirstHalfHome, aFirstHalfAway, matchTimeline, matchId, homeTeam, awayTeam]
+        );
+        console.log(`🟢 [DB fixtures] Đã cập nhật tỉ số và diễn biến cho trận ${homeTeam} vs ${awayTeam}: ${aHome}-${aAway}`);
+      } catch (dbErr) {
+        // Tự động khôi phục nếu cột match_timeline chưa tồn tại (Self-healing)
+        if (dbErr.message && (dbErr.message.includes('no such column') || dbErr.message.includes('match_timeline'))) {
+          console.warn('⚠️ Cột match_timeline chưa tồn tại trong DB, đang tự động chạy ALTER TABLE...');
+          try {
+            await db.exec(`ALTER TABLE fixtures ADD COLUMN match_timeline TEXT DEFAULT NULL`);
+            // Chạy lại câu lệnh UPDATE
+            await db.run(
+              `UPDATE fixtures 
+               SET actual_home_score = ?, 
+                   actual_away_score = ?, 
+                   actual_first_half_home_score = ?, 
+                   actual_first_half_away_score = ?,
+                   match_timeline = ?
+               WHERE id = ? OR (home_team = ? AND away_team = ?)`,
+              [aHome, aAway, aFirstHalfHome, aFirstHalfAway, matchTimeline, matchId, homeTeam, awayTeam]
+            );
+            console.log(`🟢 [DB fixtures - Self-healed] Đã cập nhật tỉ số và diễn biến thành công.`);
+          } catch (alterErr) {
+            console.error('❌ Không thể chạy ALTER TABLE tự phục hồi:', alterErr);
+          }
+        } else {
+          console.error('❌ Lỗi DB khi cập nhật fixtures:', dbErr);
+        }
+      }
     }
 
     // 2. Cập nhật file fixtures.json local để giữ đồng bộ
@@ -798,8 +965,15 @@ async function updateFixturesDbAndFile(db, matchId, homeTeam, awayTeam, aHome, a
             away: aFirstHalfAway
           };
         }
+        if (matchTimeline) {
+          try {
+            fileData.fixtures[fixtureIndex].matchTimeline = JSON.parse(matchTimeline);
+          } catch (e) {
+            fileData.fixtures[fixtureIndex].matchTimeline = null;
+          }
+        }
         fs.writeFileSync(fixturesFilePath, JSON.stringify(fileData, null, 2), 'utf8');
-        console.log(`🟢 [fixtures.json] Đã cập nhật tỉ số: ${aHome}-${aAway}, Hiệp 1: ${aFirstHalfHome}-${aFirstHalfAway}`);
+        console.log(`🟢 [fixtures.json] Đã cập nhật tỉ số & timeline: ${aHome}-${aAway}`);
       }
     }
   } catch (err) {
