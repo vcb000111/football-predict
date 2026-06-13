@@ -2,6 +2,21 @@
 
 Tất cả những thay đổi nổi bật đối với dự án **FIFA World Cup 2026 AI Predictor** sẽ được tài liệu hóa trong file này.
 
+## [1.9.0] - 2026-06-13
+
+### Added (Thêm mới)
+* **Tính năng dự đoán Hiệp 1 và Hiệp 2:** Cho phép người dùng chạy dự đoán kết quả thi đấu riêng cho Hiệp 1 (First Half) hoặc Hiệp 2 (Second Half), hỗ trợ lưu trữ trong database và hiển thị thống kê riêng biệt.
+* **Tích hợp form cập nhật kết quả thủ công:** Bổ sung giao diện và form nhập tỷ số cả trận và tỷ số hiệp 1 thực tế thủ công ngay trên giao diện chi tiết trận đấu, đồng bộ hóa với hệ thống chấm điểm cược.
+
+### Changed (Thay đổi logic)
+* **Thuật toán toán học Poisson:** Tách biệt tỷ lệ Lambda cho Hiệp 1 (phạt góc * 0.47, thẻ * 0.35, lambda * 0.45) và Hiệp 2 (phạt góc * 0.53, thẻ * 0.65, lambda * 0.55). Đối với Hiệp 2, tự động cộng dồn tỷ số Hiệp 1 thực tế để mô phỏng chính xác kết quả cả trận.
+* **Chấm điểm cược theo Hiệp đấu:** Đồng bộ hóa logic chấm điểm cược tự động (trọng tài AI) và thủ công. Nếu dự đoán là Hiệp 1, hệ thống đối chiếu với tỷ số Hiệp 1 thực tế thay vì tỷ số cả trận.
+* **Tách biệt thống kê Stats:** Nâng cấp query SQL trong API thống kê để tính toán tỷ lệ chính xác (đúng tỷ số & đúng kết quả 1X2) phân biệt rõ ràng theo từng loại dự đoán.
+* **Nhãn loại dự đoán động:** Hiển thị nhãn `(H1)`, `(H2)` hoặc `(FT)` trong danh sách lịch sử dự đoán, trên card tỷ số trang chi tiết trận đấu và trên trang chủ.
+
+### Fixed (Sửa lỗi)
+* **Sửa lỗi lệch dấu hỏi chấm INSERT SQLite:** Loại bỏ 1 dấu hỏi chấm `?` bị thừa trong câu lệnh `INSERT INTO predictions` của API Predict (`src/app/api/predict/route.js`) khiến hệ thống báo lỗi lệch số lượng cột (SQLite error: 35 values for 34 columns) khi lưu dự đoán Hiệp 1/Hiệp 2 vào database.
+
 ## [1.8.0] - 2026-06-12
 
 ### Changed (Thay đổi logic)

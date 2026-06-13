@@ -85,3 +85,7 @@ body {
 .live-indicator {
   animation: pulse-light 2s infinite ease-in-out;
 }
+
+.pb-safe {
+  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+}

@@ -60,6 +60,12 @@ Hệ thống dự đoán kết quả bóng đá và phân tích kèo đấu thô
 * **Hiển thị song song thông minh:** Thiết kế hiển thị giờ Việt Nam nổi bật làm chủ đạo trên trang chủ (Grid/List) và hiển thị song song giờ VN cùng giờ địa phương tại header chi tiết trận đấu giúp dễ dàng đối chiếu.
 * **Đồng bộ Sắp xếp & Hydration Safety:** Sắp xếp danh sách trận đấu trên trang chủ chạy tuyến tính chuẩn xác theo ngày giờ Việt Nam thực tế, đồng thời triệt tiêu hoàn toàn lỗi Hydration Mismatch đặc thù của Next.js SSR.
 
+### 9. Dự Đoán Hiệp 1 & Hiệp 2 (Chuyên Sâu)
+* Hỗ trợ dự đoán và phân tích chiến thuật chuyên biệt riêng cho **Hiệp 1 (First Half)** hoặc **Hiệp 2 (Second Half)**.
+* Thuật toán Poisson tự động chia nhỏ tỷ lệ Lambda theo từng hiệp đấu (Hiệp 1: góc * 0.47, thẻ * 0.35, lambda * 0.45; Hiệp 2: góc * 0.53, thẻ * 0.65, lambda * 0.55).
+* Mô phỏng Monte Carlo Hiệp 2 tự động tích lũy và cộng dồn tỷ số Hiệp 1 thực tế để đảm bảo kết quả giả lập cả trận đồng bộ.
+* Chấm điểm cược động và phân tách biểu đồ thống kê hiệu suất (đúng tỷ số & đúng kết quả 1X2) của AI độc lập theo loại dự đoán.
+
 ---
 
 ## 💻 Công Nghệ Sử Dụng
@@ -94,6 +100,16 @@ npm run dev
 ---
 
 ## 🛠️ Nhật Ký Thay Đổi (Changelog)
+
+### [2026-06-13] - Dự đoán Hiệp 1 & Hiệp 2, tích hợp form cập nhật thủ công (v1.9.0)
+* **Tính năng dự đoán Hiệp 1 và Hiệp 2:** Dự đoán, lưu trữ và thống kê hiệu suất riêng biệt.
+* **Cập nhật tỷ lệ Poisson:** Hiệp 1 (góc * 0.47, thẻ * 0.35, lambda * 0.45); Hiệp 2 (góc * 0.53, thẻ * 0.65, lambda * 0.55 + cộng dồn tỷ số H1 thực tế).
+* **Tích hợp form cập nhật thủ công:** Cho phép admin nhập tỷ số cả trận và tỷ số hiệp 1 thực tế trên trang chi tiết trận đấu để chấm cược.
+* **Sửa lỗi lệch tham số INSERT SQLite:** Xóa bỏ 1 dấu hỏi chấm `?` bị thừa trong câu lệnh `INSERT INTO predictions` của API Predict, giúp lưu trữ dự đoán thành công vào database mà không bị crash.
+
+### [2026-06-12] - Gỡ bỏ xác thực Admin trên Production & Tự động chấm cược (v1.8.0)
+* **Gỡ bỏ xác thực Admin:** Loại bỏ hoàn toàn password gate trên môi trường production.
+* **Tự động chấm cược:** AI tự động đọc tỷ số thực tế từ fixtures.json để chấm điểm cược khi dự đoán trận đấu quá khứ.
 
 ### [2026-06-11] - Tính năng đồng bộ cấu hình nhanh và sửa lỗi dự đoán (v1.7.1)
 * **Tính năng đồng bộ cấu hình nhanh:** Bổ sung tùy chọn đồng bộ nhanh các cài đặt và khóa chức năng từ hệ thống máy chủ vào ứng dụng thông qua giao diện quản trị, tự động loại bỏ các cài đặt trùng lặp để tối ưu hóa hiệu năng.

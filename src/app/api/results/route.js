@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { getDB } from '@/lib/db';
+import { evaluateBetOutcome } from '@/lib/results-updater';
 import fs from 'fs';
 import path from 'path';
 
 export async function POST(request) {
   try {
-    const { homeTeam, awayTeam, actualHomeScore, actualAwayScore, matchId } = await request.json();
+    const { homeTeam, awayTeam, actualHomeScore, actualAwayScore, matchId, actualFirstHalfHomeScore = null, actualFirstHalfAwayScore = null } = await request.json();
 
     if (!homeTeam || !awayTeam || actualHomeScore === undefined || actualAwayScore === undefined) {
       return NextResponse.json(
@@ -41,89 +42,59 @@ export async function POST(request) {
       );
     }
 
-    // Tính toán xem AI đoán đúng kết quả (Thắng/Hòa/Thua) hay không
     const pHome = predictionRecord.predicted_home_score;
     const pAway = predictionRecord.predicted_away_score;
     const aHome = parseInt(actualHomeScore, 10);
     const aAway = parseInt(actualAwayScore, 10);
+    const aFirstHalfHome = actualFirstHalfHomeScore !== null && actualFirstHalfHomeScore !== undefined ? parseInt(actualFirstHalfHomeScore, 10) : null;
+    const aFirstHalfAway = actualFirstHalfAwayScore !== null && actualFirstHalfAwayScore !== undefined ? parseInt(actualFirstHalfAwayScore, 10) : null;
 
-    const predictedOutcome = pHome > pAway ? 'home' : pHome < pAway ? 'away' : 'draw';
-    const actualOutcome = aHome > aAway ? 'home' : aHome < aAway ? 'away' : 'draw';
+    const isFirstHalf = predictionRecord.predict_type === 'first_half';
+    const compareHome = isFirstHalf ? aFirstHalfHome : aHome;
+    const compareAway = isFirstHalf ? aFirstHalfAway : aAway;
 
-    const isCorrect = predictedOutcome === actualOutcome ? 1 : 0;
+    let evalResults = null;
+    const canEvaluate = !isFirstHalf || (aFirstHalfHome !== null && aFirstHalfAway !== null);
 
-    // Đánh giá Kèo Tài Xỉu (O/U 2.5)
-    const totalGoals = aHome + aAway;
-    const recOu = (predictionRecord.recommendation_ou || '').toLowerCase();
-    let isCorrectOu = null;
-    if (recOu.includes('over') || recOu.includes('tài')) {
-      isCorrectOu = totalGoals > 2.5 ? 1 : 0;
-    } else if (recOu.includes('under') || recOu.includes('xỉu')) {
-      isCorrectOu = totalGoals < 2.5 ? 1 : 0;
+    if (canEvaluate) {
+      evalResults = evaluateBetOutcome(
+        predictionRecord.recommendation_1x2,
+        predictionRecord.recommendation_ou,
+        predictionRecord.recommendation_handicap,
+        predictionRecord.recommendation_btts,
+        predictionRecord.recommendation_corners,
+        predictionRecord.recommendation_cards,
+        { home: pHome, away: pAway },
+        compareHome,
+        compareAway,
+        null, // corners
+        null, // cards
+        homeTeam,
+        awayTeam,
+        predictionRecord.ou_line || 2.5,
+        predictionRecord.corners_line || 8.5,
+        predictionRecord.cards_line || 3.5,
+        predictionRecord.handicap_line || 0.0
+      );
     }
 
-    // Đánh giá Kèo Chấp Châu Á
-    let isCorrectHandicap = null;
-    const recHandicap = (predictionRecord.recommendation_handicap || '');
-    const homeSelected = recHandicap.toLowerCase().includes(homeTeam.toLowerCase());
-    const awaySelected = recHandicap.toLowerCase().includes(awayTeam.toLowerCase());
-    const numberMatch = recHandicap.match(/[-+]?\d*\.?\d+/);
-
-    if (numberMatch && (homeSelected || awaySelected)) {
-      const handicapValue = parseFloat(numberMatch[0]);
-      if (homeSelected) {
-        const diff = aHome + handicapValue - aAway;
-        if (diff > 0) isCorrectHandicap = 1;
-        else if (diff === 0) isCorrectHandicap = 2; // Refund
-        else isCorrectHandicap = 0;
-      } else if (awaySelected) {
-        const diff = aAway + handicapValue - aHome;
-        if (diff > 0) isCorrectHandicap = 1;
-        else if (diff === 0) isCorrectHandicap = 2; // Refund
-        else isCorrectHandicap = 0;
-      }
-    }
-
-    // Đánh giá Kèo Cả hai đội ghi bàn (BTTS)
-    let isCorrectBtts = null;
-    const recBtts = (predictionRecord.recommendation_btts || '').toLowerCase();
-    const actualBtts = (aHome > 0 && aAway > 0) ? 'yes' : 'no';
-    if (recBtts) {
-      if (recBtts.includes(actualBtts)) {
-        isCorrectBtts = 1;
-      } else {
-        isCorrectBtts = 0;
-      }
-    }
-
-    // Tạo chi tiết đánh giá
-    const evalDetails = {
-      oneXTwo: {
-        outcome: isCorrect === 1 ? 'correct' : 'incorrect',
-        reason: `Kết quả thực tế là ${aHome}-${aAway}. AI khuyến nghị: ${predictionRecord.recommendation_1x2 || 'N/A'}.`
-      },
-      overUnder: {
-        outcome: isCorrectOu === null ? 'n/a' : (isCorrectOu === 1 ? 'correct' : 'incorrect'),
-        reason: `Tổng số bàn thắng là ${totalGoals}. AI khuyến nghị: ${predictionRecord.recommendation_ou || 'N/A'}.`
-      },
-      handicap: {
-        outcome: isCorrectHandicap === null ? 'n/a' : (isCorrectHandicap === 1 ? 'correct' : (isCorrectHandicap === 2 ? 'refund' : 'incorrect')),
-        reason: `Tỷ số ${aHome}-${aAway}. AI khuyến nghị: ${predictionRecord.recommendation_handicap || 'N/A'}.`
-      },
-      btts: {
-        outcome: isCorrectBtts === null ? 'n/a' : (isCorrectBtts === 1 ? 'correct' : 'incorrect'),
-        reason: `Cả hai đội ghi bàn thực tế: ${actualBtts === 'yes' ? 'Có' : 'Không'}. AI khuyến nghị: ${predictionRecord.recommendation_btts || 'N/A'}.`
-      },
-      corners: {
-        outcome: 'n/a',
-        reason: 'Cập nhật thủ công không có dữ liệu phạt góc.'
-      },
-      cards: {
-        outcome: 'n/a',
-        reason: 'Cập nhật thủ công không có dữ liệu thẻ phạt.'
-      },
-      summary: `Cập nhật thủ công: Trận đấu kết thúc với tỷ số ${aHome}-${aAway}.`
+    const evalDetails = evalResults ? {
+      ...evalResults.evalDetails,
+      summary: `Cập nhật thủ công: Trận đấu kết thúc với tỷ số ${aHome}-${aAway}${aFirstHalfHome !== null ? `, Hiệp 1: ${aFirstHalfHome}-${aFirstHalfAway}` : ''}.`
+    } : {
+      oneXTwo: { outcome: 'n/a', reason: 'Không có thông tin tỷ số Hiệp 1 thực tế.' },
+      overUnder: { outcome: 'n/a', reason: 'Không có thông tin tỷ số Hiệp 1 thực tế.' },
+      handicap: { outcome: 'n/a', reason: 'Không có thông tin tỷ số Hiệp 1 thực tế.' },
+      btts: { outcome: 'n/a', reason: 'Không có thông tin tỷ số Hiệp 1 thực tế.' },
+      corners: { outcome: 'n/a', reason: 'Không có thông tin tỷ số Hiệp 1 thực tế.' },
+      cards: { outcome: 'n/a', reason: 'Không có thông tin tỷ số Hiệp 1 thực tế.' },
+      summary: 'Không thể đánh giá cược do thiếu kết quả Hiệp 1.'
     };
+
+    const isCorrect = evalResults ? evalResults.isCorrect_1x2 : null;
+    const isCorrectOu = evalResults ? evalResults.isCorrect_ou : null;
+    const isCorrectHandicap = evalResults ? evalResults.isCorrect_handicap : null;
+    const isCorrectBtts = evalResults ? evalResults.isCorrect_btts : null;
 
     // Cập nhật kết quả thực tế và điểm số đánh giá vào SQLite
     await db.run(
@@ -136,7 +107,9 @@ export async function POST(request) {
            is_correct_btts = ?,
            is_correct_corners = ?,
            is_correct_cards = ?,
-           bet_evaluation_details = ? 
+           bet_evaluation_details = ?,
+           actual_first_half_home_score = ?,
+           actual_first_half_away_score = ?
        WHERE id = ?`,
       [
         aHome, 
@@ -147,7 +120,9 @@ export async function POST(request) {
         isCorrectBtts,
         null,
         null,
-        JSON.stringify(evalDetails), 
+        JSON.stringify(evalDetails),
+        aFirstHalfHome,
+        aFirstHalfAway,
         predictionRecord.id
       ]
     );
@@ -163,8 +138,14 @@ export async function POST(request) {
         if (fixtureIndex !== -1) {
           fileData.fixtures[fixtureIndex].actualHomeScore = aHome;
           fileData.fixtures[fixtureIndex].actualAwayScore = aAway;
+          if (aFirstHalfHome !== null && aFirstHalfAway !== null) {
+            fileData.fixtures[fixtureIndex].actualFirstHalfScore = {
+              home: aFirstHalfHome,
+              away: aFirstHalfAway
+            };
+          }
           fs.writeFileSync(fixturesFilePath, JSON.stringify(fileData, null, 2), 'utf8');
-          console.log(`🟢 [fixtures.json - MANUAL] Đã cập nhật tỉ số cho trận đấu ${homeTeam} vs ${awayTeam}: ${aHome}-${aAway}`);
+          console.log(`🟢 [fixtures.json - MANUAL] Đã cập nhật tỉ số cho trận đấu ${homeTeam} vs ${awayTeam}: ${aHome}-${aAway}, Hiệp 1: ${aFirstHalfHome}-${aFirstHalfAway}`);
         }
       }
     } catch (fsError) {
@@ -174,11 +155,11 @@ export async function POST(request) {
     // --- OPTION 2: SELF-RETROSPECTIVE LESSON GENERATION ---
     const incorrectBets = [];
     if (isCorrect === 0) incorrectBets.push('1X2 (Thắng/Hòa/Thua)');
-    if (isCorrectOu === 0) incorrectBets.push('Tài/Xỉu 2.5');
+    if (isCorrectOu === 0) incorrectBets.push('Tài/Xỉu');
     if (isCorrectHandicap === 0) incorrectBets.push('Kèo chấp Handicap');
     if (isCorrectBtts === 0) incorrectBets.push('Cả hai đội ghi bàn (BTTS)');
 
-    if (incorrectBets.length > 0) {
+    if (incorrectBets.length > 0 && evalResults) {
       console.log(`🔁 [Self-Retrospective - Manual] Phát hiện ${incorrectBets.length} kèo dự đoán sai. Gọi AI viết bài học kinh nghiệm...`);
       try {
         const activeKeysRows = await db.all("SELECT key_value FROM api_keys WHERE status = 1 AND (provider IS NULL OR provider = 'gemini')");
@@ -189,9 +170,10 @@ export async function POST(request) {
           const geminiModel = activeModelsRows[0].model_name.trim();
           
           const lessonPrompt = `
-Trận đấu giữa ${homeTeam} và ${awayTeam} kết thúc với tỷ số thực tế là ${aHome}-${aAway}.
+Trận đấu giữa ${homeTeam} và ${awayTeam} kết thúc với tỷ số thực tế là ${compareHome}-${compareAway}.
 Dự đoán ban đầu của bạn là: Tỷ số ${pHome}-${pAway}.
 Các đề xuất kèo bị sai lệch bao gồm: ${incorrectBets.join(', ')}.
+${isFirstHalf ? 'Lưu ý: Đây là trận đấu được dự đoán riêng cho HIỆP 1.' : ''}
 
 Nhiệm vụ: Hãy viết một bài học kinh nghiệm cực kỳ ngắn gọn (dưới 50 từ) giải thích lý do tại sao mô hình dự đoán sai các kèo này (ví dụ: đánh giá quá cao hàng công, đánh giá sai tính chất thực dụng của giải đấu, bỏ qua tin tức chấn thương...).
 Hãy trả về duy nhất nội dung bài học bằng tiếng Việt. Không thêm bất cứ tag hay ký tự dẫn dắt nào. Do NOT include markdown blocks.

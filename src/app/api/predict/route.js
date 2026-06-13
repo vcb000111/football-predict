@@ -299,7 +299,7 @@ async function callProviderModelsFallback(provider, modelsList, apiKeys, prompt)
 
 export async function POST(request) {
   try {
-    const { homeTeam, awayTeam, matchId, forceRefresh, fastMode = false, isBacktest = false, marketHandicap = 0.0 } = await request.json();
+    const { homeTeam, awayTeam, matchId, forceRefresh, fastMode = false, isBacktest = false, marketHandicap = 0.0, predictType = 'full_time', firstHalfHomeScore = null, firstHalfAwayScore = null } = await request.json();
 
     if (!homeTeam || !awayTeam) {
       return NextResponse.json(
@@ -584,10 +584,10 @@ export async function POST(request) {
     }
 
     // Chạy Monte Carlo với mốc cược ou_line động vừa tính
-    const monteCarloResult = runMonteCarloSimulation(homeTeamData, awayTeamData, isHomeAdvantage, 10000, ou_line);
+    const monteCarloResult = runMonteCarloSimulation(homeTeamData, awayTeamData, isHomeAdvantage, 10000, ou_line, predictType, firstHalfHomeScore, firstHalfAwayScore);
 
     // Tính toán mốc phạt góc và thẻ phạt động cùng xác suất tương ứng
-    const ccResult = calculateCornersAndCards(homeTeamData, awayTeamData, 10000);
+    const ccResult = calculateCornersAndCards(homeTeamData, awayTeamData, 10000, predictType);
     const corners_line = ccResult.corners_line;
     const cards_line = ccResult.cards_line;
 
@@ -637,6 +637,8 @@ Tỷ lệ dự đoán đúng kết quả chung cuộc (1X2) gần đây của b�
     // --- LẤY TỶ SỐ THỰC TẾ ĐỂ CHẤM ĐIỂM NẾU TRẬN ĐẤU ĐÃ KẾT THÚC ---
     let actualHomeScore = null;
     let actualAwayScore = null;
+    let actualFirstHalfHomeScore = null;
+    let actualFirstHalfAwayScore = null;
     if (hasActualResult) {
       try {
         const fixturesPath = path.join(process.cwd(), 'src', 'data', 'fixtures.json');
@@ -646,7 +648,11 @@ Tỷ lệ dự đoán đúng kết quả chung cuộc (1X2) gần đây của b�
           if (f && f.actualHomeScore !== null && f.actualHomeScore !== undefined) {
             actualHomeScore = parseInt(f.actualHomeScore, 10);
             actualAwayScore = parseInt(f.actualAwayScore, 10);
-            console.log(`🏆 [Predict Route Score Retrieval] Đọc được tỷ số thực tế từ fixtures.json: ${actualHomeScore}-${actualAwayScore}`);
+            if (f.actualFirstHalfScore) {
+              actualFirstHalfHomeScore = parseInt(f.actualFirstHalfScore.home, 10);
+              actualFirstHalfAwayScore = parseInt(f.actualFirstHalfScore.away, 10);
+            }
+            console.log(`🏆 [Predict Route Score Retrieval] Đọc được tỷ số thực tế từ fixtures.json: ${actualHomeScore}-${actualAwayScore}, Hiệp 1: ${actualFirstHalfHomeScore}-${actualFirstHalfAwayScore}`);
           }
         }
       } catch (e) {
@@ -661,7 +667,14 @@ Tỷ lệ dự đoán đúng kết quả chung cuộc (1X2) gần đây của b�
       if (db) {
         try {
           let evalResultsMock = null;
-          if (actualHomeScore !== null && actualAwayScore !== null) {
+          const canEvaluateMock = predictType === 'first_half'
+            ? (actualFirstHalfHomeScore !== null && actualFirstHalfAwayScore !== null)
+            : (actualHomeScore !== null && actualAwayScore !== null);
+
+          if (canEvaluateMock) {
+            const compareHome = predictType === 'first_half' ? actualFirstHalfHomeScore : actualHomeScore;
+            const compareAway = predictType === 'first_half' ? actualFirstHalfAwayScore : actualAwayScore;
+
             evalResultsMock = evaluateBetOutcome(
               mockData.bets.oneXTwo.recommendation,
               mockData.bets.overUnder.recommendation,
@@ -670,8 +683,8 @@ Tỷ lệ dự đoán đúng kết quả chung cuộc (1X2) gần đây của b�
               mockData.bets.corners.recommendation,
               mockData.bets.cards.recommendation,
               { home: mockData.predictedScore.home, away: mockData.predictedScore.away },
-              actualHomeScore,
-              actualAwayScore,
+              compareHome,
+              compareAway,
               null,
               null,
               homeTeam,
@@ -694,8 +707,10 @@ Tỷ lệ dự đoán đúng kết quả chung cuộc (1X2) gần đây của b�
               actual_home_score, actual_away_score,
               is_correct, is_correct_ou, is_correct_handicap,
               is_correct_btts, is_correct_corners, is_correct_cards,
-              bet_evaluation_details, raw_prediction_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              bet_evaluation_details, raw_prediction_json,
+              predict_type, first_half_home_score, first_half_away_score,
+              actual_first_half_home_score, actual_first_half_away_score
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               matchId || null, homeTeam, awayTeam,
               mockData.predictedScore.home, mockData.predictedScore.away,
@@ -714,7 +729,9 @@ Tỷ lệ dự đoán đúng kết quả chung cuộc (1X2) gần đây của b�
               evalResultsMock ? evalResultsMock.isCorrect_corners : null,
               evalResultsMock ? evalResultsMock.isCorrect_cards : null,
               evalResultsMock ? JSON.stringify({ ...evalResultsMock.evalDetails, summary: 'Giả lập chấm điểm tự động', modelUsed: 'Dự phòng / Mock' }) : null,
-              JSON.stringify(mockData)
+              JSON.stringify(mockData),
+              predictType, firstHalfHomeScore, firstHalfAwayScore,
+              actualFirstHalfHomeScore, actualFirstHalfAwayScore
             ]
           );
         } catch (saveError) {
@@ -973,7 +990,19 @@ Hãy phân tích phong cách lối chơi (play_style) và phạt góc trung bìn
 2. Thẻ phạt: Các trận đấu có tính chất sống còn (vòng knock-out, trận chung kết hoặc derby lớn) thường diễn ra căng thẳng hơn, số lượng thẻ phạt sẽ tăng vọt so với các trận đấu vòng bảng thong thả. Hãy phân tích tính chất này để so sánh với mốc thẻ phạt: cards_line = ${cards_line}.
 `;
 
-    finalPrompt += '\n' + oddsInstruction;
+    const predictTypeInstruction = `
+--- CHỈ THỊ VỀ PHẠM VI DỰ ĐOÁN (PREDICT TYPE) ---
+Trận đấu đang được yêu cầu dự đoán cho: **${predictType === 'first_half' ? 'Hiệp 1 (First Half) - Chỉ tính kết quả trong 45 phút đầu tiên' : predictType === 'second_half' ? `Hiệp 2 (Second Half) - Dựa trên tỷ số hiệp 1 hiện tại là ${firstHalfHomeScore} - ${firstHalfAwayScore}` : 'Cả trận (Full Time)'}**.
+${predictType === 'first_half' ? `
+- Bạn chỉ được phân tích và dự đoán tỉ số, kèo cược (1X2, Over/Under, Handicap, BTTS, Phạt góc, Thẻ phạt) cho riêng HIỆP 1. 
+- Mốc cược Tài Xỉu ${ou_line}, góc ${corners_line}, thẻ ${cards_line} ở trên đã được điều chỉnh riêng cho Hiệp 1. Tỉ số dự đoán (predictedScore) phải là tỉ số khi kết thúc Hiệp 1.` : ''}
+${predictType === 'second_half' ? `
+- Bạn cần phân tích trận đấu trong hiệp 2. Tỷ số hiệp 1 thực tế đã diễn ra là: Đội nhà ${firstHalfHomeScore} - Đội khách ${firstHalfAwayScore}.
+- Lưu ý: Tỉ số dự đoán cuối cùng (predictedScore) của bạn BẮT BUỘC phải là TỶ SỐ CẢ TRẬN (bằng tỷ số hiệp 1 thực tế + số bàn thắng ghi thêm trong hiệp 2). 
+- Các khuyến nghị cược (oneXTwo, overUnder, handicap, btts) cũng được tính cho cả trận sau khi cộng dồn tỷ số hiệp 1 thực tế.` : ''}
+`;
+
+    finalPrompt += '\n' + oddsInstruction + '\n' + predictTypeInstruction;
 
     // Nếu là trận đấu đã có kết quả (chế độ kiểm thử/backtesting)
     if (hasActualResult) {
@@ -1259,7 +1288,12 @@ Hãy đánh giá bản nháp và tự lập luận logic dựa trên các chỉ 
       isConsensus,
       poissonBaseline: poissonResult,
       monteCarlo: monteCarloResult,
-      isCached: false
+      isCached: false,
+      predictType,
+      firstHalfHomeScore,
+      firstHalfAwayScore,
+      actualFirstHalfHomeScore,
+      actualFirstHalfAwayScore
     };
 
     // 7. Lưu dự đoán thành công vào SQLite
@@ -1279,7 +1313,14 @@ Hãy đánh giá bản nháp và tự lập luận logic dựa trên các chỉ 
         }
 
         let evalResults = null;
-        if (actualHomeScore !== null && actualAwayScore !== null) {
+        const canEvaluate = predictType === 'first_half'
+          ? (actualFirstHalfHomeScore !== null && actualFirstHalfAwayScore !== null)
+          : (actualHomeScore !== null && actualAwayScore !== null);
+
+        if (canEvaluate) {
+          const compareHome = predictType === 'first_half' ? actualFirstHalfHomeScore : actualHomeScore;
+          const compareAway = predictType === 'first_half' ? actualFirstHalfAwayScore : actualAwayScore;
+
           evalResults = evaluateBetOutcome(
             predictionData.bets.oneXTwo.recommendation,
             predictionData.bets.overUnder.recommendation,
@@ -1288,8 +1329,8 @@ Hãy đánh giá bản nháp và tự lập luận logic dựa trên các chỉ 
             predictionData.bets.corners?.recommendation || 'Under 8.5 Corners',
             predictionData.bets.cards?.recommendation || 'Under 3.5 Cards',
             { home: predictionData.predictedScore.home, away: predictionData.predictedScore.away },
-            actualHomeScore,
-            actualAwayScore,
+            compareHome,
+            compareAway,
             null,
             null,
             homeTeam,
@@ -1312,8 +1353,10 @@ Hãy đánh giá bản nháp và tự lập luận logic dựa trên các chỉ 
             actual_home_score, actual_away_score,
             is_correct, is_correct_ou, is_correct_handicap,
             is_correct_btts, is_correct_corners, is_correct_cards,
-            bet_evaluation_details, raw_prediction_json, tournament
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            bet_evaluation_details, raw_prediction_json, tournament,
+            predict_type, first_half_home_score, first_half_away_score,
+            actual_first_half_home_score, actual_first_half_away_score
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             matchId || null, homeTeam, awayTeam,
             predictionData.predictedScore.home, predictionData.predictedScore.away,
@@ -1333,7 +1376,9 @@ Hãy đánh giá bản nháp và tự lập luận logic dựa trên các chỉ 
             evalResults ? evalResults.isCorrect_cards : null,
             evalResults ? JSON.stringify({ ...evalResults.evalDetails, summary: 'Chấm điểm tự động qua dự đoán', modelUsed }) : null,
             JSON.stringify(responsePayload),
-            tournamentName
+            tournamentName,
+            predictType, firstHalfHomeScore, firstHalfAwayScore,
+            actualFirstHalfHomeScore, actualFirstHalfAwayScore
           ]
         );
       } catch (saveError) {

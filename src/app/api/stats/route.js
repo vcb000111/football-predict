@@ -65,7 +65,7 @@ export async function GET(request) {
     const totalPredictions = totalPredsRow.count;
 
     // Số trận đã diễn ra & có kết quả thực tế
-    const qEvaluated = getQuery(`SELECT COUNT(*) as count FROM predictions`, [`actual_home_score IS NOT NULL`, `actual_away_score IS NOT NULL`]);
+    const qEvaluated = getQuery(`SELECT COUNT(*) as count FROM predictions`, [`( (predict_type = 'first_half' AND actual_first_half_home_score IS NOT NULL) OR (predict_type != 'first_half' AND actual_home_score IS NOT NULL) )`]);
     const evaluatedRow = await db.get(qEvaluated.sql, qEvaluated.params);
     const evaluatedMatches = evaluatedRow.count;
 
@@ -85,9 +85,11 @@ export async function GET(request) {
       // Đúng tỷ số chính xác
       const qExact = getQuery(`
         SELECT COUNT(*) as count FROM predictions 
-        WHERE actual_home_score IS NOT NULL 
-          AND predicted_home_score = actual_home_score 
-          AND predicted_away_score = actual_away_score
+        WHERE (
+          (predict_type = 'first_half' AND actual_first_half_home_score IS NOT NULL AND predicted_home_score = actual_first_half_home_score AND predicted_away_score = actual_first_half_away_score)
+          OR
+          (predict_type != 'first_half' AND actual_home_score IS NOT NULL AND predicted_home_score = actual_home_score AND predicted_away_score = actual_away_score)
+        )
       `);
       const exactRow = await db.get(qExact.sql, qExact.params);
       stats.exactScore.correct = exactRow.count;
@@ -96,10 +98,18 @@ export async function GET(request) {
       // Đúng kết quả 1X2
       const qOutcome = getQuery(`
         SELECT COUNT(*) as count FROM predictions 
-        WHERE actual_home_score IS NOT NULL AND (
-          (predicted_home_score > predicted_away_score AND actual_home_score > actual_away_score) OR
-          (predicted_home_score < predicted_away_score AND actual_home_score < actual_away_score) OR
-          (predicted_home_score = predicted_away_score AND actual_home_score = actual_away_score)
+        WHERE (
+          (predict_type = 'first_half' AND actual_first_half_home_score IS NOT NULL AND (
+            (predicted_home_score > predicted_away_score AND actual_first_half_home_score > actual_first_half_away_score) OR
+            (predicted_home_score < predicted_away_score AND actual_first_half_home_score < actual_first_half_away_score) OR
+            (predicted_home_score = predicted_away_score AND actual_first_half_home_score = actual_first_half_away_score)
+          ))
+          OR
+          (predict_type != 'first_half' AND actual_home_score IS NOT NULL AND (
+            (predicted_home_score > predicted_away_score AND actual_home_score > actual_away_score) OR
+            (predicted_home_score < predicted_away_score AND actual_home_score < actual_away_score) OR
+            (predicted_home_score = predicted_away_score AND actual_home_score = actual_away_score)
+          ))
         )
       `);
       const outcomeRow = await db.get(qOutcome.sql, qOutcome.params);

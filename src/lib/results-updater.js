@@ -2,6 +2,7 @@ import { GoogleGenAI } from '@google/genai';
 import { searchInternet } from '@/lib/search';
 import { callGroqModel } from '@/lib/groq';
 import fixturesData from '@/data/fixtures.json';
+import { getVNTime } from '@/lib/timezone';
 import fs from 'fs';
 import path from 'path';
 
@@ -269,6 +270,47 @@ export function getMatchTime(fixture) {
   }
 }
 
+function buildFixtureSearchContext(fixture) {
+  if (!fixture) {
+    return {
+      searchSuffix: 'World Cup 2026',
+      promptContext: 'Không có dữ liệu fixture chi tiết ngoài tên hai đội.'
+    };
+  }
+
+  const matchDate = fixture.date || '';
+  const localTime = fixture.time || '';
+  const venue = fixture.venue || '';
+  const group = fixture.group || '';
+  const tournament = fixture.tournament || 'World Cup 2026';
+  const season = fixture.season || '2026';
+  const vnTime = getVNTime(fixture.date, fixture.time, fixture.venue)?.formatted || '';
+
+  const parts = [
+    tournament,
+    season,
+    group,
+    matchDate,
+    localTime ? `${localTime} local time` : '',
+    vnTime ? `${vnTime} Vietnam time` : '',
+    venue
+  ].filter(Boolean);
+
+  return {
+    searchSuffix: parts.join(' '),
+    promptContext: [
+      `matchId: ${fixture.id || 'unknown'}`,
+      `tournament: ${tournament}`,
+      `season: ${season}`,
+      `group: ${group || 'N/A'}`,
+      `date: ${matchDate || 'N/A'}`,
+      `kickoffLocalTime: ${localTime || 'N/A'}`,
+      `kickoffVietnamTime: ${vnTime || 'N/A'}`,
+      `venue: ${venue || 'N/A'}`
+    ].join('\n')
+  };
+}
+
 // --- HÀM HELPER CHÍNH CẬP NHẬT KẾT QUẢ ---
 export async function updateMatchResult({ homeTeam, awayTeam, matchId, force, db }) {
   try {
@@ -370,16 +412,22 @@ export async function updateMatchResult({ homeTeam, awayTeam, matchId, force, db
     if (apiKeys.length === 0 || MODELS.length === 0) {
       const mockHomeScore = (homeTeam.length + 2) % 4;
       const mockAwayScore = (awayTeam.length + 1) % 3;
+      const mockFirstHalfHome = Math.max(0, mockHomeScore - 1);
+      const mockFirstHalfAway = Math.max(0, mockAwayScore - 1);
       const mockCorners = (homeTeam.length * 3 + awayTeam.length * 2) % 6 + 6;
       const mockCards = (homeTeam.length + awayTeam.length) % 5 + 1;
 
       if (pendingPredictions.length > 0) {
         for (const pred of pendingPredictions) {
+          const isFirstHalf = pred.predict_type === 'first_half';
+          const compareHome = isFirstHalf ? mockFirstHalfHome : mockHomeScore;
+          const compareAway = isFirstHalf ? mockFirstHalfAway : mockAwayScore;
+
           const evalResults = evaluateBetOutcome(
             pred.recommendation_1x2, pred.recommendation_ou, pred.recommendation_handicap,
             pred.recommendation_btts, pred.recommendation_corners, pred.recommendation_cards,
             { home: pred.predicted_home_score, away: pred.predicted_away_score },
-            mockHomeScore, mockAwayScore, mockCorners, mockCards, homeTeam, awayTeam,
+            compareHome, compareAway, mockCorners, mockCards, homeTeam, awayTeam,
             pred.ou_line || 2.5, pred.corners_line || 8.5, pred.cards_line || 3.5, pred.handicap_line || 0.0
           );
 
@@ -393,16 +441,18 @@ export async function updateMatchResult({ homeTeam, awayTeam, matchId, force, db
             `UPDATE predictions 
              SET actual_home_score = ?, actual_away_score = ?, is_correct = ?, is_correct_ou = ?, 
                  is_correct_handicap = ?, is_correct_btts = ?, is_correct_corners = ?, is_correct_cards = ?, 
-                 bet_evaluation_details = ? WHERE id = ?`,
+                 bet_evaluation_details = ?,
+                 actual_first_half_home_score = ?, actual_first_half_away_score = ?
+             WHERE id = ?`,
             [mockHomeScore, mockAwayScore, evalResults.isCorrect_1x2, evalResults.isCorrect_ou,
              evalResults.isCorrect_handicap, evalResults.isCorrect_btts, evalResults.isCorrect_corners,
-             evalResults.isCorrect_cards, JSON.stringify(evalDetails), pred.id]
+             evalResults.isCorrect_cards, JSON.stringify(evalDetails), mockFirstHalfHome, mockFirstHalfAway, pred.id]
           );
         }
       }
 
       // Cập nhật fixtures.json
-      updateFixturesFile(matchId || (sampleRecord ? sampleRecord.match_id : null), homeTeam, awayTeam, mockHomeScore, mockAwayScore);
+      updateFixturesFile(matchId || (sampleRecord ? sampleRecord.match_id : null), homeTeam, awayTeam, mockHomeScore, mockAwayScore, mockFirstHalfHome, mockFirstHalfAway);
 
       return {
         success: true,
@@ -412,11 +462,16 @@ export async function updateMatchResult({ homeTeam, awayTeam, matchId, force, db
       };
     }
 
+    const fixtureContext = buildFixtureSearchContext(fixture);
+    const matchDate = fixture ? (fixture.date || '') : '';
+    const tournament = fixture ? (fixture.tournament || 'World Cup 2026') : 'World Cup 2026';
+
     // 4. CHẠY GOOGLE SEARCH GROUNDING RAG
-    const q1 = `${homeTeam} vs ${awayTeam} final score result match World Cup 2026`;
-    const q2 = `${homeTeam} vs ${awayTeam} match goals actual score 2026`;
-    const q3 = `${homeTeam} vs ${awayTeam} corners match stats 2026`;
-    const q4 = `${homeTeam} vs ${awayTeam} cards yellow red match stats 2026`;
+    // Tinh gọn query để Tavily tìm chính xác, tránh nhồi nhét quá nhiều từ khóa rác làm nhiễu
+    const q1 = `${homeTeam} vs ${awayTeam} final score result ${tournament} ${matchDate}`;
+    const q2 = `${homeTeam} vs ${awayTeam} goals scorers ${tournament} ${matchDate}`;
+    const q3 = `${homeTeam} vs ${awayTeam} corners stats ${tournament} ${matchDate}`;
+    const q4 = `${homeTeam} vs ${awayTeam} cards yellow red stats ${tournament} ${matchDate}`;
 
     let searchContext = '';
     try {
@@ -441,16 +496,27 @@ export async function updateMatchResult({ homeTeam, awayTeam, matchId, force, db
     }
 
     const prompt = `
-Hãy đóng vai trò là Trọng tài AI chấm điểm cược thể thao. Dựa trên dữ liệu tra cứu thực tế từ Internet dưới đây, hãy xác định kết quả thực tế của trận đấu giữa:
+Hãy đóng vai trò là Trọng tài AI chấm điểm cược thể thao chuyên nghiệp. Dựa trên dữ liệu tra cứu thực tế từ Internet dưới đây, hãy xác định kết quả thực tế của trận đấu giữa:
 Đội nhà (Home Team): ${homeTeam}
 Đội khách (Away Team): ${awayTeam}
 
+NGỮ CẢNH FIXTURE BẮT BUỘC PHẢI KHỚP CHÍNH XÁC:
+${fixtureContext.promptContext}
+
+Chỉ được dùng dữ liệu đúng trận đấu khớp ngày giờ/sân đấu ở trên. Nếu dữ liệu Internet nói về trận khác cùng cặp đội nhưng sai ngày, sai giải, sai sân, phải bỏ qua.
+
+CHÚ Ý QUAN TRỌNG VỀ TỶ SỐ THỰC TẾ (CRITICAL REALTIME RULES):
+1. TUYỆT ĐỐI KHÔNG LẤY TỶ SỐ DỰ ĐOÁN (prediction, preview, forecast, predicted score, simulated score). Tỷ số dự đoán trước trận (như "prediction 2-1", "AI predicts 2-1") không phải là kết quả thực tế.
+2. TỶ SỐ THỰC TẾ sau khi kết thúc trận đấu (FT/Full-time) của trận đấu ${homeTeam} vs ${awayTeam} phải được xác nhận qua các cụm từ thể hiện trận đấu đã diễn ra hoặc đã kết thúc như "final score", "ended", "full time", "FT", "won 4-1", "USA 4, Paraguay 1".
+3. Phân tích kỹ nội dung bài viết trong phần [Thống kê: KẾT QUẢ] và [Thống kê: BÀN THẮNG] để tìm tỷ số thực tế chính xác nhất. Nếu có thông tin tỷ số mâu thuẫn, hãy đối chiếu kỹ xem đâu là kết quả thực tế đã diễn ra và đâu chỉ là dự đoán phân tích trước trận.
+
 Hãy trích xuất:
 1. Trạng thái trận đấu: "finished" (đã kết thúc hoàn toàn) hoặc "not_started" (chưa đá / hoãn).
-2. Tỷ số thực tế: số bàn thắng của Home và Away.
-3. Tổng số phạt góc của trận đấu.
-4. Tổng số thẻ phạt của trận đấu.
-5. So sánh đề xuất cược ban đầu của mô hình tại mẫu cược sau đây và chấm điểm cược "correct" (Đúng), "incorrect" (Sai) hoặc "refund" (Hòa tiền):
+2. Tỷ số thực tế cả trận (actualScore): số bàn thắng của Home và Away.
+3. Tỷ số thực tế kết thúc HIỆP 1 (actualFirstHalfScore): { "home": X, "away": Y } (trả về null hoặc bỏ trống nếu Internet không có dữ liệu hiệp 1).
+4. Tổng số phạt góc của trận đấu.
+5. Tổng số thẻ phạt của trận đấu.
+6. So sánh đề xuất cược ban đầu của mô hình tại mẫu cược sau đây và chấm điểm cược "correct" (Đúng), "incorrect" (Sai) hoặc "refund" (Hòa tiền):
 Mẫu cược: ${sampleRecord ? JSON.stringify(sampleRecord) : 'Chưa có cược trước đó'}
 
 ${searchContext}
@@ -459,6 +525,7 @@ Hãy trả về chuỗi JSON thô có cấu trúc chính xác như sau:
 {
   "status": "finished",
   "actualScore": { "home": 2, "away": 1 },
+  "actualFirstHalfScore": { "home": 1, "away": 0 },
   "actualCorners": 9,
   "actualCards": 4,
   "summary": "Mô tả ngắn gọn diễn biến trận đấu và kết quả chấm điểm cược.",
@@ -548,6 +615,8 @@ Chỉ trả về JSON thô. Do NOT include markdown blocks.
     if (parsedData.status === 'finished' && parsedData.actualScore) {
       const aHome = parseInt(parsedData.actualScore.home, 10);
       const aAway = parseInt(parsedData.actualScore.away, 10);
+      const aFirstHalfHome = parsedData.actualFirstHalfScore ? parseInt(parsedData.actualFirstHalfScore.home, 10) : null;
+      const aFirstHalfAway = parsedData.actualFirstHalfScore ? parseInt(parsedData.actualFirstHalfScore.away, 10) : null;
       const aCorners = parsedData.actualCorners !== undefined ? parseInt(parsedData.actualCorners, 10) : null;
       const aCards = parsedData.actualCards !== undefined ? parseInt(parsedData.actualCards, 10) : null;
 
@@ -555,13 +624,37 @@ Chỉ trả về JSON thô. Do NOT include markdown blocks.
 
       if (pendingPredictions.length > 0) {
         for (const pred of pendingPredictions) {
-          const evalResults = evaluateBetOutcome(
-            pred.recommendation_1x2, pred.recommendation_ou, pred.recommendation_handicap,
-            pred.recommendation_btts, pred.recommendation_corners, pred.recommendation_cards,
-            { home: pred.predicted_home_score, away: pred.predicted_away_score },
-            aHome, aAway, aCorners, aCards, homeTeam, awayTeam,
-            pred.ou_line || 2.5, pred.corners_line || 8.5, pred.cards_line || 3.5, pred.handicap_line || 0.0
-          );
+          const isFirstHalf = pred.predict_type === 'first_half';
+          const compareHome = isFirstHalf ? aFirstHalfHome : aHome;
+          const compareAway = isFirstHalf ? aFirstHalfAway : aAway;
+
+          let evalResults;
+          if (isFirstHalf && (aFirstHalfHome === null || aFirstHalfAway === null)) {
+            evalResults = {
+              isCorrect_1x2: null,
+              isCorrect_ou: null,
+              isCorrect_btts: null,
+              isCorrect_corners: null,
+              isCorrect_cards: null,
+              isCorrect_handicap: null,
+              evalDetails: {
+                oneXTwo: { outcome: 'n/a', reason: 'Không có thông tin tỷ số Hiệp 1 thực tế.' },
+                overUnder: { outcome: 'n/a', reason: 'Không có thông tin tỷ số Hiệp 1 thực tế.' },
+                handicap: { outcome: 'n/a', reason: 'Không có thông tin tỷ số Hiệp 1 thực tế.' },
+                btts: { outcome: 'n/a', reason: 'Không có thông tin tỷ số Hiệp 1 thực tế.' },
+                corners: { outcome: 'n/a', reason: 'Không có thông tin tỷ số Hiệp 1 thực tế.' },
+                cards: { outcome: 'n/a', reason: 'Không có thông tin tỷ số Hiệp 1 thực tế.' }
+              }
+            };
+          } else {
+            evalResults = evaluateBetOutcome(
+              pred.recommendation_1x2, pred.recommendation_ou, pred.recommendation_handicap,
+              pred.recommendation_btts, pred.recommendation_corners, pred.recommendation_cards,
+              { home: pred.predicted_home_score, away: pred.predicted_away_score },
+              compareHome, compareAway, aCorners, aCards, homeTeam, awayTeam,
+              pred.ou_line || 2.5, pred.corners_line || 8.5, pred.cards_line || 3.5, pred.handicap_line || 0.0
+            );
+          }
 
           let finalEvalDetails = evalResults.evalDetails;
           if (sampleRecord && pred.id === sampleRecord.id && parsedData.betEvaluations) {
@@ -595,15 +688,17 @@ Chỉ trả về JSON thô. Do NOT include markdown blocks.
             `UPDATE predictions 
              SET actual_home_score = ?, actual_away_score = ?, is_correct = ?, is_correct_ou = ?, 
                  is_correct_handicap = ?, is_correct_btts = ?, is_correct_corners = ?, is_correct_cards = ?, 
-                 bet_evaluation_details = ? WHERE id = ?`,
+                 bet_evaluation_details = ?,
+                 actual_first_half_home_score = ?, actual_first_half_away_score = ?
+             WHERE id = ?`,
             [aHome, aAway, isCorrect_1x2, isCorrect_ou, isCorrect_handicap, isCorrect_btts, 
-             isCorrect_corners, isCorrect_cards, JSON.stringify(dbEvalDetails), pred.id]
+             isCorrect_corners, isCorrect_cards, JSON.stringify(dbEvalDetails), aFirstHalfHome, aFirstHalfAway, pred.id]
           );
         }
       }
 
       // Cập nhật fixtures.json
-      updateFixturesFile(matchId || (sampleRecord ? sampleRecord.match_id : null), homeTeam, awayTeam, aHome, aAway);
+      updateFixturesFile(matchId || (sampleRecord ? sampleRecord.match_id : null), homeTeam, awayTeam, aHome, aAway, aFirstHalfHome, aFirstHalfAway);
 
       // --- TỰ ĐỘNG VIẾT BÀI HỌC KINH NGHIỆM ---
       if (sampleRecord) {
@@ -614,6 +709,7 @@ Chỉ trả về JSON thô. Do NOT include markdown blocks.
         success: true,
         status: 'finished',
         actualScore: { home: aHome, away: aAway },
+        actualFirstHalfScore: { home: aFirstHalfHome, away: aFirstHalfAway },
         actualCorners: aCorners,
         actualCards: aCards,
         betEvaluations: realEvalDetails || parsedData.betEvaluations || {},
@@ -634,7 +730,7 @@ Chỉ trả về JSON thô. Do NOT include markdown blocks.
 }
 
 // Helper nhỏ để ghi file fixtures.json
-function updateFixturesFile(matchId, homeTeam, awayTeam, aHome, aAway) {
+function updateFixturesFile(matchId, homeTeam, awayTeam, aHome, aAway, aFirstHalfHome = null, aFirstHalfAway = null) {
   try {
     const fixturesFilePath = path.join(process.cwd(), 'src', 'data', 'fixtures.json');
     if (fs.existsSync(fixturesFilePath)) {
@@ -645,8 +741,14 @@ function updateFixturesFile(matchId, homeTeam, awayTeam, aHome, aAway) {
       if (fixtureIndex !== -1) {
         fileData.fixtures[fixtureIndex].actualHomeScore = aHome;
         fileData.fixtures[fixtureIndex].actualAwayScore = aAway;
+        if (aFirstHalfHome !== null && aFirstHalfAway !== null) {
+          fileData.fixtures[fixtureIndex].actualFirstHalfScore = {
+            home: aFirstHalfHome,
+            away: aFirstHalfAway
+          };
+        }
         fs.writeFileSync(fixturesFilePath, JSON.stringify(fileData, null, 2), 'utf8');
-        console.log(`🟢 [fixtures.json] Đã cập nhật tỉ số: ${aHome}-${aAway}`);
+        console.log(`🟢 [fixtures.json] Đã cập nhật tỉ số: ${aHome}-${aAway}, Hiệp 1: ${aFirstHalfHome}-${aFirstHalfAway}`);
       }
     }
   } catch (fsError) {

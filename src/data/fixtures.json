@@ -147,7 +147,11 @@
       "tournament": "World Cup 2026",
       "season": "2026",
       "actualHomeScore": 1,
-      "actualAwayScore": 1
+      "actualAwayScore": 1,
+      "actualFirstHalfScore": {
+        "home": 0,
+        "away": 1
+      }
     },
     {
       "id": "m4",
@@ -158,7 +162,13 @@
       "group": "Group D",
       "venue": "SoFi Stadium, Los Angeles",
       "tournament": "World Cup 2026",
-      "season": "2026"
+      "season": "2026",
+      "actualHomeScore": 4,
+      "actualAwayScore": 1,
+      "actualFirstHalfScore": {
+        "home": 3,
+        "away": 0
+      }
     },
     {
       "id": "m5",

@@ -2,6 +2,7 @@ import { Outfit, Inter } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import ModelBadge from "@/components/ModelBadge";
+import BottomNavigation from "@/components/BottomNavigation";
 
 
 const outfit = Outfit({
@@ -25,7 +26,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="vi" className={`${outfit.variable} ${inter.variable} h-full`} suppressHydrationWarning>
-      <body className="min-h-full flex flex-col bg-background text-foreground antialiased font-sans" suppressHydrationWarning>
+      <body className="min-h-full flex flex-col bg-background text-foreground antialiased font-sans pb-[72px] md:pb-0" suppressHydrationWarning>
         
         {/* Navigation Bar */}
         <header className="sticky top-0 z-50 glass-panel border-b border-card-border">
@@ -45,7 +46,7 @@ export default function RootLayout({ children }) {
               </div>
 
               {/* Navigation Links */}
-              <nav className="flex space-x-6">
+              <nav className="hidden md:flex space-x-6">
                 <Link 
                   href="/" 
                   className="text-gray-300 hover:text-primary transition-colors duration-200 font-medium text-sm"
@@ -96,6 +97,8 @@ export default function RootLayout({ children }) {
             </div>
           </div>
         </footer>
+
+        <BottomNavigation />
 
       </body>
     </html>

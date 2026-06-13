@@ -21,6 +21,9 @@ export default function CustomPredictor() {
   const [prediction, setPrediction] = useState(null);
   const [historyList, setHistoryList] = useState([]);
   const [loadingStep, setLoadingStep] = useState(0);
+  const [predictType, setPredictType] = useState('full_time');
+  const [firstHalfHomeScore, setFirstHalfHomeScore] = useState('');
+  const [firstHalfAwayScore, setFirstHalfAwayScore] = useState('');
 
   // States cho Form cập nhật kết quả thực tế
   const [actHome, setActHome] = useState('');
@@ -93,7 +96,13 @@ export default function CustomPredictor() {
       const res = await fetch('/api/predict', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ homeTeam, awayTeam })
+        body: JSON.stringify({ 
+          homeTeam, 
+          awayTeam, 
+          predictType, 
+          firstHalfHomeScore: predictType === 'second_half' ? parseInt(firstHalfHomeScore || 0, 10) : null,
+          firstHalfAwayScore: predictType === 'second_half' ? parseInt(firstHalfAwayScore || 0, 10) : null
+        })
       });
 
       if (!res.ok) {
@@ -132,7 +141,7 @@ export default function CustomPredictor() {
       if (data.success) {
         setResMessage({
           success: true,
-          text: `🤖 Tự động cập nhật thành công! Trận đấu kết thúc với tỷ số thực tế: ${data.actualScore.home}-${data.actualScore.away}. ${data.summary || ''}`
+          text: `🤖 Tự động cập nhật thành công! Kết quả thực tế: ${data.actualScore.home}-${data.actualScore.away}${data.actualFirstHalfScore ? ` (Hiệp 1: ${data.actualFirstHalfScore.home}-${data.actualFirstHalfScore.away})` : ''}. ${data.summary || ''}`
         });
         if (data.modelUsed) {
           saveLastUsedModel(data.modelUsed);
@@ -238,6 +247,49 @@ export default function CustomPredictor() {
 
           </div>
 
+          {/* Phạm vi dự đoán */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-3 border-t border-card-border/50 items-end">
+            <div className="flex flex-col space-y-1">
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Phạm vi dự đoán</label>
+              <select
+                value={predictType}
+                onChange={(e) => setPredictType(e.target.value)}
+                className="bg-card-border/20 border border-card-border rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-primary cursor-pointer font-bold"
+              >
+                <option value="full_time" className="bg-[#151E2E]">Cả trận (Full Time)</option>
+                <option value="first_half" className="bg-[#151E2E]">Hiệp 1 (First Half)</option>
+                <option value="second_half" className="bg-[#151E2E]">Hiệp 2 (Second Half)</option>
+              </select>
+            </div>
+
+            {predictType === 'second_half' && (
+              <div className="md:col-span-2 grid grid-cols-2 gap-3">
+                <div className="flex flex-col space-y-1">
+                  <label className="text-[10px] font-bold text-gray-405 uppercase tracking-wider">Tỷ số Hiệp 1 - {homeTeam}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={firstHalfHomeScore}
+                    onChange={(e) => setFirstHalfHomeScore(e.target.value)}
+                    className="bg-card-border/20 border border-card-border rounded-xl p-2 text-xs text-white focus:outline-none focus:border-primary text-center font-bold"
+                  />
+                </div>
+                <div className="flex flex-col space-y-1">
+                  <label className="text-[10px] font-bold text-gray-405 uppercase tracking-wider">Tỷ số Hiệp 1 - {awayTeam}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={firstHalfAwayScore}
+                    onChange={(e) => setFirstHalfAwayScore(e.target.value)}
+                    className="bg-card-border/20 border border-card-border rounded-xl p-2 text-xs text-white focus:outline-none focus:border-primary text-center font-bold"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Trigger Predict Button */}
           <div className="mt-5 flex justify-center">
             <button
@@ -301,7 +353,9 @@ export default function CustomPredictor() {
                 <div className="absolute top-0 right-0 bg-secondary/10 text-secondary font-bold text-[9px] tracking-widest px-2.5 py-0.5 rounded-bl-lg uppercase">
                   SIMULATION DONE
                 </div>
-                <h3 className="text-gray-400 font-bold text-xs uppercase tracking-wider mb-4">Kết Quả Giả Định</h3>
+                <h3 className="text-gray-400 font-bold text-xs uppercase tracking-wider mb-4">
+                  Kết Quả Giả Định {prediction.predict_type === 'first_half' ? '(Hiệp 1)' : prediction.predict_type === 'second_half' ? '(Hiệp 2)' : '(Cả trận)'}
+                </h3>
                 
                 <div className="flex items-center justify-center space-x-6 my-4">
                   <div className="flex flex-col items-center">

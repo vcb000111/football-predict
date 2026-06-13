@@ -39,7 +39,8 @@ export default async function Page() {
     // Lấy dự đoán gần nhất của mỗi trận đấu để hiển thị lên trang chủ
     const latestPreds = await db.all(
       `SELECT match_id, predicted_home_score, predicted_away_score, actual_home_score, actual_away_score, is_correct,
-              ou_line, corners_line, cards_line
+              ou_line, corners_line, cards_line, predict_type, first_half_home_score, first_half_away_score,
+              actual_first_half_home_score, actual_first_half_away_score
        FROM predictions 
        WHERE id IN (SELECT MAX(id) FROM predictions WHERE match_id IS NOT NULL GROUP BY match_id)`
     );
@@ -52,7 +53,12 @@ export default async function Page() {
         isCorrect: row.is_correct,
         ou_line: row.ou_line,
         corners_line: row.corners_line,
-        cards_line: row.cards_line
+        cards_line: row.cards_line,
+        predictType: row.predict_type,
+        firstHalfHomeScore: row.first_half_home_score,
+        firstHalfAwayScore: row.first_half_away_score,
+        actualFirstHalfHomeScore: row.actual_first_half_home_score,
+        actualFirstHalfAwayScore: row.actual_first_half_away_score
       };
     });
   } catch (err) {

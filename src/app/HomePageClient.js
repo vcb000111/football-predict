@@ -44,6 +44,8 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
   const [layout, setLayout] = useState('grid'); // 'grid' or 'list'
   const [sortBy, setSortBy] = useState('date'); // 'date' | 'group' | 'history'
   const [quickPredicting, setQuickPredicting] = useState({});
+  const [activePredictMenu, setActivePredictMenu] = useState(null);
+  const [activeActionMenu, setActiveActionMenu] = useState(null);
   const [modalData, setModalData] = useState(null);
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState(null);
@@ -154,8 +156,22 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
     }
   }, [activeTab, localFixtures]);
 
+  // Đóng menu khi click bên ngoài
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (activePredictMenu && !e.target.closest('.predict-menu-container')) {
+        setActivePredictMenu(null);
+      }
+      if (activeActionMenu && !e.target.closest('.action-menu-container')) {
+        setActiveActionMenu(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [activePredictMenu, activeActionMenu]);
 
-  const handleQuickPredict = async (fixture) => {
+
+  const handleQuickPredict = async (fixture, type = 'full_time', fHome = null, fAway = null) => {
     if (quickPredicting[fixture.id]) return;
     setQuickPredicting(prev => ({ ...prev, [fixture.id]: true }));
     try {
@@ -165,7 +181,10 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
         body: JSON.stringify({
           homeTeam: fixture.homeTeam,
           awayTeam: fixture.awayTeam,
-          matchId: fixture.id
+          matchId: fixture.id,
+          predictType: type,
+          firstHalfHomeScore: fHome,
+          firstHalfAwayScore: fAway
         })
       });
       const data = await res.json();
@@ -194,6 +213,9 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
           predictedAwayScore: data.predictedScore?.away ?? data.predicted_away_score,
           actualHomeScore: fixture.actualHomeScore,
           actualAwayScore: fixture.actualAwayScore,
+          predictType: type,
+          actualFirstHalfHomeScore: fixture.actualFirstHalfScore?.home ?? null,
+          actualFirstHalfAwayScore: fixture.actualFirstHalfScore?.away ?? null,
           isCorrect: null
         }
       }));
@@ -431,7 +453,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
       )}
       
       {/* Hero Header Section */}
-      <section className="relative overflow-hidden py-10 border-b border-card-border/50">
+      <section className="relative overflow-hidden py-5 border-b border-card-border/50">
         {/* Glow Effects */}
         <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full bg-primary/5 blur-[80px] pointer-events-none"></div>
         <div className="absolute top-1/3 right-1/4 translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full bg-secondary/5 blur-[80px] pointer-events-none"></div>
@@ -462,23 +484,23 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
             Phân tích chuyên sâu các loại kèo dựa trên dữ liệu tìm kiếm thời gian thực Google Search Grounding từ AI Gemini. Tự động lưu và học hỏi từ lịch sử SQLite.
           </p>
 
-          <div className="flex justify-center space-x-3">
+          <div className="flex flex-col sm:flex-row items-center gap-3 justify-center w-full max-w-xs sm:max-w-none mx-auto">
             <button 
               onClick={() => { setActiveTab('fixtures'); }}
-              className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary hover:to-primary text-white font-bold py-2 px-5 rounded-xl shadow-md text-xs transition-all duration-200"
+              className="w-full sm:w-auto bg-gradient-to-r from-primary to-primary/80 hover:from-primary hover:to-primary text-white font-bold py-2 px-5 rounded-xl shadow-md text-xs transition-all duration-200 text-center"
             >
               Xem Lịch Dự Đoán
             </button>
             <Link 
               href="/stats"
-              className="bg-gradient-to-r from-[#1E293B] to-[#0F172A] border border-card-border hover:border-indigo-500/40 text-white font-bold py-2 px-5 rounded-xl text-xs transition-all duration-200 flex items-center space-x-1.5"
+              className="w-full sm:w-auto bg-gradient-to-r from-[#1E293B] to-[#0F172A] border border-card-border hover:border-indigo-500/40 text-white font-bold py-2 px-5 rounded-xl text-xs transition-all duration-200 flex items-center justify-center space-x-1.5"
             >
               <span>📊</span>
               <span>Thống Kê AI</span>
             </Link>
             <Link 
               href="/custom"
-              className="glass-panel text-white hover:text-secondary font-bold py-2 px-5 rounded-xl text-xs hover:border-secondary/40 transition-all duration-200"
+              className="w-full sm:w-auto glass-panel text-white hover:text-secondary font-bold py-2 px-5 rounded-xl text-xs hover:border-secondary/40 transition-all duration-200 text-center"
             >
               Giả Lập Cặp Đấu Tự Do
             </Link>
@@ -532,8 +554,8 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
             {/* Search, Group, Sorting & Layout Controls */}
             <div className="glass-panel border border-card-border/60 rounded-xl p-3.5 mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 text-xs">
               {/* Search & Group filters */}
-              <div className="flex flex-col sm:flex-row gap-2 flex-1">
-                <div className="relative flex-1">
+              <div className="grid grid-cols-2 sm:flex sm:flex-row gap-2 flex-1">
+                <div className="relative col-span-2 sm:flex-1">
                   <input
                     type="text"
                     placeholder="Tìm kiếm đội bóng (ví dụ: Mexico, USA, Brazil...)"
@@ -542,7 +564,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                     className="w-full bg-[#0E131F]/80 border border-card-border/80 rounded-lg py-1.5 px-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                   />
                 </div>
-                <div className="w-full sm:w-48">
+                <div className="w-full col-span-1 sm:w-48">
                   <select
                     value={selectedGroupFilter}
                     onChange={(e) => setSelectedGroupFilter(e.target.value)}
@@ -554,7 +576,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                     ))}
                   </select>
                 </div>
-                <div className="w-full sm:w-48">
+                <div className="w-full col-span-1 sm:w-48">
                   <select
                     value={selectedTournamentFilter}
                     onChange={(e) => setSelectedTournamentFilter(e.target.value)}
@@ -566,7 +588,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                     ))}
                   </select>
                 </div>
-                <div className="w-full sm:w-48">
+                <div className="w-full col-span-2 sm:col-span-1 sm:w-48">
                   <select
                     value={selectedSeasonFilter}
                     onChange={(e) => setSelectedSeasonFilter(e.target.value)}
@@ -699,33 +721,25 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                           </div>
 
                           {/* Teams Matchup */}
-                          <div className="flex flex-col space-y-2.5 my-3">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center space-x-2">
-                                {getTeamFlag(fixture.homeTeam, "w-7 h-5")}
-                                <span className="font-bold text-sm text-white">{fixture.homeTeam}</span>
-                              </div>
-                              {fixture.actualHomeScore !== undefined && fixture.actualHomeScore !== null && (
-                                <span className="text-sm font-black text-white bg-card-border/40 px-2 py-0.5 rounded">
-                                  {fixture.actualHomeScore}
-                                </span>
-                              )}
+                          <div className="my-3 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-3">
+                            <div className="flex min-w-0 items-center space-x-2">
+                              {getTeamFlag(fixture.homeTeam, "w-7 h-5 shrink-0")}
+                              <span className="truncate font-bold text-sm text-white">{fixture.homeTeam}</span>
                             </div>
                             {fixture.actualHomeScore !== undefined && fixture.actualHomeScore !== null ? (
-                              <div className="text-[9px] font-black text-primary bg-primary/10 border border-primary/20 rounded px-1.5 py-0.2 w-fit ml-3 select-none">FT</div>
-                            ) : (
-                              <div className="text-[10px] text-gray-600 font-extrabold pl-3">VS</div>
-                            )}
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center space-x-2">
-                                {getTeamFlag(fixture.awayTeam, "w-7 h-5")}
-                                <span className="font-bold text-sm text-white">{fixture.awayTeam}</span>
+                              <div className="inline-flex items-center justify-center whitespace-nowrap rounded bg-card-border/40 px-2.5 py-0.5 text-sm font-black text-white">
+                                <span>{fixture.actualHomeScore}</span>
+                                <span className="mx-1 text-gray-400">-</span>
+                                <span>{fixture.actualAwayScore}</span>
                               </div>
-                              {fixture.actualAwayScore !== undefined && fixture.actualAwayScore !== null && (
-                                <span className="text-sm font-black text-white bg-card-border/40 px-2 py-0.5 rounded">
-                                  {fixture.actualAwayScore}
-                                </span>
-                              )}
+                            ) : (
+                              <span className="inline-flex min-w-10 justify-center rounded bg-background/50 px-2 py-0.5 text-center text-[10px] font-black text-gray-600 select-none">
+                                VS
+                              </span>
+                            )}
+                            <div className="flex min-w-0 items-center justify-end space-x-2 text-right">
+                              <span className="truncate font-bold text-sm text-white">{fixture.awayTeam}</span>
+                              {getTeamFlag(fixture.awayTeam, "w-7 h-5 shrink-0")}
                             </div>
                           </div>
                         </div>
@@ -740,18 +754,27 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                           {(() => {
                             const pred = localLatestPredictions[fixture.id];
                             if (!pred) return null;
-                            const status = getPredictionStatus(pred.predictedHomeScore, pred.predictedAwayScore, fixture.actualHomeScore, fixture.actualAwayScore);
+                            const status = getPredictionStatus(
+                              pred.predictedHomeScore, 
+                              pred.predictedAwayScore, 
+                              fixture.actualHomeScore, 
+                              fixture.actualAwayScore,
+                              pred.predictType || 'full_time',
+                              pred.actualFirstHalfHomeScore,
+                              pred.actualFirstHalfAwayScore
+                            );
+                            const typeLabel = pred.predictType === 'first_half' ? 'H1' : pred.predictType === 'second_half' ? 'H2' : 'FT';
                             return (
                               <div className={`p-2 rounded-lg border text-[11px] flex items-center justify-between ${status.colorClass} backdrop-blur-sm transition-all duration-300`}>
-                                <span className="font-bold">🔮 AI: ${pred.predictedHomeScore} - ${pred.predictedAwayScore}</span>
+                                <span className="font-bold">🔮 AI ({typeLabel}): {pred.predictedHomeScore} - {pred.predictedAwayScore}</span>
                                 <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-black/30 tracking-wider">
-                                  ${status.text}
+                                  {status.text}
                                 </span>
                               </div>
                             );
                           })()}
                           
-                          <div className="grid grid-cols-2 gap-1.5">
+                          <div className="grid grid-cols-3 sm:grid-cols-2 gap-1.5">
                             <Link 
                               href={`/match/${fixture.id}`}
                               className="bg-card-border hover:bg-primary/20 border border-card-border hover:border-primary/50 text-white font-bold py-1.5 px-1 rounded-lg text-center text-[11px] transition-all duration-150 flex items-center justify-center space-x-1"
@@ -760,22 +783,118 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                               <span>🔍 Chi Tiết</span>
                             </Link>
                             
-                            <button
-                              onClick={() => handleQuickPredict(fixture)}
-                              disabled={quickPredicting[fixture.id] || syncingStats[fixture.id]}
-                              className={`text-white font-bold py-1.5 px-1 rounded-lg text-center text-[11px] transition-all duration-150 flex items-center justify-center space-x-1 active:scale-[0.98] cursor-pointer ${
-                                quickPredicting[fixture.id]
-                                  ? 'bg-[#151E2E] text-gray-500 border border-card-border'
-                                  : 'bg-gradient-to-r from-primary/80 to-secondary/80 hover:from-primary hover:to-secondary border border-primary/20 hover:border-primary/40'
-                              }`}
-                            >
-                              <span>{quickPredicting[fixture.id] ? '⏳ Chạy...' : '⚡ Nhanh'}</span>
-                            </button>
+                            <div className="relative predict-menu-container">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActivePredictMenu(activePredictMenu === fixture.id ? null : fixture.id);
+                                  setActiveActionMenu(null);
+                                }}
+                                disabled={quickPredicting[fixture.id] || syncingStats[fixture.id]}
+                                className={`w-full text-white font-bold py-1.5 px-1 rounded-lg text-center text-[11px] transition-all duration-150 flex items-center justify-center space-x-1 active:scale-[0.98] cursor-pointer ${
+                                  quickPredicting[fixture.id]
+                                    ? 'bg-[#151E2E] text-gray-500 border border-card-border'
+                                    : 'bg-gradient-to-r from-primary/80 to-secondary/80 hover:from-primary hover:to-secondary border border-primary/20 hover:border-primary/40'
+                                }`}
+                              >
+                                <span>{quickPredicting[fixture.id] ? '⏳ Chạy...' : '⚡ Nhanh'}</span>
+                              </button>
+
+                              {activePredictMenu === fixture.id && (
+                                <div className="absolute right-0 bottom-full mb-1.5 w-40 rounded-xl border border-card-border bg-[#0D1324]/95 backdrop-blur-md shadow-2xl p-1 z-40 animate-slide-in">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActivePredictMenu(null);
+                                      handleQuickPredict(fixture, 'full_time');
+                                    }}
+                                    className="w-full text-left px-3 py-1.5 text-[10.5px] text-gray-300 hover:text-white hover:bg-primary/20 rounded-lg transition-colors font-medium flex items-center space-x-2"
+                                  >
+                                    <span>📅</span>
+                                    <span>Cả trận (FT)</span>
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActivePredictMenu(null);
+                                      handleQuickPredict(fixture, 'first_half');
+                                    }}
+                                    className="w-full text-left px-3 py-1.5 text-[10.5px] text-gray-300 hover:text-white hover:bg-primary/20 rounded-lg transition-colors font-medium flex items-center space-x-2"
+                                  >
+                                    <span>⏱️</span>
+                                    <span>Hiệp 1 (H1)</span>
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActivePredictMenu(null);
+
+                                      const pred = localLatestPredictions[fixture.id];
+                                      const defaultH1 = pred?.actualFirstHalfHomeScore !== null && pred?.actualFirstHalfAwayScore !== null
+                                        ? `${pred.actualFirstHalfHomeScore}-${pred.actualFirstHalfAwayScore}`
+                                        : '';
+
+                                      const promptVal = prompt(
+                                        `Nhập tỷ số Hiệp 1 thực tế (Định dạng: Home-Away, ví dụ: 1-0):`, 
+                                        defaultH1
+                                      );
+                                      if (promptVal === null) return;
+
+                                      const match = promptVal.trim().match(/^\s*(\d+)\s*-\s*(\d+)\s*$/);
+                                      if (!match) {
+                                        alert("Định dạng tỷ số không hợp lệ. Vui lòng nhập X-Y (ví dụ: 1-0).");
+                                        return;
+                                      }
+                                      const fHome = parseInt(match[1], 10);
+                                      const fAway = parseInt(match[2], 10);
+                                      handleQuickPredict(fixture, 'second_half', fHome, fAway);
+                                    }}
+                                    className="w-full text-left px-3 py-1.5 text-[10.5px] text-gray-300 hover:text-white hover:bg-primary/20 rounded-lg transition-colors font-medium flex items-center space-x-2"
+                                  >
+                                    <span>🔥</span>
+                                    <span>Hiệp 2 (H2)</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="relative action-menu-container sm:hidden">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveActionMenu(activeActionMenu === fixture.id ? null : fixture.id);
+                                  setActivePredictMenu(null);
+                                }}
+                                className="w-full bg-[#1E293B]/70 hover:bg-primary/25 border border-card-border hover:border-primary/40 text-white font-bold py-1.5 px-1 rounded-lg text-center text-[11px] transition-all duration-150 flex items-center justify-center active:scale-[0.98] cursor-pointer"
+                                title="Tác vụ khác"
+                              >
+                                <span>•••</span>
+                              </button>
+
+                              {activeActionMenu === fixture.id && (
+                                <div className="absolute right-0 bottom-full mb-1.5 w-36 rounded-xl border border-card-border bg-[#0D1324]/95 backdrop-blur-md shadow-2xl p-1 z-40 animate-slide-in">
+                                  <button
+                                    onClick={() => handleUpdateMatchStats(fixture)}
+                                    disabled={syncingStats[fixture.id] || quickPredicting[fixture.id] || updatingAutoList[fixture.id]}
+                                    className="w-full text-left px-3 py-1.5 text-[10.5px] text-indigo-300 hover:text-white hover:bg-indigo-500/20 rounded-lg transition-colors font-medium"
+                                  >
+                                    {syncingStats[fixture.id] ? '⏳ Stats...' : '📊 Stats AI'}
+                                  </button>
+                                  <button
+                                    onClick={() => handleAutoUpdate(fixture)}
+                                    disabled={updatingAutoList[fixture.id] || quickPredicting[fixture.id] || syncingStats[fixture.id]}
+                                    className="w-full text-left px-3 py-1.5 text-[10.5px] text-gray-300 hover:text-white hover:bg-primary/20 rounded-lg transition-colors font-medium"
+                                  >
+                                    {updatingAutoList[fixture.id] ? '🔄 KQ...' : '🤖 Kết quả'}
+                                  </button>
+                                </div>
+                              )}
+                            </div>
 
                             <button
                               onClick={() => handleUpdateMatchStats(fixture)}
                               disabled={syncingStats[fixture.id] || quickPredicting[fixture.id] || updatingAutoList[fixture.id]}
-                              className={`text-white font-bold py-1.5 px-1 rounded-lg text-center text-[11px] transition-all duration-150 flex items-center justify-center space-x-1 active:scale-[0.98] cursor-pointer ${
+                              className={`hidden sm:flex text-white font-bold py-1.5 px-1 rounded-lg text-center text-[11px] transition-all duration-150 items-center justify-center space-x-1 active:scale-[0.98] cursor-pointer ${
                                 syncingStats[fixture.id]
                                   ? 'bg-[#151E2E] text-gray-500 border border-card-border'
                                   : 'bg-gradient-to-r from-indigo-500/20 to-purple-500/20 hover:from-indigo-500/35 hover:to-purple-500/35 border border-indigo-500/30 hover:border-indigo-500/50 text-indigo-300'
@@ -788,7 +907,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                             <button
                               onClick={() => handleAutoUpdate(fixture)}
                               disabled={updatingAutoList[fixture.id] || quickPredicting[fixture.id] || syncingStats[fixture.id]}
-                              className={`text-white font-bold py-1.5 px-1 rounded-lg text-center text-[11px] transition-all duration-150 flex items-center justify-center space-x-0.5 active:scale-[0.98] cursor-pointer ${
+                              className={`hidden sm:flex text-white font-bold py-1.5 px-1 rounded-lg text-center text-[11px] transition-all duration-150 items-center justify-center space-x-0.5 active:scale-[0.98] cursor-pointer ${
                                 updatingAutoList[fixture.id]
                                   ? 'bg-[#151E2E] text-gray-500 border border-card-border'
                                   : 'bg-[#1E293B]/70 hover:bg-primary/25 border border-card-border hover:border-primary/40'
@@ -834,27 +953,27 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                         </div>
 
                         {/* Teams & Flags */}
-                        <div className="flex items-center justify-between sm:justify-center space-x-4 sm:w-2/5 px-2">
+                        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-3 sm:w-2/5 px-2">
                           {/* Home Team */}
-                          <div className="flex items-center space-x-2.5 sm:w-5/12 justify-end">
-                            <span className="font-bold text-white text-right truncate max-w-[125px]">{fixture.homeTeam}</span>
-                            {getTeamFlag(fixture.homeTeam, "w-6.5 h-4.5")}
+                          <div className="flex min-w-0 items-center justify-end space-x-2.5">
+                            {getTeamFlag(fixture.homeTeam, "w-6.5 h-4.5 shrink-0")}
+                            <span className="truncate font-bold text-white text-right max-w-[125px] sm:max-w-none">{fixture.homeTeam}</span>
                           </div>
 
                           {fixture.actualHomeScore !== undefined && fixture.actualHomeScore !== null ? (
-                            <div className="flex items-center space-x-1.5 bg-card-border/30 border border-card-border/50 px-2 py-0.5 rounded-lg select-none">
-                              <span className="font-mono font-black text-white text-xs">{fixture.actualHomeScore}</span>
-                              <span className="text-[8px] font-bold text-gray-500">-</span>
-                              <span className="font-mono font-black text-white text-xs">{fixture.actualAwayScore}</span>
+                            <div className="inline-flex min-w-[56px] items-center justify-center whitespace-nowrap rounded-lg border border-card-border/50 bg-card-border/30 px-2 py-0.5 select-none">
+                              <span className="font-mono text-xs font-black text-white">{fixture.actualHomeScore}</span>
+                              <span className="mx-1 text-[8px] font-bold text-gray-500">-</span>
+                              <span className="font-mono text-xs font-black text-white">{fixture.actualAwayScore}</span>
                             </div>
                           ) : (
-                            <span className="text-[9px] font-black text-gray-600 bg-background/50 px-1.5 py-0.5 rounded select-none">VS</span>
+                            <span className="inline-flex min-w-[40px] justify-center rounded bg-background/50 px-1.5 py-0.5 text-[9px] font-black text-gray-600 select-none">VS</span>
                           )}
 
                           {/* Away Team */}
-                          <div className="flex items-center space-x-2.5 sm:w-5/12 justify-start">
-                            {getTeamFlag(fixture.awayTeam, "w-6.5 h-4.5")}
-                            <span className="font-bold text-white text-left truncate max-w-[125px]">{fixture.awayTeam}</span>
+                          <div className="flex min-w-0 items-center justify-start space-x-2.5">
+                            <span className="truncate font-bold text-white text-left max-w-[125px] sm:max-w-none">{fixture.awayTeam}</span>
+                            {getTeamFlag(fixture.awayTeam, "w-6.5 h-4.5 shrink-0")}
                           </div>
                         </div>
 
@@ -867,10 +986,19 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                           {(() => {
                             const pred = localLatestPredictions[fixture.id];
                             if (!pred) return null;
-                            const status = getPredictionStatus(pred.predictedHomeScore, pred.predictedAwayScore, fixture.actualHomeScore, fixture.actualAwayScore);
+                            const status = getPredictionStatus(
+                              pred.predictedHomeScore, 
+                              pred.predictedAwayScore, 
+                              fixture.actualHomeScore, 
+                              fixture.actualAwayScore,
+                              pred.predictType || 'full_time',
+                              pred.actualFirstHalfHomeScore,
+                              pred.actualFirstHalfAwayScore
+                            );
+                            const typeLabel = pred.predictType === 'first_half' ? 'H1' : pred.predictType === 'second_half' ? 'H2' : 'FT';
                             return (
                               <div className={`px-2 py-0.5 rounded border text-[10px] font-bold flex items-center space-x-1 ${status.colorClass} select-none whitespace-nowrap`} title={status.text}>
-                                <span>🔮 {pred.predictedHomeScore} - {pred.predictedAwayScore}</span>
+                                <span>🔮 ({typeLabel}) {pred.predictedHomeScore} - {pred.predictedAwayScore}</span>
                                 <span className="text-[8px] bg-black/25 px-1 py-0.2 rounded font-extrabold uppercase">
                                   {status.status === 'correct' ? 'Đúng' : status.status === 'near' ? 'Gần' : status.status === 'incorrect' ? 'Sai' : 'Chờ'}
                                 </span>
@@ -878,7 +1006,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                             );
                           })()}
                           
-                          <div className="flex space-x-1.5 w-full sm:w-auto">
+                          <div className="flex space-x-1.5 w-full sm:w-auto justify-end">
                             <Link 
                               href={`/match/${fixture.id}`}
                               className="bg-card-border hover:bg-primary/20 border border-card-border hover:border-primary/50 text-white w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-all duration-150 flex items-center justify-center"
@@ -887,23 +1015,86 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                               <span>🔍</span>
                             </Link>
                             
-                            <button
-                              onClick={() => handleQuickPredict(fixture)}
-                              disabled={quickPredicting[fixture.id] || syncingStats[fixture.id]}
-                              className={`text-white w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-all duration-150 flex items-center justify-center active:scale-[0.98] cursor-pointer ${
-                                quickPredicting[fixture.id]
-                                  ? 'bg-[#151E2E] text-gray-500 border border-card-border'
-                                  : 'bg-gradient-to-r from-primary/80 to-secondary/80 hover:from-primary hover:to-secondary border border-primary/25 hover:border-primary/45 shadow-sm'
-                              }`}
-                              title={quickPredicting[fixture.id] ? 'Đang phân tích...' : 'Phân tích nhanh bằng AI'}
-                            >
-                              <span>{quickPredicting[fixture.id] ? '⏳' : '⚡'}</span>
-                            </button>
+                            <div className="relative predict-menu-container">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActivePredictMenu(activePredictMenu === fixture.id ? null : fixture.id);
+                                  setActiveActionMenu(null);
+                                }}
+                                disabled={quickPredicting[fixture.id] || syncingStats[fixture.id]}
+                                className={`text-white w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-all duration-150 flex items-center justify-center active:scale-[0.98] cursor-pointer ${
+                                  quickPredicting[fixture.id]
+                                    ? 'bg-[#151E2E] text-gray-550 border border-card-border'
+                                    : 'bg-gradient-to-r from-primary/80 to-secondary/80 hover:from-primary hover:to-secondary border border-primary/25 hover:border-primary/45 shadow-sm'
+                                }`}
+                                title={quickPredicting[fixture.id] ? 'Đang phân tích...' : 'Phân tích nhanh bằng AI'}
+                              >
+                                <span>{quickPredicting[fixture.id] ? '⏳' : '⚡'}</span>
+                              </button>
+
+                              {activePredictMenu === fixture.id && (
+                                <div className="absolute right-0 bottom-full mb-1.5 w-40 rounded-xl border border-card-border bg-[#0D1324]/95 backdrop-blur-md shadow-2xl p-1 z-40 animate-slide-in">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActivePredictMenu(null);
+                                      handleQuickPredict(fixture, 'full_time');
+                                    }}
+                                    className="w-full text-left px-3 py-1.5 text-[10.5px] text-gray-300 hover:text-white hover:bg-primary/20 rounded-lg transition-colors font-medium flex items-center space-x-2"
+                                  >
+                                    <span>📅</span>
+                                    <span>Cả trận (FT)</span>
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActivePredictMenu(null);
+                                      handleQuickPredict(fixture, 'first_half');
+                                    }}
+                                    className="w-full text-left px-3 py-1.5 text-[10.5px] text-gray-300 hover:text-white hover:bg-primary/20 rounded-lg transition-colors font-medium flex items-center space-x-2"
+                                  >
+                                    <span>⏱️</span>
+                                    <span>Hiệp 1 (H1)</span>
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActivePredictMenu(null);
+
+                                      const pred = localLatestPredictions[fixture.id];
+                                      const defaultH1 = pred?.actualFirstHalfHomeScore !== null && pred?.actualFirstHalfAwayScore !== null
+                                        ? `${pred.actualFirstHalfHomeScore}-${pred.actualFirstHalfAwayScore}`
+                                        : '';
+
+                                      const promptVal = prompt(
+                                        `Nhập tỷ số Hiệp 1 thực tế (Định dạng: Home-Away, ví dụ: 1-0):`, 
+                                        defaultH1
+                                      );
+                                      if (promptVal === null) return;
+
+                                      const match = promptVal.trim().match(/^\s*(\d+)\s*-\s*(\d+)\s*$/);
+                                      if (!match) {
+                                        alert("Định dạng tỷ số không hợp lệ. Vui lòng nhập X-Y (ví dụ: 1-0).");
+                                        return;
+                                      }
+                                      const fHome = parseInt(match[1], 10);
+                                      const fAway = parseInt(match[2], 10);
+                                      handleQuickPredict(fixture, 'second_half', fHome, fAway);
+                                    }}
+                                    className="w-full text-left px-3 py-1.5 text-[10.5px] text-gray-300 hover:text-white hover:bg-primary/20 rounded-lg transition-colors font-medium flex items-center space-x-2"
+                                  >
+                                    <span>🔥</span>
+                                    <span>Hiệp 2 (H2)</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
 
                             <button
                               onClick={() => handleUpdateMatchStats(fixture)}
                               disabled={syncingStats[fixture.id] || quickPredicting[fixture.id] || updatingAutoList[fixture.id]}
-                              className={`text-white w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-all duration-150 flex items-center justify-center active:scale-[0.98] cursor-pointer ${
+                              className={`hidden sm:flex text-white w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-all duration-150 items-center justify-center active:scale-[0.98] cursor-pointer ${
                                 syncingStats[fixture.id]
                                   ? 'bg-[#151E2E] text-gray-500 border border-card-border'
                                   : 'bg-gradient-to-r from-indigo-500/10 to-purple-500/10 hover:from-indigo-500/25 hover:to-purple-500/25 border border-indigo-500/25 hover:border-indigo-500/45 text-indigo-300'
@@ -916,7 +1107,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                             <button
                               onClick={() => handleAutoUpdate(fixture)}
                               disabled={updatingAutoList[fixture.id] || quickPredicting[fixture.id] || syncingStats[fixture.id]}
-                              className={`text-white w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-all duration-150 flex items-center justify-center active:scale-[0.98] cursor-pointer ${
+                              className={`hidden sm:flex text-white w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-all duration-150 items-center justify-center active:scale-[0.98] cursor-pointer ${
                                 updatingAutoList[fixture.id]
                                   ? 'bg-[#151E2E] text-gray-500 border border-card-border'
                                   : 'bg-[#1E293B]/70 hover:bg-primary/25 border border-card-border hover:border-primary/40'
@@ -929,7 +1120,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                             {historyCount > 0 && (
                               <Link 
                                 href={`/match/${fixture.id}?tab=history`}
-                                className="bg-card-border/60 hover:bg-secondary/20 border border-card-border/50 hover:border-secondary/50 text-gray-300 hover:text-white w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-all duration-150 flex items-center justify-center relative"
+                                className="hidden sm:flex bg-card-border/60 hover:bg-secondary/20 border border-card-border/50 hover:border-secondary/50 text-gray-300 hover:text-white w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-all duration-150 items-center justify-center relative"
                                 title={`Xem lịch sử (${historyCount} lần dự đoán)`}
                               >
                                 <span>📜</span>
@@ -938,6 +1129,47 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                                 </span>
                               </Link>
                             )}
+
+                            <div className="relative action-menu-container sm:hidden">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveActionMenu(activeActionMenu === fixture.id ? null : fixture.id);
+                                  setActivePredictMenu(null);
+                                }}
+                                className="text-white w-7 h-7 rounded-lg transition-all duration-150 flex items-center justify-center border border-card-border bg-[#1E293B]/70 hover:bg-primary/25 active:scale-[0.98] cursor-pointer"
+                                title="Tác vụ khác"
+                              >
+                                <span>•••</span>
+                              </button>
+
+                              {activeActionMenu === fixture.id && (
+                                <div className="absolute right-0 bottom-full mb-1.5 w-36 rounded-xl border border-card-border bg-[#0D1324]/95 backdrop-blur-md shadow-2xl p-1 z-40 animate-slide-in">
+                                  <button
+                                    onClick={() => handleUpdateMatchStats(fixture)}
+                                    disabled={syncingStats[fixture.id] || quickPredicting[fixture.id] || updatingAutoList[fixture.id]}
+                                    className="w-full text-left px-3 py-1.5 text-[10.5px] text-indigo-300 hover:text-white hover:bg-indigo-500/20 rounded-lg transition-colors font-medium"
+                                  >
+                                    {syncingStats[fixture.id] ? '⏳ Stats...' : '📊 Stats AI'}
+                                  </button>
+                                  <button
+                                    onClick={() => handleAutoUpdate(fixture)}
+                                    disabled={updatingAutoList[fixture.id] || quickPredicting[fixture.id] || syncingStats[fixture.id]}
+                                    className="w-full text-left px-3 py-1.5 text-[10.5px] text-gray-300 hover:text-white hover:bg-primary/20 rounded-lg transition-colors font-medium"
+                                  >
+                                    {updatingAutoList[fixture.id] ? '🔄 Kết quả...' : '🤖 Kết quả'}
+                                  </button>
+                                  {historyCount > 0 && (
+                                    <Link
+                                      href={`/match/${fixture.id}?tab=history`}
+                                      className="block w-full text-left px-3 py-1.5 text-[10.5px] text-secondary hover:text-white hover:bg-secondary/20 rounded-lg transition-colors font-medium"
+                                    >
+                                      📜 Lịch sử phân tích
+                                    </Link>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>

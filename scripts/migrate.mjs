@@ -95,7 +95,12 @@ async function runMigration() {
     { name: 'ou_line', type: 'REAL DEFAULT 2.5' },
     { name: 'corners_line', type: 'REAL DEFAULT 8.5' },
     { name: 'cards_line', type: 'REAL DEFAULT 3.5' },
-    { name: 'handicap_line', type: 'REAL DEFAULT 0.0' }
+    { name: 'handicap_line', type: 'REAL DEFAULT 0.0' },
+    { name: 'predict_type', type: "TEXT DEFAULT 'full_time'" },
+    { name: 'first_half_home_score', type: 'INTEGER DEFAULT NULL' },
+    { name: 'first_half_away_score', type: 'INTEGER DEFAULT NULL' },
+    { name: 'actual_first_half_home_score', type: 'INTEGER DEFAULT NULL' },
+    { name: 'actual_first_half_away_score', type: 'INTEGER DEFAULT NULL' }
   ];
 
   for (const col of predictionsColumns) {

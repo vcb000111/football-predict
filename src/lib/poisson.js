@@ -195,7 +195,7 @@ function getPoissonRandom(lambda, randomFn = Math.random) {
  * @param {boolean} isHomeAdvantage - Có lợi thế sân nhà thực tế hay không
  * @param {number} iterations - Số lần mô phỏng (mặc định 10,000)
  */
-export function runMonteCarloSimulation(homeStats, awayStats, isHomeAdvantage = false, iterations = 10000, ouLine = 2.5) {
+export function runMonteCarloSimulation(homeStats, awayStats, isHomeAdvantage = false, iterations = 10000, ouLine = 2.5, predictType = 'full_time', firstHalfHomeScore = null, firstHalfAwayScore = null) {
   const homeScored = homeStats.avg_goals_scored ?? 1.5;
   const homeConceded = homeStats.avg_goals_conceded ?? 1.1;
   const awayScored = awayStats.avg_goals_scored ?? 1.3;
@@ -209,6 +209,15 @@ export function runMonteCarloSimulation(homeStats, awayStats, isHomeAdvantage = 
   if (isHomeAdvantage) {
     lambdaHome += 0.3;
     lambdaAway = Math.max(0.2, lambdaAway - 0.1);
+  }
+
+  // Tỷ lệ cho Hiệp 1 vs Hiệp 2
+  if (predictType === 'first_half') {
+    lambdaHome = lambdaHome * 0.45;
+    lambdaAway = lambdaAway * 0.45;
+  } else if (predictType === 'second_half') {
+    lambdaHome = lambdaHome * 0.55;
+    lambdaAway = lambdaAway * 0.55;
   }
 
   // Đảm bảo xG tối thiểu
@@ -233,25 +242,36 @@ export function runMonteCarloSimulation(homeStats, awayStats, isHomeAdvantage = 
     const hGoals = getPoissonRandom(lambdaHome, randomFn);
     const aGoals = getPoissonRandom(lambdaAway, randomFn);
 
-    if (hGoals > aGoals) {
+    // Tính toán tỷ số tích lũy
+    let totalHomeGoals = hGoals;
+    let totalAwayGoals = aGoals;
+
+    if (predictType === 'second_half') {
+      const fhHome = Number(firstHalfHomeScore ?? 0);
+      const fhAway = Number(firstHalfAwayScore ?? 0);
+      totalHomeGoals = fhHome + hGoals;
+      totalAwayGoals = fhAway + aGoals;
+    }
+
+    if (totalHomeGoals > totalAwayGoals) {
       homeWins++;
-    } else if (hGoals === aGoals) {
+    } else if (totalHomeGoals === totalAwayGoals) {
       draws++;
     } else {
       awayWins++;
     }
 
-    if (hGoals + aGoals > ouLine) {
+    if (totalHomeGoals + totalAwayGoals > ouLine) {
       totalOver25++;
     } else {
       totalUnder25++;
     }
 
-    if (hGoals > 0 && aGoals > 0) {
+    if (totalHomeGoals > 0 && totalAwayGoals > 0) {
       bttsCount++;
     }
 
-    const scoreKey = `${Math.min(hGoals, 9)}-${Math.min(aGoals, 9)}`;
+    const scoreKey = `${Math.min(totalHomeGoals, 9)}-${Math.min(totalAwayGoals, 9)}`;
     scoreCounts[scoreKey] = (scoreCounts[scoreKey] || 0) + 1;
   }
 
@@ -309,7 +329,7 @@ export function runMonteCarloSimulation(homeStats, awayStats, isHomeAdvantage = 
  * @param {Object} awayStats - Thống kê đội khách { avg_corners_won, avg_corners_conceded, avg_cards_received, style_of_play }
  * @param {number} iterations - Số vòng lặp mô phỏng
  */
-export function calculateCornersAndCards(homeStats, awayStats, iterations = 10000) {
+export function calculateCornersAndCards(homeStats, awayStats, iterations = 10000, predictType = 'full_time') {
   // 1. Phạt góc kỳ vọng
   const homeCornersWon = homeStats.avg_corners_won ?? 4.5;
   const homeCornersConceded = homeStats.avg_corners_conceded ?? 4.5;
@@ -336,8 +356,17 @@ export function calculateCornersAndCards(homeStats, awayStats, iterations = 1000
     lambdaAwayCorners *= 0.85;
   }
 
-  lambdaHomeCorners = Math.max(1.5, lambdaHomeCorners);
-  lambdaAwayCorners = Math.max(1.5, lambdaAwayCorners);
+  // Scaling góc cho Hiệp 1 và Hiệp 2
+  if (predictType === 'first_half') {
+    lambdaHomeCorners *= 0.47;
+    lambdaAwayCorners *= 0.47;
+  } else if (predictType === 'second_half') {
+    lambdaHomeCorners *= 0.53;
+    lambdaAwayCorners *= 0.53;
+  }
+
+  lambdaHomeCorners = Math.max(1.0, lambdaHomeCorners);
+  lambdaAwayCorners = Math.max(1.0, lambdaAwayCorners);
   const totalExpectedCorners = lambdaHomeCorners + lambdaAwayCorners;
 
   // Chọn mốc phạt góc động (corners_line) dựa trên tổng phạt góc kỳ vọng
@@ -371,6 +400,15 @@ export function calculateCornersAndCards(homeStats, awayStats, iterations = 1000
   }
   if (awayStyle.includes('kỹ thuật') || awayStyle.includes('kiểm soát') || awayStyle.includes('cống hiến')) {
     lambdaAwayCards *= 0.85;
+  }
+
+  // Scaling thẻ cho Hiệp 1 và Hiệp 2
+  if (predictType === 'first_half') {
+    lambdaHomeCards *= 0.35;
+    lambdaAwayCards *= 0.35;
+  } else if (predictType === 'second_half') {
+    lambdaHomeCards *= 0.65;
+    lambdaAwayCards *= 0.65;
   }
 
   lambdaHomeCards = Math.max(0.5, lambdaHomeCards);
