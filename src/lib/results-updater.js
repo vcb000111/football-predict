@@ -230,9 +230,75 @@ export function evaluateBetOutcome(rec1x2, recOu, recHandicap, recBtts, recCorne
   };
 }
 
+function getDiffMinutes(venueStr) {
+  let diffMinutes = 13 * 60; // Mặc định là UTC-6 (Mexico City) -> lệch 13 tiếng (VN đi trước 13 tiếng) -> +780 phút
+  const venue = (venueStr || '').toLowerCase();
+
+  if (venue.includes('mexico city') || venue.includes('guadalajara') || venue.includes('azteca') || venue.includes('akron') || venue.includes('guadalajara')) {
+    diffMinutes = 13 * 60;
+  } else if (venue.includes('monterrey') || venue.includes('bbva')) {
+    diffMinutes = 13 * 60;
+  } else if (venue.includes('toronto') || venue.includes('bmo field') || venue.includes('atlanta') || venue.includes('mercedes-benz') || venue.includes('boston') || venue.includes('gillette') || venue.includes('miami') || venue.includes('hard rock') || venue.includes('new york') || venue.includes('metlife') || venue.includes('philadelphia') || venue.includes('lincoln financial')) {
+    diffMinutes = 11 * 60; // Eastern Daylight Time (UTC-4) -> VN (UTC+7) -> lệch 11 tiếng
+  } else if (venue.includes('dallas') || venue.includes('at&t') || venue.includes('houston') || venue.includes('nrg') || venue.includes('kansas') || venue.includes('arrowhead')) {
+    diffMinutes = 12 * 60; // Central Daylight Time (UTC-5) -> VN (UTC+7) -> lệch 12 tiếng
+  } else if (venue.includes('vancouver') || venue.includes('bc place') || venue.includes('los angeles') || venue.includes('sofi') || venue.includes('san francisco') || venue.includes('levi\'s') || venue.includes('seattle') || venue.includes('lumen')) {
+    diffMinutes = 14 * 60; // Pacific Daylight Time (UTC-7) -> VN (UTC+7) -> lệch 14 tiếng
+  } else if (venue.includes('istanbul') || venue.includes('turkey')) {
+    diffMinutes = 4 * 60; // Turkey (UTC+3) -> VN (UTC+7) -> lệch 4 tiếng
+  } else if (venue.includes('oslo') || venue.includes('norway') || venue.includes('rijeka') || venue.includes('croatia') || venue.includes('luxembourg') || venue.includes('rotterdam') || venue.includes('netherlands') || venue.includes('warsaw') || venue.includes('poland') || venue.includes('copenhagen') || venue.includes('denmark') || venue.includes('paris') || venue.includes('saint-denis') || venue.includes('france') || venue.includes('madrid') || venue.includes('spain') || venue.includes('solna') || venue.includes('sweden')) {
+    diffMinutes = 5 * 60; // Western/Central Europe (UTC+2) -> VN (UTC+7) -> lệch 5 tiếng
+  } else if (venue.includes('cardiff') || venue.includes('wales') || venue.includes('london')) {
+    diffMinutes = 6 * 60; // UK (UTC+1) -> VN (UTC+7) -> lệch 6 tiếng
+  }
+  return diffMinutes;
+}
+
+export function getMatchTime(fixture) {
+  if (!fixture || !fixture.date || !fixture.time) return null;
+  try {
+    const diffMinutes = getDiffMinutes(fixture.venue);
+    const [year, month, day] = fixture.date.split('-').map(Number);
+    const [hour, minute] = fixture.time.split(':').map(Number);
+    
+    const baseDate = new Date(Date.UTC(year, month - 1, day, hour, minute));
+    const matchTimeMs = baseDate.getTime() + (diffMinutes - 7 * 60) * 60 * 1000;
+    return new Date(matchTimeMs);
+  } catch (e) {
+    return null;
+  }
+}
+
 // --- HÀM HELPER CHÍNH CẬP NHẬT KẾT QUẢ ---
 export async function updateMatchResult({ homeTeam, awayTeam, matchId, force, db }) {
   try {
+    // 0. Tìm thông tin trận đấu (fixture) và kiểm tra thời gian thi đấu thực tế
+    const fixture = fixturesData.fixtures.find(
+      (f) =>
+        f.id === matchId ||
+        (f.homeTeam === homeTeam && f.awayTeam === awayTeam)
+    );
+
+    if (fixture) {
+      const matchTime = getMatchTime(fixture);
+      if (matchTime) {
+        const currentTime = new Date();
+        const diffMs = currentTime.getTime() - matchTime.getTime();
+        
+        // Trận đấu chưa bắt đầu hoặc đang thi đấu (chưa hết 150 phút)
+        if (diffMs < 150 * 60 * 1000) {
+          const isFuture = diffMs < 0;
+          return {
+            success: false,
+            status: isFuture ? 'not_started' : 'live',
+            message: isFuture
+              ? `Trận đấu giữa ${homeTeam} và ${awayTeam} chưa diễn ra. Không thể cập nhật kết quả.`
+              : `Trận đấu giữa ${homeTeam} và ${awayTeam} đang diễn ra. Vui lòng quay lại sau khi trận đấu kết thúc.`
+          };
+        }
+      }
+    }
+
     let apiKeys = [];
     let MODELS = [];
     let geminiKeys = [];
@@ -302,23 +368,6 @@ export async function updateMatchResult({ homeTeam, awayTeam, matchId, force, db
 
     // 3. CHẾ ĐỘ GIẢ LẬP (MOCK MODE) khi không có API key hoạt động
     if (apiKeys.length === 0 || MODELS.length === 0) {
-      const currentTime = new Date();
-      let isFuture = false;
-      const fixture = fixturesData.fixtures.find(f => f.id === (matchId || (sampleRecord ? sampleRecord.match_id : null)) || (f.homeTeam === homeTeam && f.awayTeam === awayTeam));
-      if (fixture && fixture.date) {
-        const fixtureTime = new Date(`${fixture.date}T12:00:00`);
-        if (fixtureTime > currentTime) isFuture = true;
-      }
-
-      if (isFuture) {
-        return {
-          success: false,
-          status: 'not_started',
-          message: `Trận đấu giữa ${homeTeam} và ${awayTeam} chưa diễn ra. Không thể lấy kết quả thực tế.`,
-          isMock: true
-        };
-      }
-
       const mockHomeScore = (homeTeam.length + 2) % 4;
       const mockAwayScore = (awayTeam.length + 1) % 3;
       const mockCorners = (homeTeam.length * 3 + awayTeam.length * 2) % 6 + 6;

@@ -207,11 +207,9 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
   const handleAutoUpdate = async (fixture) => {
     if (updatingAutoList[fixture.id]) return;
 
-    // Nếu trận đấu đã có kết quả thực tế, hỏi xác nhận để Force Update
+    // Nếu trận đấu đã có kết quả thực tế, mặc định Force Update
     let isForce = false;
     if (fixture.actualHomeScore !== null && fixture.actualHomeScore !== undefined && fixture.actualAwayScore !== null && fixture.actualAwayScore !== undefined) {
-      const confirmForce = window.confirm(`Trận đấu này đã được cập nhật kết quả trước đó (${fixture.actualHomeScore} - ${fixture.actualAwayScore}). Bạn có muốn ép cập nhật lại (Force Update) bằng AI để ghi đè dữ liệu cũ không?`);
-      if (!confirmForce) return;
       isForce = true;
     }
 
