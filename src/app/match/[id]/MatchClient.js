@@ -69,11 +69,6 @@ export default function MatchClient({ match }) {
   const [loadingStep, setLoadingStep] = useState(0);
 
   // States cho Form cập nhật kết quả thực tế
-  const [actHome, setActHome] = useState('');
-  const [actAway, setActAway] = useState('');
-  const [actFirstHalfHome, setActFirstHalfHome] = useState('');
-  const [actFirstHalfAway, setActFirstHalfAway] = useState('');
-  const [submitting, setSubmitting] = useState(false);
   const [resMessage, setResMessage] = useState(null);
   const [updatingAuto, setUpdatingAuto] = useState(false);
 
@@ -108,8 +103,6 @@ export default function MatchClient({ match }) {
       setPrediction(null);
       setHistoryList([]);
       setResMessage(null);
-      setActHome('');
-      setActAway('');
       
       try {
         const res = await fetch(`/api/history?matchId=${match.id}`);
@@ -194,53 +187,6 @@ export default function MatchClient({ match }) {
     }
   };
 
-  const handleSubmitManualResult = async (e) => {
-    e.preventDefault();
-    if (actHome === '' || actAway === '') {
-      setResMessage({ success: false, text: 'Vui lòng nhập đầy đủ tỷ số cả trận thực tế!' });
-      return;
-    }
-
-    setSubmitting(true);
-    setResMessage(null);
-    try {
-      const res = await fetch('/api/results', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          homeTeam: match.homeTeam,
-          awayTeam: match.awayTeam,
-          matchId: match.id,
-          actualHomeScore: parseInt(actHome, 10),
-          actualAwayScore: parseInt(actAway, 10),
-          actualFirstHalfHomeScore: actFirstHalfHome !== '' && actFirstHalfHome !== undefined && actFirstHalfHome !== null ? parseInt(actFirstHalfHome, 10) : null,
-          actualFirstHalfAwayScore: actFirstHalfAway !== '' && actFirstHalfAway !== undefined && actFirstHalfAway !== null ? parseInt(actFirstHalfAway, 10) : null
-        })
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Lỗi khi cập nhật kết quả thủ công');
-
-      setResMessage({
-        success: true,
-        text: `🟢 Cập nhật thủ công thành công! Tỷ số: ${actHome}-${actAway}${actFirstHalfHome ? ` (Hiệp 1: ${actFirstHalfHome}-${actFirstHalfAway})` : ''}`
-      });
-
-      // Tải lại lịch sử để cập nhật UI
-      const histRes = await fetch(`/api/history?matchId=${match.id}`);
-      if (histRes.ok) {
-        const histData = await histRes.json();
-        setHistoryList(histData.history);
-        const updatedPred = histData.history.find(h => h.id === prediction.id);
-        if (updatedPred) setPrediction(updatedPred);
-      }
-    } catch (err) {
-      setResMessage({ success: false, text: err.message });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const handleAutoUpdateResult = async () => {
     // Nếu trận đấu đã có kết quả thực tế, mặc định Force Update
     let isForce = false;
@@ -273,9 +219,6 @@ export default function MatchClient({ match }) {
           success: true,
           text: `🤖 Tự động cập nhật thành công! Trận đấu kết thúc với tỷ số thực tế: ${data.actualScore.home}-${data.actualScore.away}. ${data.summary || ''}`
         });
-
-        setActHome(data.actualScore.home);
-        setActAway(data.actualScore.away);
 
         // Tải lại lịch sử để cập nhật UI
         const histRes = await fetch(`/api/history?matchId=${match.id}`);
@@ -329,19 +272,28 @@ export default function MatchClient({ match }) {
             <span>{getVNTime(match.date, match.time, match.venue).formatted} (Giờ VN) • {match.time} {match.date} (Giờ địa phương)</span>
           </div>
 
-          <div className="flex flex-row items-center justify-between px-2 sm:px-8">
-            <div className="flex items-center space-x-3 w-5/12 justify-end">
-              <span className="font-extrabold text-sm sm:text-base text-white text-right">{match.homeTeam}</span>
-              {getTeamFlag(match.homeTeam, "w-10 h-7 sm:w-12 sm:h-8.5")}
+          <div className="flex flex-row items-center justify-between px-1 sm:px-8">
+            {/* Home Team */}
+            <div className="flex flex-col sm:flex-row items-center sm:space-x-3 w-5/12 justify-center sm:justify-end space-y-1 sm:space-y-0">
+              <span className="font-extrabold text-xs sm:text-base text-white text-center sm:text-right order-2 sm:order-1">{match.homeTeam}</span>
+              <div className="order-1 sm:order-2">
+                {getTeamFlag(match.homeTeam, "w-8 h-5.5 sm:w-12 sm:h-8.5 object-cover")}
+              </div>
             </div>
+            
+            {/* VS */}
             <div className="w-2/12 flex justify-center">
-              <span className="text-[10px] font-black text-gray-600 tracking-wider border border-card-border/60 bg-[#0B0F17] px-2.5 py-0.5 rounded-full glow-green">
+              <span className="text-[9px] sm:text-[10px] font-black text-gray-600 tracking-wider border border-card-border/60 bg-[#0B0F17] px-2 sm:px-2.5 py-0.5 rounded-full glow-green">
                 VS
               </span>
             </div>
-            <div className="flex items-center space-x-3 w-5/12 justify-start">
-              {getTeamFlag(match.awayTeam, "w-10 h-7 sm:w-12 sm:h-8.5")}
-              <span className="font-extrabold text-sm sm:text-base text-white text-left">{match.awayTeam}</span>
+            
+            {/* Away Team */}
+            <div className="flex flex-col sm:flex-row items-center sm:space-x-3 w-5/12 justify-center sm:justify-start space-y-1 sm:space-y-0">
+              <div className="order-1">
+                {getTeamFlag(match.awayTeam, "w-8 h-5.5 sm:w-12 sm:h-8.5 object-cover")}
+              </div>
+              <span className="font-extrabold text-xs sm:text-base text-white text-center sm:text-left order-2">{match.awayTeam}</span>
             </div>
           </div>
 
@@ -558,14 +510,14 @@ export default function MatchClient({ match }) {
                 </div>
                 
                 <div className="flex items-center justify-center space-x-6 my-4">
-                  <div className="flex flex-col items-center">
-                    <span className="text-xs font-semibold text-gray-500 mb-1 truncate max-w-[100px]">{match.homeTeam}</span>
-                    <span className="text-4xl font-black text-white glow-green">{prediction.predicted_home_score ?? prediction.predictedScore?.home}</span>
+                  <div className="flex flex-col items-center flex-1 max-w-[140px]">
+                    <span className="text-[11px] sm:text-xs font-semibold text-gray-500 mb-1 text-center line-clamp-2 min-h-[32px] flex items-center justify-center">{match.homeTeam}</span>
+                    <span className="text-3xl sm:text-4xl font-black text-white glow-green">{prediction.predicted_home_score ?? prediction.predictedScore?.home}</span>
                   </div>
-                  <span className="text-xl font-bold text-card-border">-</span>
-                  <div className="flex flex-col items-center">
-                    <span className="text-xs font-semibold text-gray-500 mb-1 truncate max-w-[100px]">{match.awayTeam}</span>
-                    <span className="text-4xl font-black text-white glow-cyan">{prediction.predicted_away_score ?? prediction.predictedScore?.away}</span>
+                  <span className="text-xl font-bold text-card-border self-end mb-2">-</span>
+                  <div className="flex flex-col items-center flex-1 max-w-[140px]">
+                    <span className="text-[11px] sm:text-xs font-semibold text-gray-500 mb-1 text-center line-clamp-2 min-h-[32px] flex items-center justify-center">{match.awayTeam}</span>
+                    <span className="text-3xl sm:text-4xl font-black text-white glow-cyan">{prediction.predicted_away_score ?? prediction.predictedScore?.away}</span>
                   </div>
                 </div>
 
@@ -873,82 +825,12 @@ export default function MatchClient({ match }) {
                 <button
                   type="button"
                   onClick={handleAutoUpdateResult}
-                  disabled={updatingAuto || submitting}
+                  disabled={updatingAuto}
                   className="w-full bg-[#151E2E] hover:bg-primary/20 border border-card-border hover:border-primary/50 text-white font-bold py-2 px-3 rounded-lg text-xs tracking-wider transition-all flex items-center justify-center space-x-1.5 shadow-sm active:scale-[0.99] cursor-pointer"
                 >
                   <span>🤖</span>
                   <span>{updatingAuto ? 'Đang tìm kiếm & chấm điểm...' : 'TỰ ĐỘNG CẬP NHẬT (AI & GOOGLE SEARCH)'}</span>
                 </button>
-
-                <div className="relative flex items-center my-2">
-                  <div className="flex-grow border-t border-card-border/40"></div>
-                  <span className="flex-shrink mx-3 text-[9px] text-gray-500 font-bold uppercase">Hoặc cập nhật thủ công</span>
-                  <div className="flex-grow border-t border-card-border/40"></div>
-                </div>
-
-                {/* Manual Update Form */}
-                <form onSubmit={handleSubmitManualResult} className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="flex flex-col space-y-1">
-                      <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Hiệp 1 - {match.homeTeam}</label>
-                      <input
-                        type="number"
-                        min="0"
-                        placeholder="H1 Home"
-                        value={actFirstHalfHome}
-                        onChange={(e) => setActFirstHalfHome(e.target.value)}
-                        className="bg-[#0B0F17] border border-card-border rounded-lg p-2 text-xs text-white focus:outline-none focus:border-primary text-center font-bold"
-                      />
-                    </div>
-                    <div className="flex flex-col space-y-1">
-                      <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Hiệp 1 - {match.awayTeam}</label>
-                      <input
-                        type="number"
-                        min="0"
-                        placeholder="H1 Away"
-                        value={actFirstHalfAway}
-                        onChange={(e) => setActFirstHalfAway(e.target.value)}
-                        className="bg-[#0B0F17] border border-card-border rounded-lg p-2 text-xs text-white focus:outline-none focus:border-primary text-center font-bold"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="flex flex-col space-y-1">
-                      <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Cả trận - {match.homeTeam}</label>
-                      <input
-                        type="number"
-                        min="0"
-                        placeholder="FT Home"
-                        value={actHome}
-                        onChange={(e) => setActHome(e.target.value)}
-                        className="bg-[#0B0F17] border border-card-border rounded-lg p-2 text-xs text-white focus:outline-none focus:border-primary text-center font-bold"
-                        required
-                      />
-                    </div>
-                    <div className="flex flex-col space-y-1">
-                      <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Cả trận - {match.awayTeam}</label>
-                      <input
-                        type="number"
-                        min="0"
-                        placeholder="FT Away"
-                        value={actAway}
-                        onChange={(e) => setActAway(e.target.value)}
-                        className="bg-[#0B0F17] border border-card-border rounded-lg p-2 text-xs text-white focus:outline-none focus:border-primary text-center font-bold"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={updatingAuto || submitting}
-                    className="w-full bg-[#1e293b] hover:bg-slate-700 text-white font-bold py-2 px-3 rounded-lg text-[10px] tracking-wider transition-all flex items-center justify-center space-x-1 cursor-pointer"
-                  >
-                    <span>💾</span>
-                    <span>{submitting ? 'ĐANG LƯU KẾT QUẢ...' : 'LƯU TỶ SỐ THỦ CÔNG'}</span>
-                  </button>
-                </form>
 
                 {resMessage && (
                   <div className={`mt-3 p-2.5 rounded-lg border text-xs leading-relaxed ${
