@@ -5,6 +5,7 @@ Tất cả những thay đổi nổi bật đối với dự án **FIFA World Cu
 ## [1.9.0] - 2026-06-13
 
 ### Added (Thêm mới)
+* **Hiển thị bảng phân tích trực quan:** Tự động định dạng lại các bảng phân tích dữ liệu, xác suất tỉ số hoặc kèo phụ của AI thành bảng HTML gọn gàng, đẹp mắt.
 * **Dán hình ảnh từ khay nhớ tạm (Ctrl+V):** Hỗ trợ dán trực tiếp hình ảnh từ khay nhớ tạm (clipboard) vào ô nhập liệu chat để gửi phân tích nhanh.
 * **Lưu trữ hình ảnh hội thoại vĩnh viễn:** Tích hợp dịch vụ đám mây lưu trữ lâu dài hình ảnh bảng kèo hoặc ảnh bất kỳ do người dùng gửi trong khung chat, hiển thị lại đầy đủ khi xem lịch sử.
 * **Cấu hình động tính năng xử lý ảnh:** Bổ sung tùy chọn bật/tắt khả năng phân tích hình ảnh của từng mô hình trí tuệ nhân tạo (AI) trực tiếp tại trang quản trị.
@@ -12,6 +13,7 @@ Tất cả những thay đổi nổi bật đối với dự án **FIFA World Cu
 * **Tích hợp form cập nhật kết quả thủ công:** Bổ sung giao diện và form nhập tỷ số cả trận và tỷ số hiệp 1 thực tế thủ công ngay trên giao diện chi tiết trận đấu, đồng bộ hóa với hệ thống chấm điểm cược.
 
 ### Changed (Thay đổi logic)
+* **Tối ưu hóa trải nghiệm cuộn khung chat:** Sửa lỗi màn hình tự động giật cuộn xuống dưới cùng khi đang chat. Hệ thống chỉ tự động cuộn xuống dưới cùng một lần duy nhất khi lần đầu mở trang để giúp người dùng đọc lịch sử hội thoại ổn định hơn.
 * **Tự động phục hồi khi có lỗi máy chủ ảnh:** Xây dựng cơ chế tự phát hiện và xử lý lỗi kết nối khi lưu trữ hình ảnh. Nếu dịch vụ lưu trữ ảnh gặp sự cố, hội thoại bằng văn bản vẫn được duy trì bình thường mà không bị gián đoạn.
 * **Thuật toán toán học Poisson:** Tách biệt tỷ lệ Lambda cho Hiệp 1 (phạt góc * 0.47, thẻ * 0.35, lambda * 0.45) và Hiệp 2 (phạt góc * 0.53, thẻ * 0.65, lambda * 0.55). Đối với Hiệp 2, tự động cộng dồn tỷ số Hiệp 1 thực tế để mô phỏng chính xác kết quả cả trận.
 * **Chấm điểm cược theo Hiệp đấu:** Đồng bộ hóa logic chấm điểm cược tự động (trọng tài AI) và thủ công. Nếu dự đoán là Hiệp 1, hệ thống đối chiếu với tỷ số Hiệp 1 thực tế thay vì tỷ số cả trận.

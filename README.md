@@ -103,9 +103,11 @@ npm run dev
 ## 🛠️ Nhật Ký Thay Đổi (Changelog)
 
 ### [2026-06-13] - Dự đoán Hiệp 1 & Hiệp 2, tích hợp Cloudinary và Cấu hình động AI Model (v1.9.0)
+* **Hiển thị bảng phân tích trực quan:** Tự động định dạng lại các bảng phân tích dữ liệu, xác suất tỉ số hoặc kèo phụ của AI thành bảng HTML gọn gàng, đẹp mắt.
 * **Dán hình ảnh từ khay nhớ tạm (Ctrl+V):** Hỗ trợ dán trực tiếp hình ảnh từ khay nhớ tạm (clipboard) vào ô nhập liệu chat để gửi phân tích nhanh.
 * **Lưu trữ hình ảnh hội thoại vĩnh viễn:** Tích hợp Cloudinary lưu trữ lâu dài hình ảnh bảng cược hoặc ảnh do người dùng gửi trong chat, hiển thị lại đầy đủ khi xem lịch sử.
 * **Cấu hình động tính năng xử lý ảnh:** Bổ sung switch bật/tắt khả năng phân tích ảnh của từng mô hình AI trong trang quản trị.
+* **Tối ưu hóa trải nghiệm cuộn khung chat:** Sửa lỗi màn hình tự động giật cuộn xuống dưới cùng khi đang chat. Hệ thống chỉ tự động cuộn xuống dưới cùng một lần duy nhất khi lần đầu mở trang để giúp người dùng đọc lịch sử hội thoại ổn định hơn.
 * **Tự động phục hồi khi lỗi máy chủ ảnh:** Thiết lập bẫy lỗi try-catch cho luồng upload, nếu Cloudinary lỗi, hệ thống tự động fallback tiếp tục chat text bình thường.
 * **Tính năng dự đoán Hiệp 1 và Hiệp 2:** Dự đoán, lưu trữ và thống kê hiệu suất riêng biệt.
 * **Cập nhật tỷ lệ Poisson:** Hiệp 1 (góc * 0.47, thẻ * 0.35, lambda * 0.45); Hiệp 2 (góc * 0.53, thẻ * 0.65, lambda * 0.55 + cộng dồn tỷ số H1 thực tế).
