@@ -5,6 +5,7 @@ Tất cả những thay đổi nổi bật đối với dự án **FIFA World Cu
 ## [1.9.0] - 2026-06-13
 
 ### Added (Thêm mới)
+* **Tích hợp tab Thống kê vào thanh chân trang di động (Bottom Navigation):** Bổ sung tab điều hướng nhanh tới trang thống kê hiệu suất dự đoán (/stats) trên điện thoại và thiết lập padding chống đè UI từ các widget hệ thống.
 * **Hiển thị bảng phân tích trực quan:** Tự động định dạng lại các bảng phân tích dữ liệu, xác suất tỉ số hoặc kèo phụ của AI thành bảng HTML gọn gàng, đẹp mắt.
 * **Dán hình ảnh từ khay nhớ tạm (Ctrl+V):** Hỗ trợ dán trực tiếp hình ảnh từ khay nhớ tạm (clipboard) vào ô nhập liệu chat để gửi phân tích nhanh.
 * **Lưu trữ hình ảnh hội thoại vĩnh viễn:** Tích hợp dịch vụ đám mây lưu trữ lâu dài hình ảnh bảng kèo hoặc ảnh bất kỳ do người dùng gửi trong khung chat, hiển thị lại đầy đủ khi xem lịch sử.

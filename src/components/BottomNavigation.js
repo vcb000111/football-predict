@@ -26,6 +26,15 @@ export default function BottomNavigation() {
       )
     },
     {
+      label: 'Thống Kê',
+      href: '/stats',
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5.5 h-5.5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v5.25c0 .621-.504 1.125-1.125 1.125h-2.25A1.125 1.125 0 0 1 3 18.375v-5.25ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125v-9.75ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v14.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+        </svg>
+      )
+    },
+    {
       label: 'Cấu Hình',
       href: '/admin',
       icon: (
@@ -38,7 +47,7 @@ export default function BottomNavigation() {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-[#0D1324]/90 backdrop-blur-md border-t border-card-border/60 flex justify-around items-center h-16 pb-safe">
+    <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-[#0D1324]/90 backdrop-blur-md border-t border-card-border/60 flex justify-around items-center h-16 pb-safe pl-12 pr-2">
       {navItems.map((item) => {
         const isActive = pathname === item.href;
         return (
