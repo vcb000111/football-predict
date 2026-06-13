@@ -13,6 +13,7 @@ Tất cả những thay đổi nổi bật đối với dự án **FIFA World Cu
 * **Tích hợp form cập nhật kết quả thủ công:** Bổ sung giao diện và form nhập tỷ số cả trận và tỷ số hiệp 1 thực tế thủ công ngay trên giao diện chi tiết trận đấu, đồng bộ hóa với hệ thống chấm điểm cược.
 
 ### Changed (Thay đổi logic)
+* **Tối ưu hóa giao diện di động (Mobile layout):** Ẩn thanh header chính cồng kềnh trên điện thoại để tiết kiệm không gian hiển thị, thay thế bằng icon logo AI nhỏ dạng float fixed ở góc trên bên trái để định hướng về trang chủ.
 * **Tối ưu hóa trải nghiệm cuộn khung chat:** Sửa lỗi màn hình tự động giật cuộn xuống dưới cùng khi đang chat. Hệ thống chỉ tự động cuộn xuống dưới cùng một lần duy nhất khi lần đầu mở trang để giúp người dùng đọc lịch sử hội thoại ổn định hơn.
 * **Tự động phục hồi khi có lỗi máy chủ ảnh:** Xây dựng cơ chế tự phát hiện và xử lý lỗi kết nối khi lưu trữ hình ảnh. Nếu dịch vụ lưu trữ ảnh gặp sự cố, hội thoại bằng văn bản vẫn được duy trì bình thường mà không bị gián đoạn.
 * **Thuật toán toán học Poisson:** Tách biệt tỷ lệ Lambda cho Hiệp 1 (phạt góc * 0.47, thẻ * 0.35, lambda * 0.45) và Hiệp 2 (phạt góc * 0.53, thẻ * 0.65, lambda * 0.55). Đối với Hiệp 2, tự động cộng dồn tỷ số Hiệp 1 thực tế để mô phỏng chính xác kết quả cả trận.
