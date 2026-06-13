@@ -5,6 +5,7 @@ Tất cả những thay đổi nổi bật đối với dự án **FIFA World Cu
 ## [1.9.0] - 2026-06-13
 
 ### Added (Thêm mới)
+* **Dán hình ảnh từ khay nhớ tạm (Ctrl+V):** Hỗ trợ dán trực tiếp hình ảnh từ khay nhớ tạm (clipboard) vào ô nhập liệu chat để gửi phân tích nhanh.
 * **Lưu trữ hình ảnh hội thoại vĩnh viễn:** Tích hợp dịch vụ đám mây lưu trữ lâu dài hình ảnh bảng kèo hoặc ảnh bất kỳ do người dùng gửi trong khung chat, hiển thị lại đầy đủ khi xem lịch sử.
 * **Cấu hình động tính năng xử lý ảnh:** Bổ sung tùy chọn bật/tắt khả năng phân tích hình ảnh của từng mô hình trí tuệ nhân tạo (AI) trực tiếp tại trang quản trị.
 * **Tính năng dự đoán Hiệp 1 và Hiệp 2:** Cho phép người dùng chạy dự đoán kết quả thi đấu riêng cho Hiệp 1 (First Half) hoặc Hiệp 2 (Second Half), hỗ trợ lưu trữ trong database và hiển thị thống kê riêng biệt.

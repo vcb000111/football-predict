@@ -103,6 +103,7 @@ npm run dev
 ## 🛠️ Nhật Ký Thay Đổi (Changelog)
 
 ### [2026-06-13] - Dự đoán Hiệp 1 & Hiệp 2, tích hợp Cloudinary và Cấu hình động AI Model (v1.9.0)
+* **Dán hình ảnh từ khay nhớ tạm (Ctrl+V):** Hỗ trợ dán trực tiếp hình ảnh từ khay nhớ tạm (clipboard) vào ô nhập liệu chat để gửi phân tích nhanh.
 * **Lưu trữ hình ảnh hội thoại vĩnh viễn:** Tích hợp Cloudinary lưu trữ lâu dài hình ảnh bảng cược hoặc ảnh do người dùng gửi trong chat, hiển thị lại đầy đủ khi xem lịch sử.
 * **Cấu hình động tính năng xử lý ảnh:** Bổ sung switch bật/tắt khả năng phân tích ảnh của từng mô hình AI trong trang quản trị.
 * **Tự động phục hồi khi lỗi máy chủ ảnh:** Thiết lập bẫy lỗi try-catch cho luồng upload, nếu Cloudinary lỗi, hệ thống tự động fallback tiếp tục chat text bình thường.

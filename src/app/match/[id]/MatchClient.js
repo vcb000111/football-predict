@@ -194,6 +194,30 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
     }
   };
 
+  const handleInputPaste = (e) => {
+    if (!activeModelSupportsImage) return;
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (file) {
+          if (file.size > 4 * 1024 * 1024) {
+            alert('Kích thước ảnh phải dưới 4MB');
+            return;
+          }
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setImagePreview(reader.result);
+          };
+          reader.readAsDataURL(file);
+          e.preventDefault();
+          break;
+        }
+      }
+    }
+  };
+
   // States cho Form cập nhật kết quả thực tế
   const [resMessage, setResMessage] = useState(null);
   const [updatingAuto, setUpdatingAuto] = useState(false);
@@ -1201,6 +1225,7 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
                     type="text"
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
+                    onPaste={handleInputPaste}
                     disabled={sendingChat}
                     placeholder={activeModelSupportsImage ? "Hỏi AI hoặc đính kèm ảnh phân tích bảng kèo..." : "Hỏi AI về chiến thuật, kèo phạt góc, tài xỉu..."}
                     className="flex-1 bg-[#070b14] border border-card-border rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-primary/80 transition-colors placeholder:text-gray-655"
