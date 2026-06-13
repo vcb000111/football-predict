@@ -6,6 +6,7 @@ import { searchInternet } from '@/lib/search';
 import { calculateMatchPoisson, runMonteCarloSimulation, calculateCornersAndCards } from '@/lib/poisson';
 import { callGroqModel } from '@/lib/groq';
 import { calculateMLBaseline } from '@/lib/ml-baseline';
+import { getVNTime } from '@/lib/timezone';
 import fs from 'fs';
 import path from 'path';
 
@@ -905,6 +906,12 @@ Lưu ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
     }
 
     const systemTimeStr = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+    const kickoffTimeStr = fixture 
+      ? `${fixture.time} ${fixture.date} (Giờ địa phương) / ${getVNTime(fixture.date, fixture.time, fixture.venue)?.formatted || ''} (Giờ VN)` 
+      : 'Chưa có lịch thi đấu cụ thể';
+    const timeContextStr = `Thời điểm hiện tại của hệ thống: ${systemTimeStr} (Giờ Việt Nam).
+Thời gian bắt đầu trận đấu (Kickoff): ${kickoffTimeStr}.
+LƯU Ý QUAN TRỌNG VỀ THỜI GIAN: Đối chiếu kỹ thời điểm hiện tại của hệ thống với thời gian bắt đầu trận đấu. Nếu thời điểm hiện tại đã SAU thời gian bắt đầu trận đấu, nghĩa là trận đấu đang diễn ra hoặc đã kết thúc. Nếu thời điểm hiện tại TRƯỚC thời gian bắt đầu trận đấu, nghĩa là trận đấu CHƯA diễn ra. Bạn tuyệt đối không được đưa ra tỷ số thực tế khi trận đấu chưa diễn ra.\n\n`;
 
     // Lắp ráp final system prompt
     let finalSystemPrompt = systemPromptTemplate
@@ -917,7 +924,7 @@ Lưu ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
 
     // Tiêm mốc thời gian hệ thống nếu không có sẵn trong template
     if (!finalSystemPrompt.includes('Thời điểm hiện tại của hệ thống')) {
-      finalSystemPrompt = `Thời điểm hiện tại của hệ thống: ${systemTimeStr} (Sử dụng mốc thời gian này để đối chiếu với thời gian diễn ra trận đấu thực tế).\n\n` + finalSystemPrompt;
+      finalSystemPrompt = timeContextStr + finalSystemPrompt;
     }
 
     if (lessonsString) {
@@ -1131,7 +1138,7 @@ Hãy tự lập luận logic dựa trên các chỉ số định lượng ELO, P
           .replace(/{{searchContext}}/g, searchContext);
 
         if (!criticPrompt.includes('Thời điểm hiện tại của hệ thống')) {
-          criticPrompt = `Thời điểm hiện tại của hệ thống: ${systemTimeStr} (Sử dụng mốc thời gian này để đối chiếu với thời gian diễn ra trận đấu thực tế).\n\n` + criticPrompt;
+          criticPrompt = timeContextStr + criticPrompt;
         }
 
         if (hasActualResult) {

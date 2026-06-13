@@ -508,7 +508,7 @@ Tỷ lệ dự đoán đúng kết quả chung cuộc (1X2) gần đây của b�
   for (const promptItem of defaultPrompts) {
     try {
       await db.run(
-        `INSERT OR IGNORE INTO system_prompts (prompt_key, prompt_content, description) VALUES (?, ?, ?)`,
+        `INSERT OR REPLACE INTO system_prompts (prompt_key, prompt_content, description) VALUES (?, ?, ?)`,
         [promptItem.key, promptItem.content, promptItem.description]
       );
     } catch (e) {}
