@@ -15,7 +15,7 @@ export function getLastUsedModel() {
 
 export function formatModelName(modelId) {
   if (!modelId) return 'Google Gemini';
-  
+
   const trimmedModel = modelId.trim();
   const lowerModel = trimmedModel.toLowerCase();
 
@@ -28,14 +28,14 @@ export function formatModelName(modelId) {
   // Hoặc "gemini-3.1-flash-lite (Critic Phản Biện) + [Gemini: gemini-3.1-flash-lite]"
   if (trimmedModel.includes('Critic Phản Biện') || trimmedModel.includes('Consensus')) {
     const isMultiAgent = trimmedModel.includes('OpenRouter:');
-    
+
     // Trích xuất tên model Gemini Critic chính
     let criticName = 'Gemini';
     const criticMatch = trimmedModel.match(/^(gemini-[a-zA-Z0-9\.\-]+)/);
     if (criticMatch && criticMatch[1]) {
       criticName = formatSimpleModelName(criticMatch[1]);
     }
-    
+
     if (isMultiAgent) {
       // Trích xuất tên model OpenRouter
       let openRouterName = 'OpenRouter';
@@ -63,14 +63,14 @@ export function formatModelName(modelId) {
 function formatSimpleModelName(modelId) {
   const id = modelId.replace(/^models\//, '').trim();
   const mappings = {
-    'gemini-3.5-flash': 'Gemini 3.5 Flash',
-    'gemini-3-flash-preview': 'Gemini 3 Flash Preview',
-    'gemini-3.1-flash-lite': 'Gemini 3.1 Flash Lite',
-    'gemini-2.5-flash': 'Gemini 2.5 Flash',
-    'gemini-2.5-flash-lite': 'Gemini 2.5 Flash Lite',
-    'meta-llama/llama-3.3-70b-instruct:free': 'OpenRouter Llama 3.3 70B (Free)',
-    'meta-llama/llama-3.1-8b-instruct:free': 'OpenRouter Llama 3.1 8B (Free)',
-    'deepseek/deepseek-chat': 'OpenRouter DeepSeek Chat'
+    // 'gemini-3.5-flash': 'Gemini 3.5 Flash',
+    // 'gemini-3-flash-preview': 'Gemini 3 Flash Preview',
+    // 'gemini-3.1-flash-lite': 'Gemini 3.1 Flash Lite',
+    // 'gemini-2.5-flash': 'Gemini 2.5 Flash',
+    // 'gemini-2.5-flash-lite': 'Gemini 2.5 Flash Lite',
+    // 'meta-llama/llama-3.3-70b-instruct:free': 'OpenRouter Llama 3.3 70B (Free)',
+    // 'meta-llama/llama-3.1-8b-instruct:free': 'OpenRouter Llama 3.1 8B (Free)',
+    // 'deepseek/deepseek-chat': 'OpenRouter DeepSeek Chat'
   };
   return mappings[id] || id;
 }
