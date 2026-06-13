@@ -120,20 +120,31 @@ export async function POST(request) {
     // Đảo ngược mảng để đúng thứ tự thời gian
     const historyList = [...historyRows].reverse();
 
-    // 4. Xây dựng prompt gửi cho AI
-    const systemPrompt = `Bạn là một trợ lý AI phân tích kèo bóng đá chuyên sâu. Hãy hỗ trợ tư vấn nhận định kèo cược cho người chơi dựa trên các thông số dữ liệu ELO, Poisson, Monte Carlo và tình huống thực tế của trận đấu sau.
+    // 4. Xây dựng prompt gửi cho AI (Lấy từ Admin Prompt DB với Fallback an toàn)
+    const dbPrompt = await db.get("SELECT prompt_content FROM system_prompts WHERE prompt_key = 'match_chat_system'");
+    const template = dbPrompt ? dbPrompt.prompt_content : `Bạn là một trợ lý AI phân tích kèo bóng đá chuyên sâu. Hãy hỗ trợ tư vấn nhận định kèo cược cho người chơi dựa trên các thông số dữ liệu ELO, Poisson, Monte Carlo và tình huống thực tế của trận đấu sau.
 
 --- THÔNG TIN TRẬN ĐẤU ---
-- Trận đấu: ${match.homeTeam} vs ${match.awayTeam}
-- Giải đấu: ${match.tournament || 'Giải đấu khác'} | Mùa giải: ${match.season || 'Hiện tại'}
-- Thời gian: ${match.date} lúc ${match.time}
-- Địa điểm: ${match.venue || 'Chưa rõ'}
-${predictionContext}
+- Trận đấu: {{homeTeam}} vs {{awayTeam}}
+- Giải đấu: {{tournament}} | Mùa giải: {{season}}
+- Thời gian: {{date}} lúc {{time}}
+- Địa điểm: {{venue}}
+{{predictionContext}}
 
 --- HƯỚNG DẪN TƯ VẤN ---
 1. Chỉ trả lời các câu hỏi liên quan đến trận đấu này, phong độ, chiến thuật, tình hình chấn thương, phân tích kèo cược thể thao.
 2. Từ chối lịch sự nếu người dùng hỏi các chủ đề ngoài bóng đá hoặc các trận đấu không liên quan.
 3. Câu trả lời cần ngắn gọn, rõ ràng, tập trung phân tích logic kèo và thực tế trận đấu để gợi ý lựa chọn tối ưu cho người chơi.`;
+
+    const systemPrompt = template
+      .replace(/{{homeTeam}}/g, match.homeTeam || '')
+      .replace(/{{awayTeam}}/g, match.awayTeam || '')
+      .replace(/{{tournament}}/g, match.tournament || 'Giải đấu khác')
+      .replace(/{{season}}/g, match.season || 'Hiện tại')
+      .replace(/{{date}}/g, match.date || '')
+      .replace(/{{time}}/g, match.time || '')
+      .replace(/{{venue}}/g, match.venue || 'Chưa rõ')
+      .replace(/{{predictionContext}}/g, predictionContext || '');
 
     let conversationContext = '';
     if (historyList && historyList.length > 0) {

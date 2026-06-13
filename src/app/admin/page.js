@@ -747,6 +747,20 @@ Nhiệm vụ của bạn:
 
 Chú ý: Chỉ trả về chuỗi JSON thô, không chứa markdown, không có chữ thừa. Hãy giữ nguyên các tên quốc gia/đội bóng chuẩn tiếng Anh.`;
 
+  const DEFAULT_MATCH_CHAT_PROMPT = `Bạn là một trợ lý AI phân tích kèo bóng đá chuyên sâu. Hãy hỗ trợ tư vấn nhận định kèo cược cho người chơi dựa trên các thông số dữ liệu ELO, Poisson, Monte Carlo và tình huống thực tế của trận đấu sau.
+
+--- THÔNG TIN TRẬN ĐẤU ---
+- Trận đấu: {{homeTeam}} vs {{awayTeam}}
+- Giải đấu: {{tournament}} | Mùa giải: {{season}}
+- Thời gian: {{date}} lúc {{time}}
+- Địa điểm: {{venue}}
+{{predictionContext}}
+
+--- HƯỚNG DẪN TƯ VẤN ---
+1. Chỉ trả lời các câu hỏi liên quan đến trận đấu này, phong độ, chiến thuật, tình hình chấn thương, phân tích kèo cược thể thao.
+2. Từ chối lịch sự nếu người dùng hỏi các chủ đề ngoài bóng đá hoặc các trận đấu không liên quan.
+3. Câu trả lời cần ngắn gọn, rõ ràng, tập trung phân tích logic kèo và thực tế trận đấu để gợi ý lựa chọn tối ưu cho người chơi.`;
+
   const handleResetPrompt = () => {
     let defaultContent = '';
     if (selectedPromptKey === 'predict_system') defaultContent = DEFAULT_SYSTEM_PROMPT;
@@ -754,6 +768,7 @@ Chú ý: Chỉ trả về chuỗi JSON thô, không chứa markdown, không có 
     else if (selectedPromptKey === 'predict_feedback_template') defaultContent = DEFAULT_FEEDBACK_PROMPT;
     else if (selectedPromptKey === 'predict_critic_template') defaultContent = DEFAULT_CRITIC_PROMPT;
     else if (selectedPromptKey === 'sync_fixtures_template') defaultContent = DEFAULT_SYNC_PROMPT;
+    else if (selectedPromptKey === 'match_chat_system') defaultContent = DEFAULT_MATCH_CHAT_PROMPT;
 
     setEditPromptContent(defaultContent);
     showStatusMessage(`🔄 Đã tải prompt mặc định cho ${selectedPromptKey}. Nhớ bấm "Lưu thay đổi" để cập nhật chính thức.`);

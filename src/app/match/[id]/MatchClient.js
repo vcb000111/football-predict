@@ -167,6 +167,7 @@ export default function MatchClient({ match }) {
   const [loadingChat, setLoadingChat] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const messagesEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
 
   // States cho Form cập nhật kết quả thực tế
   const [resMessage, setResMessage] = useState(null);
@@ -216,10 +217,14 @@ export default function MatchClient({ match }) {
   };
 
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (chatContainerRef.current) {
+      const container = chatContainerRef.current;
+      const timer = setTimeout(() => {
+        container.scrollTop = container.scrollHeight;
+      }, 150);
+      return () => clearTimeout(timer);
     }
-  }, [chatMessages]);
+  }, [chatMessages, loadingChat, sendingChat, prediction]);
 
   // Load history when match changes or on mount
   useEffect(() => {
@@ -1027,7 +1032,7 @@ export default function MatchClient({ match }) {
                 </h3>
 
                 {/* Message List */}
-                <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1.5 custom-scrollbar flex flex-col">
+                <div ref={chatContainerRef} className="space-y-3 max-h-[500px] overflow-y-auto pr-1.5 custom-scrollbar flex flex-col">
                   {chatMessages.length === 0 ? (
                     <div className="text-center py-8 text-gray-500 text-xs">
                       Chưa có hội thoại nào. Hãy đặt câu hỏi cho AI về trận đấu này!

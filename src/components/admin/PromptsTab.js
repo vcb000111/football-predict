@@ -16,7 +16,8 @@ export default function PromptsTab({
     { key: 'predict_rag_template', name: '🔍 Template tin tức RAG', desc: 'Đưa dữ liệu tìm kiếm Internet vào context' },
     { key: 'predict_feedback_template', name: '📊 Template lịch sử đối đầu', desc: 'Học máy ngữ cảnh qua các sai số cũ' },
     { key: 'predict_critic_template', name: '⚖️ Template phản biện (Critic)', desc: 'Chạy tác tử phản biện rà soát logic cược' },
-    { key: 'sync_fixtures_template', name: '🔄 Prompt Đồng bộ lịch (AI)', desc: 'Tìm kiếm RAG và trích xuất lịch thi đấu' }
+    { key: 'sync_fixtures_template', name: '🔄 Prompt Đồng bộ lịch (AI)', desc: 'Tìm kiếm RAG và trích xuất lịch thi đấu' },
+    { key: 'match_chat_system', name: '💬 Prompt Trợ lý Chat AI', desc: 'Hướng dẫn AI chat tư vấn kèo cược chi tiết' }
   ];
 
   const currentPrompt = prompts.find(p => p.prompt_key === selectedPromptKey);
@@ -118,6 +119,18 @@ export default function PromptsTab({
                 <>
                   <div><code className="bg-[#0f172a] text-indigo-300 px-1 py-0.5 rounded font-mono border border-white/5">{"{{tournament}}"}</code>: Tên giải đấu cần quét</div>
                   <div><code className="bg-[#0f172a] text-indigo-300 px-1 py-0.5 rounded font-mono border border-white/5">{"{{season}}"}</code>: Tên mùa giải cần quét</div>
+                </>
+              )}
+              {selectedPromptKey === 'match_chat_system' && (
+                <>
+                  <div><code className="bg-[#0f172a] text-indigo-300 px-1 py-0.5 rounded font-mono border border-white/5">{"{{homeTeam}}"}</code>: Tên đội nhà</div>
+                  <div><code className="bg-[#0f172a] text-indigo-300 px-1 py-0.5 rounded font-mono border border-white/5">{"{{awayTeam}}"}</code>: Tên đội khách</div>
+                  <div><code className="bg-[#0f172a] text-indigo-300 px-1 py-0.5 rounded font-mono border border-white/5">{"{{tournament}}"}</code>: Giải đấu</div>
+                  <div><code className="bg-[#0f172a] text-indigo-300 px-1 py-0.5 rounded font-mono border border-white/5">{"{{season}}"}</code>: Mùa giải</div>
+                  <div><code className="bg-[#0f172a] text-indigo-300 px-1 py-0.5 rounded font-mono border border-white/5">{"{{date}}"}</code>: Ngày thi đấu</div>
+                  <div><code className="bg-[#0f172a] text-indigo-300 px-1 py-0.5 rounded font-mono border border-white/5">{"{{time}}"}</code>: Giờ thi đấu</div>
+                  <div><code className="bg-[#0f172a] text-indigo-300 px-1 py-0.5 rounded font-mono border border-white/5">{"{{venue}}"}</code>: Địa điểm đấu</div>
+                  <div><code className="bg-[#0f172a] text-indigo-300 px-1 py-0.5 rounded font-mono border border-white/5">{"{{predictionContext}}"}</code>: Thông tin kèo dự kiến</div>
                 </>
               )}
             </div>
