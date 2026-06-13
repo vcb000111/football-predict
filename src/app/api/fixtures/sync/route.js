@@ -7,6 +7,20 @@ import { searchInternet } from '@/lib/search';
 import { getDB } from '@/lib/db';
 import { callOpenRouterModel } from '@/lib/openrouter';
 
+function normalizeTeamName(name) {
+  if (!name) return '';
+  const lower = name.trim().toLowerCase();
+  const aliases = {
+    'usa': 'united states',
+    'türkiye': 'turkey',
+    'côte d\'ivoire': 'ivory coast',
+    'cote d\'ivoire': 'ivory coast',
+    'korea republic': 'south korea',
+    'republic of korea': 'south korea'
+  };
+  return aliases[lower] || lower;
+}
+
 const FIXTURES_FILE_PATH = path.join(process.cwd(), 'src', 'data', 'fixtures.json');
 
 // Hàm helper gọi đơn lẻ một model Gemini
@@ -247,7 +261,10 @@ export async function POST(request) {
       // Lọc các trận chưa tồn tại trong fixtures.json
       const newFixtures = processedMock.filter((newF) => {
         return !currentData.fixtures.some(
-          (f) => f.id === newF.id || (f.homeTeam === newF.homeTeam && f.awayTeam === newF.awayTeam && f.date === newF.date)
+          (f) =>
+            normalizeTeamName(f.homeTeam) === normalizeTeamName(newF.homeTeam) &&
+            normalizeTeamName(f.awayTeam) === normalizeTeamName(newF.awayTeam) &&
+            f.date === newF.date
         );
       });
 
@@ -264,18 +281,18 @@ export async function POST(request) {
     let aiPrompt = '';
     const fallbackPrompt = `Hãy tìm kiếm lịch thi đấu chính thức đầy đủ và kết quả các trận đấu bóng đá của giải đấu ${tournament} mùa giải ${season}.
 Nhiệm vụ của bạn:
-1. Sử dụng thông tin tra cứu bên dưới để lấy thông tin lịch thi đấu chính thức.
-2. Trả về danh sách các trận đấu (gồm vòng bảng và các trận đấu tiếp theo hoặc kết quả nếu có).
-   Chúng tôi cần danh sách trận đấu chuẩn xác để lưu vào cơ sở dữ liệu.
-3. Xuất kết quả dưới định dạng JSON thô duy nhất theo cấu trúc sau (trả về khoảng 20-30 trận tiêu biểu của giải đấu để tránh quá giới hạn Token phản hồi):
+1. Sử dụng thông tin tra cứu thực tế từ Internet bên dưới để lấy thông tin lịch thi đấu chính thức.
+2. Đối chiếu chéo các nguồn tin để loại bỏ hoàn toàn lịch thi đấu giả định (simulated), dự báo (predicted) hoặc lịch cũ chưa chính thức.
+3. Trích xuất Ngày (date) và Giờ (time) BẮT BUỘC phải là GIỜ ĐỊA PHƯƠNG (Local Time) tại sân vận động diễn ra trận đấu. TUYỆT ĐỐI không tự ý quy đổi sang giờ Việt Nam hay giờ quốc tế UTC.
+4. Trả về danh sách các trận đấu mới dưới định dạng JSON thô duy nhất theo cấu trúc sau (giới hạn tối đa 20-30 trận tiêu biểu của giải đấu để tránh quá giới hạn Token phản hồi):
 {
   "fixtures": [
     {
       "id": "m_cụ_thể", // ví dụ: m1, m2... hoặc chuỗi id tự sinh không trùng
       "homeTeam": "<Tên tiếng Anh chuẩn của đội nhà, ví dụ: Arsenal, Chelsea, Real Madrid, Mexico, USA, Brazil...>",
       "awayTeam": "<Tên tiếng Anh chuẩn của đội khách, ví dụ: South Africa, Spain, England...>",
-      "date": "<Ngày diễn ra định dạng YYYY-MM-DD>",
-      "time": "<Giờ thi đấu định dạng HH:MM>",
+      "date": "<Ngày diễn ra theo GIỜ ĐỊA PHƯƠNG định dạng YYYY-MM-DD, ví dụ: 2026-06-11>",
+      "time": "<Giờ thi đấu theo GIỜ ĐỊA PHƯƠNG định dạng HH:MM, ví dụ: 15:00>",
       "group": "<Tên bảng hoặc vòng đấu, ví dụ: 'Group A', 'Group B', hoặc 'Round of 32', 'Matchweek 1', 'Round of 16'>",
       "venue": "<Tên sân vận động và thành phố>"
     }
@@ -289,23 +306,51 @@ Chú ý: Chỉ trả về chuỗi JSON thô, không chứa markdown, không có 
         db = await getDB();
       }
       const dbPrompt = await db.get("SELECT prompt_content FROM system_prompts WHERE prompt_key = 'sync_fixtures_template'");
-      if (dbPrompt && dbPrompt.prompt_content) {
+      
+      if (!dbPrompt || !dbPrompt.prompt_content || !dbPrompt.prompt_content.includes('GIỜ ĐỊA PHƯƠNG')) {
+        console.log('🔄 [Database Autoupdate] Phát hiện prompt sync_fixtures_template phiên bản cũ hoặc rỗng. Đang tự động cập nhật bản mới...');
+        
+        const dbSavePrompt = fallbackPrompt
+          .replace(new RegExp(tournament, 'g'), '{{tournament}}')
+          .replace(new RegExp(season, 'g'), '{{season}}');
+          
+        await db.run(
+          `INSERT OR REPLACE INTO system_prompts (prompt_key, prompt_content, description) 
+           VALUES ('sync_fixtures_template', ?, 'Khung prompt hướng dẫn AI tìm kiếm (RAG Search) và trích xuất lịch thi đấu / kết quả bóng đá.')`,
+          [dbSavePrompt]
+        );
+        aiPrompt = fallbackPrompt;
+      } else {
         aiPrompt = dbPrompt.prompt_content
           .replace(/\{\{tournament\}\}/g, tournament)
           .replace(/\{\{season\}\}/g, season);
-      } else {
-        aiPrompt = fallbackPrompt;
       }
     } catch (dbPromptError) {
-      console.warn('⚠️ Lỗi khi đọc prompt sync_fixtures_template từ DB, sử dụng fallback:', dbPromptError.message);
+      console.warn('⚠️ Lỗi khi đọc/cập nhật prompt sync_fixtures_template từ DB, sử dụng fallback:', dbPromptError.message);
       aiPrompt = fallbackPrompt;
     }
 
     let searchContext = '';
-    const searchQuery = `${tournament} ${season} official match schedule dates venues matches`;
+    let searchQuery = `${tournament} ${season} official match schedule dates venues matches`;
+    const lowerTournament = tournament.toLowerCase();
+    if (lowerTournament.includes('world cup')) {
+      searchQuery += ' site:wikipedia.org OR site:fifa.com';
+    } else if (lowerTournament.includes('premier league') || lowerTournament.includes('ngoại hạng anh')) {
+      searchQuery += ' site:wikipedia.org OR site:premierleague.com';
+    } else if (lowerTournament.includes('la liga')) {
+      searchQuery += ' site:wikipedia.org OR site:laliga.com';
+    } else {
+      searchQuery += ' site:wikipedia.org';
+    }
+
     try {
-      const searchResults = await searchInternet(searchQuery);
-      console.log(`   - 🔍 [RAG SEARCH RESULTS] Đã tìm thấy ${searchResults?.length || 0} kết quả lịch thi đấu cho "${searchQuery}":`);
+      let searchResults = await searchInternet(searchQuery);
+      if ((!searchResults || searchResults.length === 0) && searchQuery.includes(' site:')) {
+        const fallbackQuery = `${tournament} ${season} official match schedule dates venues matches`;
+        console.log(`⚠️ Không tìm thấy kết quả với bộ lọc site, chạy fallback query: "${fallbackQuery}"`);
+        searchResults = await searchInternet(fallbackQuery);
+      }
+      console.log(`   - 🔍 [RAG SEARCH RESULTS] Đã tìm thấy ${searchResults?.length || 0} kết quả lịch thi đấu:`);
       if (searchResults && searchResults.length > 0) {
         searchContext = `
 --- THÔNG TIN LỊCH THI ĐẤU TRA CỨU TỪ INTERNET (THỰC TẾ) ---
@@ -392,8 +437,9 @@ ${searchResults.slice(0, 6).map((s, idx) => `[${idx + 1}] ${s}`).join('\n')}
     const newFixtures = processedFixtures.filter((newF) => {
       return !currentData.fixtures.some(
         (f) =>
-          f.id === newF.id ||
-          (f.homeTeam === newF.homeTeam && f.awayTeam === newF.awayTeam && f.date === newF.date)
+          normalizeTeamName(f.homeTeam) === normalizeTeamName(newF.homeTeam) &&
+          normalizeTeamName(f.awayTeam) === normalizeTeamName(newF.awayTeam) &&
+          f.date === newF.date
       );
     });
 

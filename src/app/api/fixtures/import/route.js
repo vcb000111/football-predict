@@ -3,6 +3,20 @@ import fs from 'fs';
 import path from 'path';
 import currentData from '@/data/fixtures.json';
 
+function normalizeTeamName(name) {
+  if (!name) return '';
+  const lower = name.trim().toLowerCase();
+  const aliases = {
+    'usa': 'united states',
+    'türkiye': 'turkey',
+    'côte d\'ivoire': 'ivory coast',
+    'cote d\'ivoire': 'ivory coast',
+    'korea republic': 'south korea',
+    'republic of korea': 'south korea'
+  };
+  return aliases[lower] || lower;
+}
+
 const FIXTURES_FILE_PATH = path.join(process.cwd(), 'src', 'data', 'fixtures.json');
 
 export async function POST(request) {
@@ -32,17 +46,37 @@ export async function POST(request) {
       // Kiểm tra trùng lặp
       const exists = mergedFixtures.some(
         (f) =>
-          f.id === newF.id ||
-          (f.homeTeam === newF.homeTeam && f.awayTeam === newF.awayTeam && f.date === newF.date)
+          normalizeTeamName(f.homeTeam) === normalizeTeamName(newF.homeTeam) &&
+          normalizeTeamName(f.awayTeam) === normalizeTeamName(newF.awayTeam) &&
+          f.date === newF.date
       );
 
       if (!exists) {
-        // Tự động sinh ID nếu chưa có
-        if (!newF.id || newF.id.startsWith('m_c') || newF.id.includes('temp')) {
-          newF.id = `m${mergedFixtures.length + 1}`;
-        }
+        // Tìm ID số lớn nhất hiện tại của giải đấu chính thức (m) và thử nghiệm (t)
+        let maxMatchNum = 0;
+        let maxTestNum = 0;
+        mergedFixtures.forEach((fixtureItem) => {
+          if (fixtureItem.id && typeof fixtureItem.id === 'string') {
+            if (fixtureItem.id.startsWith('m')) {
+              const num = parseInt(fixtureItem.id.substring(1), 10);
+              if (!isNaN(num) && num > maxMatchNum) maxMatchNum = num;
+            } else if (fixtureItem.id.startsWith('t')) {
+              const num = parseInt(fixtureItem.id.substring(1), 10);
+              if (!isNaN(num) && num > maxTestNum) maxTestNum = num;
+            }
+          }
+        });
+
+        const isFriendly = newF.tournament && newF.tournament.toLowerCase().includes('friendly');
+        const isTest = !!(newF.isTest || isFriendly);
         
-        mergedFixtures.push({
+        if (isTest) {
+          newF.id = `t${maxTestNum + 1}`;
+        } else {
+          newF.id = `m${maxMatchNum + 1}`;
+        }
+
+        const fixtureRecord = {
           id: newF.id,
           homeTeam: newF.homeTeam,
           awayTeam: newF.awayTeam,
@@ -52,8 +86,13 @@ export async function POST(request) {
           venue: newF.venue || 'TBA',
           tournament: newF.tournament || 'World Cup 2026',
           season: newF.season || '2026'
-        });
-        
+        };
+
+        if (isTest) {
+          fixtureRecord.isTest = true;
+        }
+
+        mergedFixtures.push(fixtureRecord);
         addedCount++;
       }
     });

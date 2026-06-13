@@ -509,18 +509,18 @@ Lưu ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
 
   const syncFixturesContent = `Hãy tìm kiếm lịch thi đấu chính thức đầy đủ và kết quả các trận đấu bóng đá của giải đấu {{tournament}} mùa giải {{season}}.
 Nhiệm vụ của bạn:
-1. Sử dụng thông tin tra cứu bên dưới để lấy thông tin lịch thi đấu chính thức.
-2. Trả về danh sách các trận đấu (gồm vòng bảng và các trận đấu tiếp theo hoặc kết quả nếu có).
-   Chúng tôi cần danh sách trận đấu chuẩn xác để lưu vào cơ sở dữ liệu.
-3. Xuất kết quả dưới định dạng JSON thô duy nhất theo cấu trúc sau (trả về khoảng 20-30 trận tiêu biểu của giải đấu để tránh quá giới hạn Token phản hồi):
+1. Sử dụng thông tin tra cứu thực tế từ Internet bên dưới để lấy thông tin lịch thi đấu chính thức.
+2. Đối chiếu chéo các nguồn tin để loại bỏ hoàn toàn lịch thi đấu giả định (simulated), dự báo (predicted) hoặc lịch cũ chưa chính thức.
+3. Trích xuất Ngày (date) và Giờ (time) BẮT BUỘC phải là GIỜ ĐỊA PHƯƠNG (Local Time) tại sân vận động diễn ra trận đấu. TUYỆT ĐỐI không tự ý quy đổi sang giờ Việt Nam hay giờ quốc tế UTC.
+4. Trả về danh sách các trận đấu mới dưới định dạng JSON thô duy nhất theo cấu trúc sau (giới hạn tối đa 20-30 trận tiêu biểu của giải đấu để tránh quá giới hạn Token phản hồi):
 {
   "fixtures": [
     {
       "id": "m_cụ_thể", // ví dụ: m1, m2... hoặc chuỗi id tự sinh không trùng
       "homeTeam": "<Tên tiếng Anh chuẩn của đội nhà, ví dụ: Arsenal, Chelsea, Real Madrid, Mexico, USA, Brazil...>",
       "awayTeam": "<Tên tiếng Anh chuẩn của đội khách, ví dụ: South Africa, Spain, England...>",
-      "date": "<Ngày diễn ra định dạng YYYY-MM-DD>",
-      "time": "<Giờ thi đấu định dạng HH:MM>",
+      "date": "<Ngày diễn ra theo GIỜ ĐỊA PHƯƠNG định dạng YYYY-MM-DD, ví dụ: 2026-06-11>",
+      "time": "<Giờ thi đấu theo GIỜ ĐỊA PHƯƠNG định dạng HH:MM, ví dụ: 15:00>",
       "group": "<Tên bảng hoặc vòng đấu, ví dụ: 'Group A', 'Group B', hoặc 'Round of 32', 'Matchweek 1', 'Round of 16'>",
       "venue": "<Tên sân vận động và thành phố>"
     }
