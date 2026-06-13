@@ -44,6 +44,16 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
   const [layout, setLayout] = useState('grid'); // 'grid' or 'list'
   const [sortBy, setSortBy] = useState('date'); // 'date' | 'group' | 'history'
   const [showPastMatches, setShowPastMatches] = useState(false);
+  
+  // States cho cơ chế đồng bộ đa giải đấu & xem trước (Preview Modal)
+  const [showSyncConfigModal, setShowSyncConfigModal] = useState(false);
+  const [syncTournament, setSyncTournament] = useState('World Cup 2026');
+  const [syncSeason, setSyncSeason] = useState('2026');
+  const [customTournament, setCustomTournament] = useState('');
+  const [customSeason, setCustomSeason] = useState('');
+  const [syncPreviewMatches, setSyncPreviewMatches] = useState(null);
+  const [isImporting, setIsImporting] = useState(false);
+
   const [quickPredicting, setQuickPredicting] = useState({});
   const [activePredictMenu, setActivePredictMenu] = useState(null);
   const [activeActionMenu, setActiveActionMenu] = useState(null);
@@ -100,6 +110,12 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
       
       const persistedShowPastMatches = localStorage.getItem('homepage_show_past_matches');
       if (persistedShowPastMatches) setShowPastMatches(persistedShowPastMatches === 'true');
+
+      const persistedSyncTournament = localStorage.getItem('homepage_sync_tournament');
+      if (persistedSyncTournament) setSyncTournament(persistedSyncTournament);
+
+      const persistedSyncSeason = localStorage.getItem('homepage_sync_season');
+      if (persistedSyncSeason) setSyncSeason(persistedSyncSeason);
       
       setIsRestored(true);
     }
@@ -153,6 +169,18 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
       localStorage.setItem('homepage_show_past_matches', showPastMatches.toString());
     }
   }, [showPastMatches, isRestored]);
+
+  useEffect(() => {
+    if (isRestored && typeof window !== 'undefined') {
+      localStorage.setItem('homepage_sync_tournament', syncTournament);
+    }
+  }, [syncTournament, isRestored]);
+
+  useEffect(() => {
+    if (isRestored && typeof window !== 'undefined') {
+      localStorage.setItem('homepage_sync_season', syncSeason);
+    }
+  }, [syncSeason, isRestored]);
 
   useEffect(() => {
     if (selectedSeasonFilter !== 'All') {
@@ -339,29 +367,57 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
     }
   };
 
-  const handleSyncFixtures = async () => {
+  const handleSyncFixtures = async (tournamentVal, seasonVal) => {
     setSyncing(true);
     setSyncMessage(null);
     try {
       const res = await fetch('/api/fixtures/sync', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tournament: tournamentVal,
+          season: seasonVal
+        })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Lỗi đồng bộ lịch thi đấu');
-      if (data.modelUsed) {
-        saveLastUsedModel(data.modelUsed);
+      
+      if (data.newFixtures && data.newFixtures.length > 0) {
+        setSyncPreviewMatches(data.newFixtures);
+        setShowSyncConfigModal(false);
+        showToast(`Quét thành công! Tìm thấy ${data.newFixtures.length} trận đấu mới.`, true);
+      } else {
+        showToast('Không có trận đấu mới nào được tìm thấy.', true);
       }
+    } catch (err) {
+      showToast(`Đồng bộ thất bại: ${err.message}`, false);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleImportMatches = async (fixturesToImport) => {
+    if (isImporting) return;
+    setIsImporting(true);
+    try {
+      const res = await fetch('/api/fixtures/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fixturesToImport })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Lỗi khi import lịch thi đấu');
       
+      showToast(data.message || 'Đã thêm trận đấu thành công!', true);
+      setSyncPreviewMatches(null);
       
-      setSyncMessage({ success: true, text: data.message });
+      // Reload trang để đồng bộ hoàn toàn dữ liệu
       setTimeout(() => {
         window.location.reload();
       }, 1500);
     } catch (err) {
-      setSyncMessage({ success: false, text: err.message });
-    } finally {
-      setSyncing(false);
+      showToast(`Lỗi import: ${err.message}`, false);
+      setIsImporting(false);
     }
   };
 
@@ -704,7 +760,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                 {/* Sync Button */}
                 <div className="flex items-center">
                   <button
-                    onClick={handleSyncFixtures}
+                    onClick={() => setShowSyncConfigModal(true)}
                     disabled={syncing}
                     className={`px-3 py-1.5 rounded-lg border font-bold text-[10px] tracking-wider transition-all duration-150 flex items-center space-x-1.5 active:scale-[0.98] cursor-pointer ${
                       syncing 
@@ -713,7 +769,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                     }`}
                     title="Đồng bộ lịch thi đấu & Vòng đấu từ Internet (AI)"
                   >
-                    <span>{syncing ? '🔄 Đang đồng bộ...' : '🔄 Đồng bộ lịch (AI)'}</span>
+                    <span>{syncing ? '🔄 Đang quét...' : '🔄 Đồng bộ lịch (AI)'}</span>
                   </button>
                 </div>
               </div>
@@ -1685,6 +1741,194 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
               >
                 Đóng
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SYNC CONFIG MODAL */}
+      {showSyncConfigModal && isRestored && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="absolute inset-0" onClick={() => !syncing && setShowSyncConfigModal(false)}></div>
+          <div className="glass-panel border border-card-border/80 rounded-2xl w-full max-w-md p-5 relative z-10 shadow-2xl animate-scale-in text-left">
+            <div className="flex justify-between items-start border-b border-card-border pb-3 mb-4">
+              <h2 className="text-sm font-extrabold text-white">🔄 Cấu hình Đồng bộ lịch (AI)</h2>
+              <button 
+                onClick={() => !syncing && setShowSyncConfigModal(false)}
+                disabled={syncing}
+                className="text-gray-400 hover:text-white font-bold text-base p-1 transition-colors leading-none cursor-pointer disabled:opacity-50"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="space-y-4 mb-5 text-xs">
+              <div>
+                <label className="block text-gray-400 font-bold mb-1.5 uppercase tracking-wider text-[10px]">Giải đấu</label>
+                <select
+                  value={syncTournament}
+                  onChange={(e) => setSyncTournament(e.target.value)}
+                  disabled={syncing}
+                  className="w-full bg-[#0E131F]/80 border border-card-border/80 rounded-lg py-2 px-3 text-xs text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {uniqueTournaments.map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                  <option value="NEW">[Giải đấu mới...]</option>
+                </select>
+                
+                {syncTournament === 'NEW' && (
+                  <input
+                    type="text"
+                    placeholder="Nhập tên giải đấu mới (ví dụ: Premier League)..."
+                    value={customTournament}
+                    onChange={(e) => setCustomTournament(e.target.value)}
+                    disabled={syncing}
+                    className="w-full bg-[#0E131F]/80 border border-card-border/80 rounded-lg py-2 px-3 text-xs text-white mt-2 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all disabled:opacity-50"
+                  />
+                )}
+              </div>
+
+              <div>
+                <label className="block text-gray-400 font-bold mb-1.5 uppercase tracking-wider text-[10px]">Mùa giải</label>
+                <select
+                  value={syncSeason}
+                  onChange={(e) => setSyncSeason(e.target.value)}
+                  disabled={syncing}
+                  className="w-full bg-[#0E131F]/80 border border-card-border/80 rounded-lg py-2 px-3 text-xs text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {uniqueSeasons.map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                  <option value="NEW">[Mùa giải mới...]</option>
+                </select>
+                
+                {syncSeason === 'NEW' && (
+                  <input
+                    type="text"
+                    placeholder="Nhập mùa giải mới (ví dụ: 2024-2025)..."
+                    value={customSeason}
+                    onChange={(e) => setCustomSeason(e.target.value)}
+                    disabled={syncing}
+                    className="w-full bg-[#0E131F]/80 border border-card-border/80 rounded-lg py-2 px-3 text-xs text-white mt-2 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all disabled:opacity-50"
+                  />
+                )}
+              </div>
+            </div>
+
+            <div className="flex space-x-3 pt-3 border-t border-card-border justify-end">
+              <button
+                onClick={() => setShowSyncConfigModal(false)}
+                disabled={syncing}
+                className="bg-card-border hover:bg-card-border/85 border border-card-border text-white font-bold py-2 px-5 rounded-xl text-xs transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={() => {
+                  const targetTournament = syncTournament === 'NEW' ? customTournament.trim() : syncTournament;
+                  const targetSeason = syncSeason === 'NEW' ? customSeason.trim() : syncSeason;
+                  
+                  if (!targetTournament) {
+                    alert('Vui lòng nhập tên giải đấu mới!');
+                    return;
+                  }
+                  if (!targetSeason) {
+                    alert('Vui lòng nhập mùa giải mới!');
+                    return;
+                  }
+                  handleSyncFixtures(targetTournament, targetSeason);
+                }}
+                disabled={syncing}
+                className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary hover:to-primary text-white font-bold py-2 px-5 rounded-xl text-xs transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
+              >
+                {syncing ? '⌛ Đang quét...' : 'Bắt đầu quét (AI)'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SYNC PREVIEW MODAL */}
+      {syncPreviewMatches && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="absolute inset-0" onClick={() => !isImporting && setSyncPreviewMatches(null)}></div>
+          <div className="glass-panel border border-card-border/80 rounded-2xl w-full max-w-3xl p-5 relative z-10 shadow-2xl animate-scale-in max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-start border-b border-card-border pb-3 mb-4">
+              <div className="text-left">
+                <h2 className="text-sm font-extrabold text-white">📋 Xem trước trận đấu mới quét được ({syncPreviewMatches.length} trận)</h2>
+                <p className="text-[10px] text-gray-400 mt-1">Vui lòng rà soát lại thông tin trước khi import vào hệ thống.</p>
+              </div>
+              <button 
+                onClick={() => !isImporting && setSyncPreviewMatches(null)}
+                disabled={isImporting}
+                className="text-gray-400 hover:text-white font-bold text-base p-1 transition-colors leading-none cursor-pointer disabled:opacity-50"
+              >
+                ✕
+              </button>
+            </div>
+            
+            {/* Matches list */}
+            <div className="space-y-2.5 max-h-[50vh] overflow-y-auto pr-1 text-xs">
+              {syncPreviewMatches.length > 0 ? (
+                <div className="divide-y divide-card-border/30">
+                  {syncPreviewMatches.map((match, idx) => (
+                    <div key={idx} className="py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 text-left">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="bg-primary/15 border border-primary/20 text-primary font-bold text-[9px] px-2 py-0.5 rounded-full uppercase">
+                            {match.group}
+                          </span>
+                          <span className="text-[10.5px] text-gray-400 font-bold">
+                            📅 {match.date} {match.time}
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center space-x-3 mt-1.5">
+                          <span className="text-white font-extrabold text-xs">{match.homeTeam}</span>
+                          <span className="text-gray-500 font-black text-[10px]">VS</span>
+                          <span className="text-white font-extrabold text-xs">{match.awayTeam}</span>
+                        </div>
+                        
+                        <p className="text-[10px] text-gray-500 mt-1">📍 {match.venue}</p>
+                      </div>
+                      
+                      <div className="sm:ml-4 flex items-center justify-end">
+                        <button
+                          onClick={() => handleImportMatches([match])}
+                          disabled={isImporting}
+                          className="bg-card-border hover:bg-primary/25 border border-card-border hover:border-primary/45 text-gray-200 hover:text-white font-bold py-1 px-3.5 rounded-lg text-[10.5px] transition-all cursor-pointer disabled:opacity-50"
+                        >
+                          Thêm
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-gray-400">
+                  Không tìm thấy trận đấu mới nào thích hợp để hiển thị.
+                </div>
+              )}
+            </div>
+
+            <div className="flex space-x-3 pt-3 border-t border-card-border justify-end mt-4">
+              <button
+                onClick={() => setSyncPreviewMatches(null)}
+                disabled={isImporting}
+                className="bg-card-border hover:bg-card-border/85 border border-card-border text-white font-bold py-2 px-5 rounded-xl text-xs transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
+              >
+                Đóng
+              </button>
+              {syncPreviewMatches.length > 0 && (
+                <button
+                  onClick={() => handleImportMatches(syncPreviewMatches)}
+                  disabled={isImporting}
+                  className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary hover:to-primary text-white font-bold py-2 px-5 rounded-xl text-xs transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 flex items-center space-x-1.5"
+                >
+                  {isImporting ? '⌛ Đang thêm...' : 'Thêm tất cả'}
+                </button>
+              )}
             </div>
           </div>
         </div>

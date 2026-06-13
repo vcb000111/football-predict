@@ -15,7 +15,8 @@ export default function PromptsTab({
     { key: 'predict_system', name: '🤖 System Prompt chính', desc: 'Dự đoán & phân tích bóng đá ELO/Poisson' },
     { key: 'predict_rag_template', name: '🔍 Template tin tức RAG', desc: 'Đưa dữ liệu tìm kiếm Internet vào context' },
     { key: 'predict_feedback_template', name: '📊 Template lịch sử đối đầu', desc: 'Học máy ngữ cảnh qua các sai số cũ' },
-    { key: 'predict_critic_template', name: '⚖️ Template phản biện (Critic)', desc: 'Chạy tác tử phản biện rà soát logic cược' }
+    { key: 'predict_critic_template', name: '⚖️ Template phản biện (Critic)', desc: 'Chạy tác tử phản biện rà soát logic cược' },
+    { key: 'sync_fixtures_template', name: '🔄 Prompt Đồng bộ lịch (AI)', desc: 'Tìm kiếm RAG và trích xuất lịch thi đấu' }
   ];
 
   const currentPrompt = prompts.find(p => p.prompt_key === selectedPromptKey);
@@ -111,6 +112,12 @@ export default function PromptsTab({
                   <div><code className="bg-[#0f172a] text-indigo-300 px-1 py-0.5 rounded font-mono border border-white/5">{"{{draftPrediction}}"}</code>: Bản nháp JSON ban đầu</div>
                   <div><code className="bg-[#0f172a] text-indigo-300 px-1 py-0.5 rounded font-mono border border-white/5">{"{{poissonMonteCarlo}}"}</code>: Mô phỏng Monte Carlo</div>
                   <div><code className="bg-[#0f172a] text-indigo-300 px-1 py-0.5 rounded font-mono border border-white/5">{"{{searchContext}}"}</code>: Dữ liệu tìm kiếm Internet</div>
+                </>
+              )}
+              {selectedPromptKey === 'sync_fixtures_template' && (
+                <>
+                  <div><code className="bg-[#0f172a] text-indigo-300 px-1 py-0.5 rounded font-mono border border-white/5">{"{{tournament}}"}</code>: Tên giải đấu cần quét</div>
+                  <div><code className="bg-[#0f172a] text-indigo-300 px-1 py-0.5 rounded font-mono border border-white/5">{"{{season}}"}</code>: Tên mùa giải cần quét</div>
                 </>
               )}
             </div>
