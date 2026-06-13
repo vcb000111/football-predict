@@ -21,6 +21,7 @@ Tất cả những thay đổi nổi bật đối với dự án **FIFA World Cu
 * **Nhãn loại dự đoán động:** Hiển thị nhãn `(H1)`, `(H2)` hoặc `(FT)` trong danh sách lịch sử dự đoán, trên card tỷ số trang chi tiết trận đấu và trên trang chủ.
 
 ### Fixed (Sửa lỗi)
+* **Sửa lỗi hiển thị sai múi giờ lịch sử dự đoán:** Đồng bộ hóa hiển thị thời gian chạy dự đoán trong lịch sử theo múi giờ Việt Nam (GMT+7) bất kể múi giờ hệ thống của thiết bị truy cập, khắc phục triệt để tình trạng lệch 7 tiếng.
 * **Sửa lỗi lệch dấu hỏi chấm INSERT SQLite:** Loại bỏ 1 dấu hỏi chấm `?` bị thừa trong câu lệnh `INSERT INTO predictions` của API Predict (`src/app/api/predict/route.js`) khiến hệ thống báo lỗi lệch số lượng cột (SQLite error: 35 values for 34 columns) khi lưu dự đoán Hiệp 1/Hiệp 2 vào database.
 
 ## [1.8.0] - 2026-06-12

@@ -565,9 +565,15 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
 
   const formatDate = (dateStr) => {
     try {
-      const d = new Date(dateStr);
-      // SQLite returns UTC, format cleanly in VN timezone
-      return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ' + d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+      if (!dateStr) return '';
+      // SQLite trả về định dạng UTC 'YYYY-MM-DD HH:MM:SS', chuyển thành ISO format có đuôi Z
+      let normalizedStr = dateStr;
+      if (typeof dateStr === 'string' && !dateStr.includes('T') && !dateStr.includes('Z')) {
+        normalizedStr = dateStr.replace(' ', 'T') + 'Z';
+      }
+      const d = new Date(normalizedStr);
+      // Định dạng sang giờ Việt Nam (GMT+7)
+      return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' }) + ' ' + d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' });
     } catch (e) {
       return dateStr;
     }
