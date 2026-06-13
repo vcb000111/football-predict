@@ -226,6 +226,15 @@ async function runMigration() {
   // --- SEEDING DỮ LIỆU MẶC ĐỊNH ---
   console.log('🌱 Bắt đầu seeding dữ liệu...');
 
+  // Dọn dẹp dữ liệu Groq cũ (theo yêu cầu không cần giữ của sếp)
+  try {
+    await db.run("DELETE FROM api_keys WHERE provider = 'groq'");
+    await db.run("DELETE FROM ai_models WHERE provider = 'groq'");
+    console.log('🧹 Đã dọn dẹp API keys và models của Groq.');
+  } catch (e) {
+    console.warn('⚠️ Lỗi khi dọn dẹp dữ liệu Groq cũ:', e.message);
+  }
+
   // Seed ai_models
   const defaultModels = [
     { name: 'gemini-3.5-flash', provider: 'gemini', priority: 1 },
@@ -233,9 +242,9 @@ async function runMigration() {
     { name: 'gemini-3.1-flash-lite', provider: 'gemini', priority: 3 },
     { name: 'gemini-2.5-flash', provider: 'gemini', priority: 4 },
     { name: 'gemini-2.5-flash-lite', provider: 'gemini', priority: 5 },
-    { name: 'llama-3.1-8b-instant', provider: 'groq', priority: 6 },
-    { name: 'gemma2-9b-it', provider: 'groq', priority: 7 },
-    { name: 'llama-3.3-70b-specdec', provider: 'groq', priority: 8 }
+    { name: 'meta-llama/llama-3.3-70b-instruct:free', provider: 'openrouter', priority: 6 },
+    { name: 'meta-llama/llama-3.1-8b-instruct:free', provider: 'openrouter', priority: 7 },
+    { name: 'deepseek/deepseek-chat', provider: 'openrouter', priority: 8 }
   ];
   for (const model of defaultModels) {
     try {
@@ -248,6 +257,7 @@ async function runMigration() {
       console.warn(`Không thể seed model ${model.name}:`, e.message);
     }
   }
+
 
   // Seed api_keys từ biến môi trường
   const apiKeysList = [];

@@ -38,7 +38,7 @@ export default function ApiKeyManager({
       <div className="border-b border-white/5 pb-3 flex items-center justify-between">
         <h2 className="text-sm font-bold text-white flex items-center space-x-2">
           <span className="text-primary">🔑</span>
-          <span>Danh sách API keys (Google Gemini / Groq Cloud)</span>
+          <span>Danh sách API keys (Google Gemini / OpenRouter)</span>
         </h2>
         <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2.5 py-0.5 rounded-full font-bold">
           {apiKeys.length} Keys
@@ -52,13 +52,13 @@ export default function ApiKeyManager({
           className="bg-[#0d1527] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-primary/80 cursor-pointer"
         >
           <option value="gemini">Gemini</option>
-          <option value="groq">Groq Cloud</option>
+          <option value="openrouter">OpenRouter</option>
         </select>
         <input
           type="password"
           value={newKey}
           onChange={(e) => setNewKey(e.target.value)}
-          placeholder={newKeyProvider === 'gemini' ? "Nhập API key mới từ Google AI Studio..." : "Nhập API key mới từ Groq Cloud Console..."}
+          placeholder={newKeyProvider === 'gemini' ? "Nhập API key mới từ Google AI Studio..." : "Nhập API key mới từ OpenRouter Dashboard..."}
           className="flex-1 bg-[#0d1527] border border-white/10 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-primary/80 transition-colors"
         />
         <button
@@ -93,8 +93,8 @@ export default function ApiKeyManager({
                 <div className="flex items-center space-x-3 flex-1 min-w-0 pr-4">
                   <span className="text-[10px] text-gray-650 font-bold font-mono">#{index + 1}</span>
                   <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase border ${
-                    (key.provider || 'gemini') === 'groq'
-                      ? 'bg-orange-500/10 text-orange-400 border-orange-500/20'
+                    (key.provider || 'gemini') === 'openrouter'
+                      ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
                       : 'bg-primary/10 text-primary border border-primary/20'
                   }`}>
                     {key.provider || 'gemini'}

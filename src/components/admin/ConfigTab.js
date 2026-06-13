@@ -76,7 +76,7 @@ export default function ConfigTab({
         >
           <div className="flex items-center space-x-2">
             <span>🔑</span>
-            <span>Cấu hình API keys (Google Gemini & Groq)</span>
+            <span>Cấu hình API keys (Google Gemini & OpenRouter)</span>
           </div>
           <span>{collapsed.keys ? '▼' : '▲'}</span>
         </button>

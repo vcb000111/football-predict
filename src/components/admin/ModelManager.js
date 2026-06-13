@@ -23,7 +23,7 @@ export default function ModelManager({
       <div className="border-b border-white/5 pb-3 flex items-center justify-between">
         <h2 className="text-sm font-bold text-white flex items-center space-x-2">
           <span className="text-secondary">🤖</span>
-          <span>Cấu hình thứ tự ưu tiên AI models (Gemini & Groq)</span>
+          <span>Cấu hình thứ tự ưu tiên AI models (Gemini & OpenRouter)</span>
         </h2>
         <span className="text-[10px] bg-secondary/10 text-secondary border border-secondary/20 px-2.5 py-0.5 rounded-full font-bold">
           {models.length} Models
@@ -37,13 +37,13 @@ export default function ModelManager({
           className="bg-[#0d1527] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-secondary/80 cursor-pointer"
         >
           <option value="gemini">Gemini</option>
-          <option value="groq">Groq Cloud</option>
+          <option value="openrouter">OpenRouter</option>
         </select>
         <input
           type="text"
           value={newModelName}
           onChange={(e) => setNewModelName(e.target.value)}
-          placeholder={newModelProvider === 'gemini' ? "Ví dụ: gemini-2.5-pro, gemini-3.5-flash..." : "Ví dụ: llama-3.1-8b-instant, gemma2-9b-it..."}
+          placeholder={newModelProvider === 'gemini' ? "Ví dụ: gemini-2.5-pro, gemini-3.5-flash..." : "Ví dụ: meta-llama/llama-3.3-70b-instruct:free..."}
           className="flex-1 bg-[#0d1527] border border-white/10 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-secondary/80 transition-colors"
         />
         <button
@@ -74,8 +74,8 @@ export default function ModelManager({
                     <span className="text-[8px] text-gray-500 font-bold uppercase block leading-none mt-0.5">Ưu tiên</span>
                   </div>
                   <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase border ${
-                    (model.provider || 'gemini') === 'groq'
-                      ? 'bg-orange-500/10 text-orange-400 border-orange-500/20'
+                    (model.provider || 'gemini') === 'openrouter'
+                      ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
                       : 'bg-secondary/10 text-secondary border border-secondary/20'
                   }`}>
                     {model.provider || 'gemini'}

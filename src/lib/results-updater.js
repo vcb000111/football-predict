@@ -1,6 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 import { searchInternet } from '@/lib/search';
-import { callGroqModel } from '@/lib/groq';
+import { callOpenRouterModel } from '@/lib/openrouter';
 import fixturesData from '@/data/fixtures.json';
 import { getVNTime } from '@/lib/timezone';
 import fs from 'fs';
@@ -344,13 +344,13 @@ export async function updateMatchResult({ homeTeam, awayTeam, matchId, force, db
     let apiKeys = [];
     let MODELS = [];
     let geminiKeys = [];
-    let groqKeys = [];
+    let openrouterKeys = [];
 
     // Tải cấu hình API key/models
     try {
       const activeKeysRows = await db.all("SELECT key_value, provider FROM api_keys WHERE status = 1");
       geminiKeys = Array.from(new Set(activeKeysRows.filter(r => (r.provider || 'gemini') === 'gemini').map(row => row.key_value.trim())));
-      groqKeys = Array.from(new Set(activeKeysRows.filter(r => r.provider === 'groq').map(row => row.key_value.trim())));
+      openrouterKeys = Array.from(new Set(activeKeysRows.filter(r => r.provider === 'openrouter').map(row => row.key_value.trim())));
       apiKeys = geminiKeys;
       
       const activeModelsRows = await db.all("SELECT model_name, provider FROM ai_models WHERE status = 1 ORDER BY priority ASC");
@@ -548,7 +548,7 @@ Chỉ trả về JSON thô. Do NOT include markdown blocks.
       const currentModelObj = MODELS[modelIdx];
       const currentModel = currentModelObj.name;
       const provider = currentModelObj.provider;
-      const targetKeys = provider === 'groq' ? groqKeys : geminiKeys;
+      const targetKeys = provider === 'openrouter' ? openrouterKeys : geminiKeys;
 
       for (let keyIdx = 0; keyIdx < targetKeys.length; keyIdx++) {
         const currentKey = targetKeys[keyIdx];
@@ -562,8 +562,8 @@ Chỉ trả về JSON thô. Do NOT include markdown blocks.
               config: { abortSignal: AbortSignal.timeout(180000) },
             });
             responseText = rawResponse.text;
-          } else if (provider === 'groq') {
-            const rawResponse = await callGroqModel(currentModel, [currentKey], prompt);
+          } else if (provider === 'openrouter') {
+            const rawResponse = await callOpenRouterModel(currentModel, [currentKey], prompt);
             responseText = rawResponse.response.text;
           }
 
@@ -793,8 +793,8 @@ Nhiệm vụ: Viết bài học kinh nghiệm siêu ngắn (dưới 50 từ) b�
           config: { abortSignal: AbortSignal.timeout(15000) }
         });
         lessonContent = lessonRes.text?.trim() || '';
-      } else if (successfulProvider === 'groq') {
-        const lessonRes = await callGroqModel(successfulModel, [successfulKey], lessonPrompt);
+      } else if (successfulProvider === 'openrouter') {
+        const lessonRes = await callOpenRouterModel(successfulModel, [successfulKey], lessonPrompt);
         lessonContent = lessonRes.response?.text?.trim() || '';
       }
 

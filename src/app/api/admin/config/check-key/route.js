@@ -39,9 +39,9 @@ export async function POST(request) {
       }
     }
 
-    if (provider === 'groq') {
+    if (provider === 'openrouter') {
       try {
-        const url = 'https://api.groq.com/openai/v1/models';
+        const url = 'https://openrouter.ai/api/v1/auth/key';
         const res = await fetch(url, {
           headers: {
             'Authorization': `Bearer ${trimmedKey}`
@@ -49,21 +49,29 @@ export async function POST(request) {
           signal: AbortSignal.timeout(10000)
         });
         if (res.ok) {
-          return NextResponse.json({ success: true, status: 'active', credit: null });
+          const data = await res.json();
+          // Lấy thông tin giới hạn và lượng dùng nếu có
+          const usage = data.data?.usage;
+          const limit = data.data?.limit;
+          return NextResponse.json({ 
+            success: true, 
+            status: 'active', 
+            credit: limit !== null && limit !== undefined ? { used: usage || 0, limit } : null 
+          });
         } else {
           const errData = await res.json().catch(() => ({}));
           const errMsg = errData.error?.message || `HTTP error ${res.status}`;
           return NextResponse.json({ 
             success: true, 
             status: 'inactive', 
-            errorDetails: `Lỗi kết nối Groq: ${errMsg}` 
+            errorDetails: `Lỗi kết nối OpenRouter: ${errMsg}` 
           });
         }
       } catch (err) {
         return NextResponse.json({ 
           success: true, 
           status: 'inactive', 
-          errorDetails: `Lỗi kết nối Groq API: ${err.message}` 
+          errorDetails: `Lỗi kết nối OpenRouter API: ${err.message}` 
         });
       }
     }

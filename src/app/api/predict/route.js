@@ -4,7 +4,7 @@ import { getDB } from '@/lib/db';
 import { updateMatchResult, evaluateBetOutcome } from '@/lib/results-updater';
 import { searchInternet } from '@/lib/search';
 import { calculateMatchPoisson, runMonteCarloSimulation, calculateCornersAndCards } from '@/lib/poisson';
-import { callGroqModel } from '@/lib/groq';
+import { callOpenRouterModel } from '@/lib/openrouter';
 import { calculateMLBaseline } from '@/lib/ml-baseline';
 import { getVNTime } from '@/lib/timezone';
 import fs from 'fs';
@@ -265,7 +265,7 @@ async function callProviderModelsFallback(provider, modelsList, apiKeys, prompt)
       if (provider === 'gemini') {
         result = await callSingleModel(model, apiKeys, prompt);
       } else {
-        result = await callGroqModel(model, apiKeys, prompt);
+        result = await callOpenRouterModel(model, apiKeys, prompt);
       }
       
       // Trả về kết quả ngay khi thành công
@@ -313,9 +313,9 @@ export async function POST(request) {
     let apiKeys = [];
     let MODELS = [];
     let geminiKeys = [];
-    let groqKeys = [];
+    let openrouterKeys = [];
     let geminiModels = [];
-    let groqModels = [];
+    let openrouterModels = [];
 
     // Mở SQLite lấy cấu hình hoạt động
     try {
@@ -324,10 +324,10 @@ export async function POST(request) {
       const activeModelsRows = await db.all("SELECT model_name, provider FROM ai_models WHERE status = 1 ORDER BY priority ASC");
       
       geminiKeys = Array.from(new Set(activeKeysRows.filter(r => (r.provider || 'gemini') === 'gemini').map(row => row.key_value.trim())));
-      groqKeys = Array.from(new Set(activeKeysRows.filter(r => r.provider === 'groq').map(row => row.key_value.trim())));
+      openrouterKeys = Array.from(new Set(activeKeysRows.filter(r => r.provider === 'openrouter').map(row => row.key_value.trim())));
       
       geminiModels = activeModelsRows.filter(r => (r.provider || 'gemini') === 'gemini').map(row => row.model_name.trim());
-      groqModels = activeModelsRows.filter(r => r.provider === 'groq').map(row => row.model_name.trim());
+      openrouterModels = activeModelsRows.filter(r => r.provider === 'openrouter').map(row => row.model_name.trim());
       
       apiKeys = geminiKeys;
       MODELS = geminiModels;
@@ -1075,14 +1075,14 @@ Hãy tự lập luận logic dựa trên các chỉ số định lượng ELO, P
     const canRunConsensus = !fastMode && !predictionData && geminiKeys.length >= 1 && geminiModels.length >= 1;
 
     if (canRunConsensus) {
-      console.log(`🤖 [CONSENSUS - MULTI-AGENT] Bắt đầu gọi song song Gemini và Groq bằng cơ chế xoay vòng model...`);
+      console.log(`🤖 [CONSENSUS - MULTI-AGENT] Bắt đầu gọi song song Gemini và OpenRouter bằng cơ chế xoay vòng model...`);
       const startTime = Date.now();
       let geminiDraftClean = null;
-      let groqDraftClean = null;
+      let openrouterDraftClean = null;
       let geminiResultObj = null;
-      let groqResultObj = null;
+      let openrouterResultObj = null;
       let geminiModelUsed = '';
-      let groqModelUsed = '';
+      let openrouterModelUsed = '';
       
       try {
         const draftPromises = [];
@@ -1100,17 +1100,17 @@ Hãy tự lập luận logic dựa trên các chỉ số định lượng ELO, P
             })
         );
         
-        // Khởi chạy luồng nháp Groq (xoay vòng model nếu có key/model hoạt động)
-        if (groqKeys.length > 0 && groqModels.length > 0) {
+        // Khởi chạy luồng nháp OpenRouter (xoay vòng model nếu có key/model hoạt động)
+        if (openrouterKeys.length > 0 && openrouterModels.length > 0) {
           draftPromises.push(
-            callProviderModelsFallback('groq', groqModels, groqKeys, finalPrompt)
+            callProviderModelsFallback('openrouter', openrouterModels, openrouterKeys, finalPrompt)
               .then(res => {
-                groqDraftClean = cleanJsonText(res.text);
-                groqResultObj = res.resObj;
-                groqModelUsed = res.model;
+                openrouterDraftClean = cleanJsonText(res.text);
+                openrouterResultObj = res.resObj;
+                openrouterModelUsed = res.model;
               })
               .catch(err => {
-                console.warn('⚠️ Luồng nháp Groq thất bại hoàn toàn:', err.message);
+                console.warn('⚠️ Luồng nháp OpenRouter thất bại hoàn toàn:', err.message);
               })
           );
         }
@@ -1119,14 +1119,14 @@ Hãy tự lập luận logic dựa trên các chỉ số định lượng ELO, P
         
         // Ghép bản nháp thu được vào Critic
         let draftsCombinedText = '';
-        if (geminiDraftClean && groqDraftClean) {
-          draftsCombinedText = `[GEMINI DRAFT PREDICTION (${geminiModelUsed})]:\n${geminiDraftClean}\n\n[GROQ DRAFT PREDICTION (${groqModelUsed})]:\n${groqDraftClean}`;
+        if (geminiDraftClean && openrouterDraftClean) {
+          draftsCombinedText = `[GEMINI DRAFT PREDICTION (${geminiModelUsed})]:\n${geminiDraftClean}\n\n[OPENROUTER DRAFT PREDICTION (${openrouterModelUsed})]:\n${openrouterDraftClean}`;
         } else if (geminiDraftClean) {
-          draftsCombinedText = `[GEMINI DRAFT PREDICTION (${geminiModelUsed})]:\n${geminiDraftClean}\n\n[GROQ DRAFT]: (Thất bại hoặc không cấu hình)`;
-        } else if (groqDraftClean) {
-          draftsCombinedText = `[GEMINI DRAFT]: (Thất bại)\n\n[GROQ DRAFT PREDICTION (${groqModelUsed})]:\n${groqDraftClean}`;
+          draftsCombinedText = `[GEMINI DRAFT PREDICTION (${geminiModelUsed})]:\n${geminiDraftClean}\n\n[OPENROUTER DRAFT]: (Thất bại hoặc không cấu hình)`;
+        } else if (openrouterDraftClean) {
+          draftsCombinedText = `[GEMINI DRAFT]: (Thất bại)\n\n[OPENROUTER DRAFT PREDICTION (${openrouterModelUsed})]:\n${openrouterDraftClean}`;
         } else {
-          throw new Error('Cả hai luồng nháp Gemini và Groq đều thất bại hoàn toàn.');
+          throw new Error('Cả hai luồng nháp Gemini và OpenRouter đều thất bại hoàn toàn.');
         }
 
         // --- BƯỚC 2: PHẢN BIỆN & TINH CHỈNH (CRITIC & REFINER PHÁT BỞI GEMINI) ---
@@ -1154,7 +1154,7 @@ Hãy đánh giá bản nháp và tự lập luận logic dựa trên các chỉ 
         const criticClean = cleanJsonText(criticText);
         
         predictionData = JSON.parse(criticClean);
-        modelUsed = `${geminiModelName} (Critic Phản Biện) + [Gemini: ${geminiModelUsed || 'Failed'}${groqDraftClean ? ` / Groq: ${groqModelUsed}` : ''}]`;
+        modelUsed = `${geminiModelName} (Critic Phản Biện) + [Gemini: ${geminiModelUsed || 'Failed'}${openrouterDraftClean ? ` / OpenRouter: ${openrouterModelUsed}` : ''}]`;
         keyIndexUsed = criticResult.keyIndexUsed;
         response = criticResult.response;
         isConsensus = true;
@@ -1164,7 +1164,7 @@ Hãy đánh giá bản nháp và tự lập luận logic dựa trên các chỉ 
       } catch (err) {
         console.error('❌ Lỗi trong Consensus Engine:', err.message);
         
-        // Cứu hộ Fallback: Dùng bản nháp của Gemini hoặc Groq nếu có
+        // Cứu hộ Fallback: Dùng bản nháp của Gemini hoặc OpenRouter nếu có
         if (geminiDraftClean) {
           try {
             predictionData = JSON.parse(geminiDraftClean);
@@ -1175,15 +1175,15 @@ Hãy đánh giá bản nháp và tự lập luận logic dựa trên các chỉ 
           } catch (e) {
             console.error('Lỗi parse bản nháp Gemini khi cứu hộ:', e.message);
           }
-        } else if (groqDraftClean) {
+        } else if (openrouterDraftClean) {
           try {
-            predictionData = JSON.parse(groqDraftClean);
-            modelUsed = `${groqModelName} (Bản nháp Groq - Phản biện lỗi)`;
-            keyIndexUsed = groqResultObj.keyIndexUsed;
-            response = { text: groqDraftClean };
-            console.log('⚠️ [FALLBACK] Đã cứu hộ thành công sử dụng bản nháp Groq.');
+            predictionData = JSON.parse(openrouterDraftClean);
+            modelUsed = `${openrouterModelUsed} (Bản nháp OpenRouter - Phản biện lỗi)`;
+            keyIndexUsed = openrouterResultObj.keyIndexUsed;
+            response = { text: openrouterDraftClean };
+            console.log('⚠️ [FALLBACK] Đã cứu hộ thành công sử dụng bản nháp OpenRouter.');
           } catch (e) {
-            console.error('Lỗi parse bản nháp Groq khi cứu hộ:', e.message);
+            console.error('Lỗi parse bản nháp OpenRouter khi cứu hộ:', e.message);
           }
         }
       }

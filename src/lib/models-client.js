@@ -24,10 +24,10 @@ export function formatModelName(modelId) {
   }
 
   // 1. Phân tích định dạng Consensus đa tác nhân mới:
-  // "gemini-3.1-flash-lite (Critic Phản Biện) + [Gemini: gemini-3.1-flash-lite / Groq: llama-3.1-8b-instant]"
+  // "gemini-3.1-flash-lite (Critic Phản Biện) + [Gemini: gemini-3.1-flash-lite / OpenRouter: meta-llama/llama-3.3-70b-instruct:free]"
   // Hoặc "gemini-3.1-flash-lite (Critic Phản Biện) + [Gemini: gemini-3.1-flash-lite]"
   if (trimmedModel.includes('Critic Phản Biện') || trimmedModel.includes('Consensus')) {
-    const isMultiAgent = trimmedModel.includes('Groq:');
+    const isMultiAgent = trimmedModel.includes('OpenRouter:');
     
     // Trích xuất tên model Gemini Critic chính
     let criticName = 'Gemini';
@@ -37,13 +37,13 @@ export function formatModelName(modelId) {
     }
     
     if (isMultiAgent) {
-      // Trích xuất tên model Groq
-      let groqName = 'Groq';
-      const groqMatch = trimmedModel.match(/Groq:\s*([a-zA-Z0-9\.\-\/]+)/);
-      if (groqMatch && groqMatch[1]) {
-        groqName = formatSimpleModelName(groqMatch[1]);
+      // Trích xuất tên model OpenRouter
+      let openRouterName = 'OpenRouter';
+      const openRouterMatch = trimmedModel.match(/OpenRouter:\s*([a-zA-Z0-9\.\-\/:_]+)/);
+      if (openRouterMatch && openRouterMatch[1]) {
+        openRouterName = formatSimpleModelName(openRouterMatch[1]);
       }
-      return `Đa tác nhân: ${criticName} (Critic) + ${groqName}`;
+      return `Đa tác nhân: ${criticName} (Critic) + ${openRouterName}`;
     } else {
       return `Đơn tác nhân: ${criticName} (Critic)`;
     }
@@ -63,17 +63,14 @@ export function formatModelName(modelId) {
 function formatSimpleModelName(modelId) {
   const id = modelId.replace(/^models\//, '').trim();
   const mappings = {
-    'gemini-3.1-flash-lite': 'Gemini 3.1 Flash Lite',
     'gemini-3.5-flash': 'Gemini 3.5 Flash',
-    'gemini-3-flash': 'Gemini 3 Flash',
     'gemini-3-flash-preview': 'Gemini 3 Flash Preview',
+    'gemini-3.1-flash-lite': 'Gemini 3.1 Flash Lite',
     'gemini-2.5-flash': 'Gemini 2.5 Flash',
     'gemini-2.5-flash-lite': 'Gemini 2.5 Flash Lite',
-    'llama-3.1-8b-instant': 'Groq Llama 3.1 8B',
-    'llama-3.3-70b-specdec': 'Groq Llama 3.3 70B',
-    'llama-3.3-70b-versatile': 'Groq Llama 3.3 70B',
-    'gemma2-9b-it': 'Groq Gemma 2 9B',
-    'groq/compound': 'Groq Compound MoE'
+    'meta-llama/llama-3.3-70b-instruct:free': 'OpenRouter Llama 3.3 70B (Free)',
+    'meta-llama/llama-3.1-8b-instruct:free': 'OpenRouter Llama 3.1 8B (Free)',
+    'deepseek/deepseek-chat': 'OpenRouter DeepSeek Chat'
   };
   return mappings[id] || id;
 }
