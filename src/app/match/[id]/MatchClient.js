@@ -230,6 +230,7 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
   const [prediction, setPrediction] = useState(null);
   const [historyList, setHistoryList] = useState([]);
   const [loadingStep, setLoadingStep] = useState(0);
+  const [activeTab, setActiveTab] = useState('analysis');
 
   // States cho Chat AI Persistent
   const [chatMessages, setChatMessages] = useState([]);
@@ -639,8 +640,6 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
           </div>
         </div>
 
-        <MatchSimulator match={match} />
-
         {/* LOADING STATE */}
         {loading && !prediction && (
           <div className="glass-panel rounded-2xl p-8 text-center border border-card-border flex flex-col items-center justify-center min-h-[250px]">
@@ -707,11 +706,40 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
 
         {/* PREDICTION CONTENT (LOADED) */}
         {prediction && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <div className="space-y-4">
             
+            {/* Tab Bar - Sticky, nằm dưới header desktop (z-50) và mobile floats (z-50) */}
+            <div className="sticky top-0 md:top-16 z-40 bg-[#0B0F17]/95 backdrop-blur-md flex border-b border-card-border/40 mb-4 overflow-x-auto whitespace-nowrap scrollbar-none -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 pt-14 md:pt-0" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+              {[
+                { id: 'analysis', label: 'Nhận định' },
+                { id: 'simulator', label: 'Mô phỏng' },
+                { id: 'bets', label: 'Soi kèo' },
+                { id: 'chat', label: 'Trợ lý soi kèo' },
+                { id: 'history', label: 'Lịch sử & Quản trị' }
+              ].map(tab => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`py-3 px-5 text-xs font-bold transition-all relative border-b-2 whitespace-nowrap cursor-pointer ${
+                      isActive 
+                        ? 'text-white border-primary font-black' 
+                        : 'text-gray-400 border-transparent hover:text-gray-200'
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    {isActive && (
+                      <span className="absolute bottom-0 left-0 w-full h-[2px] bg-primary shadow-[0_0_10px_#10B981] animate-pulse"></span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
             {/* Inline Notifications (Error / Progress) */}
             {error && (
-              <div className="lg:col-span-12 p-3 rounded-xl border border-rose-500/30 bg-rose-500/10 text-[11px] text-rose-400 leading-relaxed flex items-center justify-between animate-fade-in shadow-lg">
+              <div className="p-3 rounded-xl border border-rose-500/30 bg-rose-500/10 text-[11px] text-rose-400 leading-relaxed flex items-center justify-between animate-fade-in shadow-lg">
                 <span className="flex items-center space-x-1.5">
                   <span>🔴</span>
                   <span><strong>Yêu cầu dự đoán mới thất bại:</strong> {error}</span>
@@ -726,7 +754,7 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
             )}
 
             {predicting && (
-              <div className="lg:col-span-12 p-3 rounded-xl border border-secondary/30 bg-secondary/5 text-[11px] text-secondary leading-relaxed flex items-center space-x-2 animate-pulse shadow-lg">
+              <div className="p-3 rounded-xl border border-secondary/30 bg-secondary/5 text-[11px] text-secondary leading-relaxed flex items-center space-x-2 animate-pulse shadow-lg">
                 <span>🧠</span>
                 <div>
                   <strong>Tiến trình AI:</strong>{' '}
@@ -734,453 +762,359 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
                 </div>
               </div>
             )}
+
+            {/* Tab: Mô phỏng */}
+            <div className={`animate-fade-in ${activeTab === 'simulator' ? '' : 'hidden'}`}>
+              <MatchSimulator match={match} isActive={activeTab === 'simulator'} />
+            </div>
             
-            {/* Left Column: Match Predictions & Bets & Runs History (5 Cols) */}
-            <div className="lg:col-span-5 space-y-4">
-              
-              {/* Context Feedback Indicator Banner */}
-              {prediction.historicalAccuracy && (
-                <div className="p-3 rounded-xl border border-primary/30 bg-primary/5 glow-green flex items-start space-x-2 text-[11px] text-primary leading-relaxed">
-                  <span>🤖</span>
-                  <div>
-                    <p className="font-bold">Đã kích hoạt Học máy (In-Context Learning)</p>
-                    <p className="text-gray-400 mt-0.5">
-                      AI đã phân tích lịch sử <strong>{prediction.historicalAccuracy.total}</strong> lần dự đoán trước để giảm sai lệch. Tỷ lệ đoán trúng kết quả (1X2): <strong>{prediction.historicalAccuracy.rate}%</strong>.
-                    </p>
+            {/* Tab: Nhận định */}
+            {activeTab === 'analysis' && (
+              <div className="space-y-4 animate-fade-in">
+                
+                {/* Context Feedback Indicator Banner */}
+                {prediction.historicalAccuracy && (
+                  <div className="p-3 rounded-xl border border-primary/30 bg-primary/5 glow-green flex items-start space-x-2 text-[11px] text-primary leading-relaxed">
+                    <span>🤖</span>
+                    <div>
+                      <p className="font-bold">Đã kích hoạt Học máy (In-Context Learning)</p>
+                      <p className="text-gray-400 mt-0.5">
+                        AI đã phân tích lịch sử <strong>{prediction.historicalAccuracy.total}</strong> lần dự đoán trước để giảm sai lệch. Tỷ lệ đoán trúng kết quả (1X2): <strong>{prediction.historicalAccuracy.rate}%</strong>.
+                      </p>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Prediction Run selector & Run New Predict */}
-              <div className="glass-panel rounded-xl p-4 border border-card-border space-y-4">
-                <div className="flex items-center justify-between border-b border-card-border/40 pb-2">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Phiên Dự Đoán</span>
-                    <span className="text-xs text-white font-semibold mt-0.5">ID: Lượt #{prediction.id}</span>
+                {/* Prediction Run selector & Run New Predict */}
+                <div className="glass-panel rounded-xl p-4 border border-card-border space-y-4">
+                  <div className="flex items-center justify-between border-b border-card-border/40 pb-2">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Phiên Dự Đoán</span>
+                      <span className="text-xs text-white font-semibold mt-0.5">ID: Lượt #{prediction.id}</span>
+                    </div>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase border ${
+                      prediction.predict_type === 'first_half' || prediction.predictType === 'first_half'
+                        ? 'bg-primary/10 text-primary border-primary/20'
+                        : prediction.predict_type === 'second_half' || prediction.predictType === 'second_half'
+                          ? 'bg-secondary/10 text-secondary border-secondary/20'
+                          : 'bg-gray-500/10 text-gray-400 border-gray-500/20'
+                    }`}>
+                      {prediction.predict_type === 'first_half' || prediction.predictType === 'first_half' ? 'Hiệp 1' : (prediction.predict_type === 'second_half' || prediction.predictType === 'second_half' ? 'Hiệp 2' : 'Cả trận')}
+                    </span>
                   </div>
-                  <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase border ${
-                    prediction.predict_type === 'first_half' || prediction.predictType === 'first_half'
-                      ? 'bg-primary/10 text-primary border-primary/20'
-                      : prediction.predict_type === 'second_half' || prediction.predictType === 'second_half'
-                        ? 'bg-secondary/10 text-secondary border-secondary/20'
-                        : 'bg-gray-500/10 text-gray-400 border-gray-500/20'
-                  }`}>
-                    {prediction.predict_type === 'first_half' || prediction.predictType === 'first_half' ? 'Hiệp 1' : (prediction.predict_type === 'second_half' || prediction.predictType === 'second_half' ? 'Hiệp 2' : 'Cả trận')}
-                  </span>
-                </div>
 
-                <div className="space-y-3">
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Phạm vi dự đoán</label>
-                    <select
-                      value={predictType}
-                      onChange={(e) => setPredictType(e.target.value)}
-                      className="bg-[#0B0F17] border border-card-border rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-primary cursor-pointer font-bold w-full"
+                  <div className="space-y-3">
+                    <div className="flex flex-col space-y-1">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Phạm vi dự đoán</label>
+                      <select
+                        value={predictType}
+                        onChange={(e) => setPredictType(e.target.value)}
+                        className="bg-[#0B0F17] border border-card-border rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-primary cursor-pointer font-bold w-full"
+                      >
+                        <option value="full_time">Cả trận (Full Time)</option>
+                        <option value="first_half">Hiệp 1 (First Half)</option>
+                        <option value="second_half">Hiệp 2 (Second Half)</option>
+                      </select>
+                    </div>
+
+                    {predictType === 'second_half' && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="flex flex-col space-y-1">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tỷ số H1 - {match.homeTeam}</label>
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="0"
+                            value={firstHalfHomeScore}
+                            onChange={(e) => setFirstHalfHomeScore(e.target.value)}
+                            className="bg-[#0B0F17] border border-card-border rounded-xl p-2 text-xs text-white focus:outline-none focus:border-primary text-center font-bold"
+                          />
+                        </div>
+                        <div className="flex flex-col space-y-1">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tỷ số H1 - {match.awayTeam}</label>
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="0"
+                            value={firstHalfAwayScore}
+                            onChange={(e) => setFirstHalfAwayScore(e.target.value)}
+                            className="bg-[#0B0F17] border border-card-border rounded-xl p-2 text-xs text-white focus:outline-none focus:border-primary text-center font-bold"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <button
+                      onClick={handleRunNewPrediction}
+                      disabled={predicting}
+                      className={`w-full bg-gradient-to-r from-primary to-secondary text-white font-bold py-2.5 px-4 rounded-xl text-xs tracking-wider transition-all duration-150 flex items-center justify-center space-x-1.5 shadow-md shadow-primary/10 ${
+                        predicting ? 'opacity-50 cursor-not-allowed scale-100' : 'hover:scale-[1.01] active:scale-[0.99] cursor-pointer'
+                      }`}
                     >
-                      <option value="full_time">Cả trận (Full Time)</option>
-                      <option value="first_half">Hiệp 1 (First Half)</option>
-                      <option value="second_half">Hiệp 2 (Second Half)</option>
-                    </select>
+                      {predicting ? (
+                        <>
+                          <span className="animate-spin inline-block">🔄</span>
+                          <span>ĐANG DỰ ĐOÁN...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>🧠</span>
+                          <span>DỰ ĐOÁN MỚI</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Win Probability & Score Card */}
+                <div className="glass-panel rounded-xl p-4 border border-card-border glow-green relative overflow-hidden">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-gray-400 font-bold text-xs uppercase tracking-wider">Tỷ Số Dự Đoán & Xác Suất</h3>
+                    <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
+                      prediction.predict_type === 'first_half' || prediction.predictType === 'first_half'
+                        ? 'bg-primary/20 text-primary border border-primary/20'
+                        : prediction.predict_type === 'second_half' || prediction.predictType === 'second_half'
+                          ? 'bg-secondary/20 text-secondary border border-secondary/20'
+                          : 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
+                    }`}>
+                      {prediction.predict_type === 'first_half' || prediction.predictType === 'first_half' ? 'Hiệp 1 (H1)' : (prediction.predict_type === 'second_half' || prediction.predictType === 'second_half' ? 'Hiệp 2 (H2)' : 'Cả trận (FT)')}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center justify-center space-x-6 my-4">
+                    <div className="flex flex-col items-center flex-1 max-w-[140px]">
+                      <span className="text-[11px] sm:text-xs font-semibold text-gray-500 mb-1 text-center line-clamp-2 min-h-[32px] flex items-center justify-center">{match.homeTeam}</span>
+                      <span className="text-3xl sm:text-4xl font-black text-white glow-green">{prediction.predicted_home_score ?? prediction.predictedScore?.home}</span>
+                    </div>
+                    <span className="text-xl font-bold text-card-border self-end mb-2">-</span>
+                    <div className="flex flex-col items-center flex-1 max-w-[140px]">
+                      <span className="text-[11px] sm:text-xs font-semibold text-gray-500 mb-1 text-center line-clamp-2 min-h-[32px] flex items-center justify-center">{match.awayTeam}</span>
+                      <span className="text-3xl sm:text-4xl font-black text-white glow-cyan">{prediction.predicted_away_score ?? prediction.predictedScore?.away}</span>
+                    </div>
                   </div>
 
-                  {predictType === 'second_half' && (
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="flex flex-col space-y-1">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tỷ số H1 - {match.homeTeam}</label>
-                        <input
-                          type="number"
-                          min="0"
-                          placeholder="0"
-                          value={firstHalfHomeScore}
-                          onChange={(e) => setFirstHalfHomeScore(e.target.value)}
-                          className="bg-[#0B0F17] border border-card-border rounded-xl p-2 text-xs text-white focus:outline-none focus:border-primary text-center font-bold"
-                        />
-                      </div>
-                      <div className="flex flex-col space-y-1">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tỷ số H1 - {match.awayTeam}</label>
-                        <input
-                          type="number"
-                          min="0"
-                          placeholder="0"
-                          value={firstHalfAwayScore}
-                          onChange={(e) => setFirstHalfAwayScore(e.target.value)}
-                          className="bg-[#0B0F17] border border-card-border rounded-xl p-2 text-xs text-white focus:outline-none focus:border-primary text-center font-bold"
-                        />
-                      </div>
+                  <div className="mt-4 space-y-2">
+                    {/* Read values safely supporting DB columns and API payload properties */}
+                    {(() => {
+                      const prob = {
+                        home: prediction.win_prob_home ?? prediction.winProbability?.home ?? 33,
+                        draw: prediction.win_prob_draw ?? prediction.winProbability?.draw ?? 34,
+                        away: prediction.win_prob_away ?? prediction.winProbability?.away ?? 33
+                      };
+                      return (
+                        <>
+                          <div className="flex justify-between text-[10px] font-semibold text-gray-400">
+                             <span>{match.homeTeam} ({prob.home}%)</span>
+                             <span>Hòa ({prob.draw}%)</span>
+                             <span>{match.awayTeam} ({prob.away}%)</span>
+                          </div>
+                          <div className="h-3 w-full rounded-full overflow-hidden flex bg-card-border">
+                            <div className="h-full bg-gradient-to-r from-primary to-primary/80" style={{ width: `${prob.home}%` }}></div>
+                            <div className="h-full bg-gray-500" style={{ width: `${prob.draw}%` }}></div>
+                            <div className="h-full bg-gradient-to-r from-secondary/80 to-secondary" style={{ width: `${prob.away}%` }}></div>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                {/* Detailed AI Analysis */}
+                <div className="glass-panel rounded-xl p-4 border border-card-border space-y-4">
+                  <h3 className="text-gray-400 font-bold text-xs uppercase tracking-wider pb-2 border-b border-card-border/50">
+                    Nhận Định Chiến Thuật & Lực Lượng
+                  </h3>
+
+                  {/* Model Info */}
+                  {!prediction.isMock && (prediction.modelUsed || prediction.model_used) && (
+                    <div className="text-[9px] text-gray-550 font-bold uppercase tracking-wider flex items-center space-x-1.5 bg-card-border/20 border border-card-border/40 py-0.5 px-3 rounded-full w-fit">
+                      <span>MÔ HÌNH: {prediction.modelUsed || prediction.model_used || 'gemini-2.5-flash'}</span>
                     </div>
                   )}
 
-                  <button
-                    onClick={handleRunNewPrediction}
-                    disabled={predicting}
-                    className={`w-full bg-gradient-to-r from-primary to-secondary text-white font-bold py-2.5 px-4 rounded-xl text-xs tracking-wider transition-all duration-150 flex items-center justify-center space-x-1.5 shadow-md shadow-primary/10 ${
-                      predicting ? 'opacity-50 cursor-not-allowed scale-100' : 'hover:scale-[1.01] active:scale-[0.99] cursor-pointer'
-                    }`}
-                  >
-                    {predicting ? (
-                      <>
-                        <span className="animate-spin inline-block">🔄</span>
-                        <span>ĐANG DỰ ĐOÁN...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>🧠</span>
-                        <span>DỰ ĐOÁN MỚI</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Win Probability & Score Card */}
-              <div className="glass-panel rounded-xl p-4 border border-card-border glow-green relative overflow-hidden">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-gray-400 font-bold text-xs uppercase tracking-wider">Tỷ Số Dự Đoán & Xác Suất</h3>
-                  <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
-                    prediction.predict_type === 'first_half' || prediction.predictType === 'first_half'
-                      ? 'bg-primary/20 text-primary border border-primary/20'
-                      : prediction.predict_type === 'second_half' || prediction.predictType === 'second_half'
-                        ? 'bg-secondary/20 text-secondary border border-secondary/20'
-                        : 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
-                  }`}>
-                    {prediction.predict_type === 'first_half' || prediction.predictType === 'first_half' ? 'Hiệp 1 (H1)' : (prediction.predict_type === 'second_half' || prediction.predictType === 'second_half' ? 'Hiệp 2 (H2)' : 'Cả trận (FT)')}
-                  </span>
-                </div>
-                
-                <div className="flex items-center justify-center space-x-6 my-4">
-                  <div className="flex flex-col items-center flex-1 max-w-[140px]">
-                    <span className="text-[11px] sm:text-xs font-semibold text-gray-500 mb-1 text-center line-clamp-2 min-h-[32px] flex items-center justify-center">{match.homeTeam}</span>
-                    <span className="text-3xl sm:text-4xl font-black text-white glow-green">{prediction.predicted_home_score ?? prediction.predictedScore?.home}</span>
+                  {/* Home/Away Analyses */}
+                  <div className="space-y-1">
+                    <h4 className="font-extrabold text-xs text-white flex items-center space-x-1.5">
+                      {getTeamFlag(match.homeTeam, "w-5 h-3.5")}
+                      <span>Phân tích tuyển {match.homeTeam}:</span>
+                    </h4>
+                    <p className="text-xs text-gray-300 leading-relaxed">{prediction.analysis?.homeTeam || prediction.home_team_analysis || 'Đội tuyển sở hữu lối chơi đồng đều, tuyến tiền vệ tổ chức tốt.'}</p>
                   </div>
-                  <span className="text-xl font-bold text-card-border self-end mb-2">-</span>
-                  <div className="flex flex-col items-center flex-1 max-w-[140px]">
-                    <span className="text-[11px] sm:text-xs font-semibold text-gray-500 mb-1 text-center line-clamp-2 min-h-[32px] flex items-center justify-center">{match.awayTeam}</span>
-                    <span className="text-3xl sm:text-4xl font-black text-white glow-cyan">{prediction.predicted_away_score ?? prediction.predictedScore?.away}</span>
+
+                  <div className="space-y-1 pt-1.5">
+                    <h4 className="font-extrabold text-xs text-white flex items-center space-x-1.5">
+                      {getTeamFlag(match.awayTeam, "w-5 h-3.5")}
+                      <span>Phân tích tuyển {match.awayTeam}:</span>
+                    </h4>
+                    <p className="text-xs text-gray-300 leading-relaxed">{prediction.analysis?.awayTeam || prediction.away_team_analysis || 'Đội hình có thiên hướng phòng ngự phản công kỷ luật cao.'}</p>
                   </div>
-                </div>
 
-                <div className="mt-4 space-y-2">
-                  {/* Read values safely supporting DB columns and API payload properties */}
-                  {(() => {
-                    const prob = {
-                      home: prediction.win_prob_home ?? prediction.winProbability?.home ?? 33,
-                      draw: prediction.win_prob_draw ?? prediction.winProbability?.draw ?? 34,
-                      away: prediction.win_prob_away ?? prediction.winProbability?.away ?? 33
-                    };
-                    return (
-                      <>
-                        <div className="flex justify-between text-[10px] font-semibold text-gray-400">
-                           <span>{match.homeTeam} ({prob.home}%)</span>
-                           <span>Hòa ({prob.draw}%)</span>
-                           <span>{match.awayTeam} ({prob.away}%)</span>
-                        </div>
-                        <div className="h-3 w-full rounded-full overflow-hidden flex bg-card-border">
-                          <div className="h-full bg-gradient-to-r from-primary to-primary/80" style={{ width: `${prob.home}%` }}></div>
-                          <div className="h-full bg-gray-500" style={{ width: `${prob.draw}%` }}></div>
-                          <div className="h-full bg-gradient-to-r from-secondary/80 to-secondary" style={{ width: `${prob.away}%` }}></div>
-                        </div>
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
-
-              {/* Runs Comparison/History List */}
-              {historyList.length > 0 && (
-                <div className="glass-panel rounded-xl p-4 border border-card-border">
-                  <h3 className="text-gray-400 font-bold text-xs mb-3 uppercase tracking-wider flex items-center justify-between">
-                    <span>Lịch sử các lần dự đoán</span>
-                    <span className="text-[10px] text-gray-500 font-normal">Click để so sánh</span>
-                  </h3>
-                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                    {historyList.map((run, idx) => {
-                      const isActive = run.id === prediction.id;
-                      // Read score fields supporting database fields or nested API payload fields
-                      const pHome = run.predicted_home_score ?? run.predictedScore?.home;
-                      const pAway = run.predicted_away_score ?? run.predictedScore?.away;
-                      
-                      const pType = run.predict_type || run.predictType || 'full_time';
-                      const isFirstHalfType = pType === 'first_half';
-                      const actH = isFirstHalfType ? (run.actual_first_half_home_score ?? run.actualFirstHalfHomeScore) : run.actual_home_score;
-                      const actA = isFirstHalfType ? (run.actual_first_half_away_score ?? run.actualFirstHalfAwayScore) : run.actual_away_score;
-                      const hasActualResult = actH !== null && actH !== undefined && actA !== null && actA !== undefined;
-
-                      return (
-                        <div
-                          key={run.id}
-                          onClick={() => {
-                            setPrediction(run);
-                            saveLastUsedModel(run.modelUsed || run.model_used);
-                          }}
-                          className={`p-2.5 rounded-lg border text-xs cursor-pointer transition-all duration-150 flex items-center justify-between ${
-                            isActive 
-                              ? 'border-primary bg-primary/5 text-white shadow-sm glow-green' 
-                              : 'border-card-border/60 hover:border-card-border bg-card-border/10 text-gray-400 hover:text-white'
-                          }`}
-                        >
-                          <div className="flex flex-col space-y-0.5">
-                            <div className="flex items-center space-x-1.5">
-                              <span className="font-bold"># Lượt {historyList.length - idx}</span>
-                              <span className={`px-1 py-0.2 rounded text-[8px] font-black uppercase ${
-                                pType === 'first_half'
-                                  ? 'bg-primary/20 text-primary border border-primary/20'
-                                  : pType === 'second_half'
-                                    ? 'bg-secondary/20 text-secondary border border-secondary/20'
-                                    : 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
-                              }`}>
-                                {pType === 'first_half' ? 'H1' : (pType === 'second_half' ? 'H2' : 'FT')}
-                              </span>
-                            </div>
-                            <span className="text-[9px] text-gray-500">{formatDate(run.created_at)}</span>
-                          </div>
-                          
-                          <div className="flex items-center space-x-2">
-                            <span className="font-mono font-extrabold text-sm text-gray-200 bg-card-border/30 px-2 py-0.5 rounded border border-card-border/30">
-                              Dự đoán: {pHome}-{pAway}
-                            </span>
-                            {hasActualResult && (() => {
-                              const status = getPredictionStatus(
-                                pHome, 
-                                pAway, 
-                                run.actual_home_score, 
-                                run.actual_away_score, 
-                                pType, 
-                                run.actual_first_half_home_score ?? run.actualFirstHalfHomeScore, 
-                                run.actual_first_half_away_score ?? run.actualFirstHalfAwayScore
-                              );
-                              return (
-                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${status.colorClass}`}>
-                                  {status.text} ({actH}-{actA})
-                                </span>
-                              );
-                            })()}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Recommended Bets Card */}
-              {(() => {
-                const evalDetails = prediction.bet_evaluation_details;
-                const showOutcome = evalDetails && (prediction.actual_home_score !== null && prediction.actual_home_score !== undefined);
-                
-                const renderBetOutcomeBadge = (betType) => {
-                  if (!showOutcome || !evalDetails[betType]) return null;
-                  const { outcome, reason } = evalDetails[betType];
-                  if (outcome === 'correct') {
-                    return (
-                      <span className="bg-primary/20 text-primary border border-primary/30 font-bold px-1.5 py-0.5 rounded text-[9px] flex items-center space-x-1" title={reason}>
-                        <span>🟢 Đúng</span>
-                      </span>
-                    );
-                  } else if (outcome === 'incorrect') {
-                    return (
-                      <span className="bg-red-500/20 text-red-400 border border-red-500/30 font-bold px-1.5 py-0.5 rounded text-[9px] flex items-center space-x-1" title={reason}>
-                        <span>🔴 Sai</span>
-                      </span>
-                    );
-                  } else if (outcome === 'refund') {
-                    return (
-                      <span className="bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 font-bold px-1.5 py-0.5 rounded text-[9px] flex items-center space-x-1" title={reason}>
-                        <span>🟡 Hòa</span>
-                      </span>
-                    );
-                  }
-                  return null;
-                };
-
-                return (
-                  <div className="glass-panel rounded-xl p-4 border border-card-border">
-                    <h3 className="text-gray-400 font-bold text-xs mb-3 uppercase tracking-wider">Soi Kèo Cùng AI Pundit</h3>
-                    
-                    <div className="space-y-3 text-xs">
-                      {/* Kèo 1X2 */}
-                      <div className="p-3 rounded-lg bg-card-border/20 border border-card-border/50">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[10px] font-bold text-gray-500 uppercase">Kèo Châu Âu (1X2)</span>
-                          <div className="flex items-center space-x-1.5">
-                            <span className="bg-primary/20 text-primary border border-primary/20 font-bold px-1.5 py-0.5 rounded text-[10px]">
-                              {translateRecommendation(prediction.recommendation_1x2 ?? prediction.bets?.oneXTwo?.recommendation)}
-                            </span>
-                            {renderBetOutcomeBadge('oneXTwo')}
-                          </div>
-                        </div>
-                        <p className="text-gray-300 leading-relaxed text-[11px]">{prediction.bets?.oneXTwo?.reason || 'Phân tích dựa trên sức mạnh kiểm soát và lợi thế tổng thể.'}</p>
-                      </div>
-
-                      {/* Kèo Tài Xỉu */}
-                      <div className="p-3 rounded-lg bg-card-border/20 border border-card-border/50">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[10px] font-bold text-gray-500 uppercase">Kèo Tài Xỉu (O/U {prediction.ou_line ?? prediction.bets?.overUnder?.line ?? 2.5})</span>
-                          <div className="flex items-center space-x-1.5">
-                            <span className="bg-secondary/20 text-secondary border border-secondary/20 font-bold px-1.5 py-0.5 rounded text-[10px]">
-                              {translateRecommendation(prediction.recommendation_ou ?? prediction.bets?.overUnder?.recommendation)}
-                            </span>
-                            {renderBetOutcomeBadge('overUnder')}
-                          </div>
-                        </div>
-                        <p className="text-gray-300 leading-relaxed text-[11px]">{prediction.bets?.overUnder?.reason || 'Tính toán tần suất và phong độ tấn công/phòng ngự của 2 đội.'}</p>
-                      </div>
-
-                      {/* Kèo Chấp */}
-                      <div className="p-3 rounded-lg bg-card-border/20 border border-card-border/50">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[10px] font-bold text-gray-500 uppercase">Kèo Chấp Châu Á</span>
-                          <div className="flex items-center space-x-1.5">
-                            <span className="bg-accent/20 text-accent border border-accent/20 font-bold px-1.5 py-0.5 rounded text-[10px]">
-                              {translateRecommendation(prediction.recommendation_handicap ?? prediction.bets?.handicap?.recommendation)}
-                            </span>
-                            {renderBetOutcomeBadge('handicap')}
-                          </div>
-                        </div>
-                        <p className="text-gray-300 leading-relaxed text-[11px]">{prediction.bets?.handicap?.reason || 'Đánh giá tỷ lệ chấp kèo châu Á tương quan lực lượng.'}</p>
-                      </div>
-
-                      {/* Kèo Cả Hai Đội Ghi Bàn (BTTS) */}
-                      <div className="p-3 rounded-lg bg-card-border/20 border border-card-border/50">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[10px] font-bold text-gray-500 uppercase">Cả Hai Đội Ghi Bàn (BTTS)</span>
-                          <div className="flex items-center space-x-1.5">
-                            <span className="bg-[#1D4ED8]/25 text-blue-400 border border-[#1D4ED8]/30 font-bold px-1.5 py-0.5 rounded text-[10px]">
-                              {translateRecommendation(prediction.recommendation_btts ?? prediction.bets?.btts?.recommendation)}
-                            </span>
-                            {renderBetOutcomeBadge('btts')}
-                          </div>
-                        </div>
-                        <p className="text-gray-300 leading-relaxed text-[11px]">{prediction.bets?.btts?.reason || 'Phân tích khả năng ghi bàn từ cả hai câu lạc bộ.'}</p>
-                      </div>
-
-                      {/* Kèo Phạt Góc */}
-                      <div className="p-3 rounded-lg bg-card-border/20 border border-card-border/50">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[10px] font-bold text-gray-500 uppercase">Kèo Phạt Góc (O/U {prediction.corners_line ?? prediction.bets?.corners?.line ?? 8.5})</span>
-                          <div className="flex items-center space-x-1.5">
-                            <span className="bg-[#581C87]/25 text-purple-400 border border-[#581C87]/30 font-bold px-1.5 py-0.5 rounded text-[10px]">
-                              {translateRecommendation(prediction.recommendation_corners ?? prediction.bets?.corners?.recommendation)}
-                            </span>
-                            {renderBetOutcomeBadge('corners')}
-                          </div>
-                        </div>
-                        <p className="text-gray-300 leading-relaxed text-[11px]">{prediction.bets?.corners?.reason || 'Tỷ lệ phạt góc dựa trên nhịp độ trận đấu và thói quen đá biên.'}</p>
-                      </div>
-
-                      {/* Kèo Thẻ Phạt */}
-                      <div className="p-3 rounded-lg bg-card-border/20 border border-card-border/50">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[10px] font-bold text-gray-500 uppercase">Kèo Thẻ Phạt (O/U {prediction.cards_line ?? prediction.bets?.cards?.line ?? 3.5})</span>
-                          <div className="flex items-center space-x-1.5">
-                            <span className="bg-[#D97706]/20 text-[#F59E0B] border border-[#D97706]/35 font-bold px-1.5 py-0.5 rounded text-[10px]">
-                              {translateRecommendation(prediction.recommendation_cards ?? prediction.bets?.cards?.recommendation)}
-                            </span>
-                            {renderBetOutcomeBadge('cards')}
-                          </div>
-                        </div>
-                        <p className="text-gray-300 leading-relaxed text-[11px]">{prediction.bets?.cards?.reason || 'Đánh giá số lượng thẻ phạt từ mức độ quyết liệt và lịch sử phạm lỗi.'}</p>
-                      </div>
+                  {/* Key Factors */}
+                  {prediction.analysis?.keyFactors && (
+                    <div className="space-y-1.5 pt-1.5">
+                      <h4 className="font-extrabold text-xs text-white">Yếu tố quyết định trận đấu:</h4>
+                      <ul className="space-y-1">
+                        {prediction.analysis.keyFactors.map((factor, idx) => (
+                          <li key={idx} className="flex items-start text-xs text-gray-300">
+                            <span className="text-primary mr-1.5">✓</span>
+                            <span>{factor}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
+                  )}
 
-                    {showOutcome && evalDetails && evalDetails.summary && (
-                      <div className="mt-3 pt-2.5 border-t border-card-border/30 text-[10px] text-gray-400 italic">
-                        📢 <span className="font-bold text-gray-350">AI Nhận Xét:</span> {evalDetails.summary}
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-
-            </div>
-
-            {/* Right Column: AI Analysis & Search Sources & Result Entry (7 Cols) */}
-            <div className="lg:col-span-7 space-y-4">
-              
-              {/* Detailed AI Analysis */}
-              <div className="glass-panel rounded-xl p-4 border border-card-border space-y-4">
-                <h3 className="text-gray-400 font-bold text-xs uppercase tracking-wider pb-2 border-b border-card-border/50">
-                  Nhận Định Chiến Thuật & Lực Lượng
-                </h3>
-
-                {/* Model Info */}
-                {!prediction.isMock && (prediction.modelUsed || prediction.model_used) && (
-                  <div className="text-[9px] text-gray-550 font-bold uppercase tracking-wider flex items-center space-x-1.5 bg-card-border/20 border border-card-border/40 py-0.5 px-3 rounded-full w-fit">
-                    <span>MÔ HÌNH: {prediction.modelUsed || prediction.model_used || 'gemini-2.5-flash'}</span>
-                  </div>
-                )}
-
-                {/* Home/Away Analyses */}
-                <div className="space-y-1">
-                  <h4 className="font-extrabold text-xs text-white flex items-center space-x-1.5">
-                    {getTeamFlag(match.homeTeam, "w-5 h-3.5")}
-                    <span>Phân tích tuyển {match.homeTeam}:</span>
-                  </h4>
-                  <p className="text-xs text-gray-300 leading-relaxed">{prediction.analysis?.homeTeam || prediction.home_team_analysis || 'Đội tuyển sở hữu lối chơi đồng đều, tuyến tiền vệ tổ chức tốt.'}</p>
-                </div>
-
-                <div className="space-y-1 pt-1.5">
-                  <h4 className="font-extrabold text-xs text-white flex items-center space-x-1.5">
-                    {getTeamFlag(match.awayTeam, "w-5 h-3.5")}
-                    <span>Phân tích tuyển {match.awayTeam}:</span>
-                  </h4>
-                  <p className="text-xs text-gray-300 leading-relaxed">{prediction.analysis?.awayTeam || prediction.away_team_analysis || 'Đội hình có thiên hướng phòng ngự phản công kỷ luật cao.'}</p>
-                </div>
-
-                {/* Key Factors */}
-                {prediction.analysis?.keyFactors && (
+                  {/* Tactical reasoning */}
                   <div className="space-y-1.5 pt-1.5">
-                    <h4 className="font-extrabold text-xs text-white">Yếu tố quyết định trận đấu:</h4>
-                    <ul className="space-y-1">
-                      {prediction.analysis.keyFactors.map((factor, idx) => (
-                        <li key={idx} className="flex items-start text-xs text-gray-300">
-                          <span className="text-primary mr-1.5">✓</span>
-                          <span>{factor}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    <h4 className="font-extrabold text-xs text-white">Lý giải chi tiết:</h4>
+                    <p className="text-xs text-gray-300 leading-relaxed bg-card-border/10 border border-card-border/40 p-3 rounded-lg font-medium">
+                      {prediction.analysis?.predictionReasoning || prediction.prediction_reasoning || 'AI đánh giá cao khả năng áp đặt lối chơi và ghi bàn đột biến của bên tấn công.'}
+                    </p>
                   </div>
-                )}
-
-                {/* Tactical reasoning */}
-                <div className="space-y-1.5 pt-1.5">
-                  <h4 className="font-extrabold text-xs text-white">Lý giải chi tiết:</h4>
-                  <p className="text-xs text-gray-300 leading-relaxed bg-card-border/10 border border-card-border/40 p-3 rounded-lg font-medium">
-                    {prediction.analysis?.predictionReasoning || prediction.prediction_reasoning || 'AI đánh giá cao khả năng áp đặt lối chơi và ghi bàn đột biến của bên tấn công.'}
-                  </p>
                 </div>
+
               </div>
+            )}
 
-              {/* Admin Results Update Panel */}
-              <div className="glass-panel rounded-xl p-4 border border-card-border space-y-3.5">
-                <div>
-                  <h3 className="text-gray-400 font-bold text-xs mb-1 uppercase tracking-wider">Cập Nhật Kết Quả Thực Tế</h3>
-                  <p className="text-[10px] text-gray-500 leading-normal">
-                    AI sẽ tự động tra cứu tỉ số thực tế trực tuyến thông qua Google Search để cập nhật kết quả và chấm điểm các dự đoán.
-                  </p>
-                </div>
+            {/* Tab: Soi kèo */}
+            {activeTab === 'bets' && (
+              <div className="space-y-4 animate-fade-in">
                 
-                {/* Auto Update Button */}
-                <button
-                  type="button"
-                  onClick={handleAutoUpdateResult}
-                  disabled={updatingAuto}
-                  className="w-full bg-[#151E2E] hover:bg-primary/20 border border-card-border hover:border-primary/50 text-white font-bold py-2 px-3 rounded-lg text-xs tracking-wider transition-all flex items-center justify-center space-x-1.5 shadow-sm active:scale-[0.99] cursor-pointer"
-                >
-                  <span>🤖</span>
-                  <span>{updatingAuto ? 'Đang tìm kiếm & chấm điểm...' : 'TỰ ĐỘNG CẬP NHẬT (AI & GOOGLE SEARCH)'}</span>
-                </button>
+                {/* Recommended Bets Card */}
+                {(() => {
+                  const evalDetails = prediction.bet_evaluation_details;
+                  const showOutcome = evalDetails && (prediction.actual_home_score !== null && prediction.actual_home_score !== undefined);
+                  
+                  const renderBetOutcomeBadge = (betType) => {
+                    if (!showOutcome || !evalDetails[betType]) return null;
+                    const { outcome, reason } = evalDetails[betType];
+                    if (outcome === 'correct') {
+                      return (
+                        <span className="bg-primary/20 text-primary border border-primary/30 font-bold px-1.5 py-0.5 rounded text-[9px] flex items-center space-x-1" title={reason}>
+                          <span>🟢 Đúng</span>
+                        </span>
+                      );
+                    } else if (outcome === 'incorrect') {
+                      return (
+                        <span className="bg-red-500/20 text-red-400 border border-red-500/30 font-bold px-1.5 py-0.5 rounded text-[9px] flex items-center space-x-1" title={reason}>
+                          <span>🔴 Sai</span>
+                        </span>
+                      );
+                    } else if (outcome === 'refund') {
+                      return (
+                        <span className="bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 font-bold px-1.5 py-0.5 rounded text-[9px] flex items-center space-x-1" title={reason}>
+                          <span>🟡 Hòa</span>
+                        </span>
+                      );
+                    }
+                    return null;
+                  };
 
-                {resMessage && (
-                  <div className={`mt-3 p-2.5 rounded-lg border text-xs leading-relaxed ${
-                    resMessage.success 
-                      ? 'border-primary/30 bg-primary/5 text-primary' 
-                      : 'border-red-500/30 bg-red-950/10 text-red-400'
-                  }`}>
-                    {resMessage.text}
-                  </div>
-                )}
+                  return (
+                    <div className="glass-panel rounded-xl p-4 border border-card-border">
+                      <h3 className="text-gray-400 font-bold text-xs mb-3 uppercase tracking-wider">Soi Kèo Cùng AI Pundit</h3>
+                      
+                      <div className="space-y-3 text-xs">
+                        {/* Kèo 1X2 */}
+                        <div className="p-3 rounded-lg bg-card-border/20 border border-card-border/50">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[10px] font-bold text-gray-500 uppercase">Kèo Châu Âu (1X2)</span>
+                            <div className="flex items-center space-x-1.5">
+                              <span className="bg-primary/20 text-primary border border-primary/20 font-bold px-1.5 py-0.5 rounded text-[10px]">
+                                {translateRecommendation(prediction.recommendation_1x2 ?? prediction.bets?.oneXTwo?.recommendation)}
+                              </span>
+                              {renderBetOutcomeBadge('oneXTwo')}
+                            </div>
+                          </div>
+                          <p className="text-gray-300 leading-relaxed text-[11px]">{prediction.bets?.oneXTwo?.reason || 'Phân tích dựa trên sức mạnh kiểm soát và lợi thế tổng thể.'}</p>
+                        </div>
+
+                        {/* Kèo Tài Xỉu */}
+                        <div className="p-3 rounded-lg bg-card-border/20 border border-card-border/50">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[10px] font-bold text-gray-500 uppercase">Kèo Tài Xỉu (O/U {prediction.ou_line ?? prediction.bets?.overUnder?.line ?? 2.5})</span>
+                            <div className="flex items-center space-x-1.5">
+                              <span className="bg-secondary/20 text-secondary border border-secondary/20 font-bold px-1.5 py-0.5 rounded text-[10px]">
+                                {translateRecommendation(prediction.recommendation_ou ?? prediction.bets?.overUnder?.recommendation)}
+                              </span>
+                              {renderBetOutcomeBadge('overUnder')}
+                            </div>
+                          </div>
+                          <p className="text-gray-300 leading-relaxed text-[11px]">{prediction.bets?.overUnder?.reason || 'Tính toán tần suất và phong độ tấn công/phòng ngự của 2 đội.'}</p>
+                        </div>
+
+                        {/* Kèo Chấp */}
+                        <div className="p-3 rounded-lg bg-card-border/20 border border-card-border/50">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[10px] font-bold text-gray-500 uppercase">Kèo Chấp Châu Á</span>
+                            <div className="flex items-center space-x-1.5">
+                              <span className="bg-accent/20 text-accent border border-accent/20 font-bold px-1.5 py-0.5 rounded text-[10px]">
+                                {translateRecommendation(prediction.recommendation_handicap ?? prediction.bets?.handicap?.recommendation)}
+                              </span>
+                              {renderBetOutcomeBadge('handicap')}
+                            </div>
+                          </div>
+                          <p className="text-gray-300 leading-relaxed text-[11px]">{prediction.bets?.handicap?.reason || 'Đánh giá tỷ lệ chấp kèo châu Á tương quan lực lượng.'}</p>
+                        </div>
+
+                        {/* Kèo Cả Hai Đội Ghi Bàn (BTTS) */}
+                        <div className="p-3 rounded-lg bg-card-border/20 border border-card-border/50">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[10px] font-bold text-gray-500 uppercase">Cả Hai Đội Ghi Bàn (BTTS)</span>
+                            <div className="flex items-center space-x-1.5">
+                              <span className="bg-[#1D4ED8]/25 text-blue-400 border border-[#1D4ED8]/30 font-bold px-1.5 py-0.5 rounded text-[10px]">
+                                {translateRecommendation(prediction.recommendation_btts ?? prediction.bets?.btts?.recommendation)}
+                              </span>
+                              {renderBetOutcomeBadge('btts')}
+                            </div>
+                          </div>
+                          <p className="text-gray-300 leading-relaxed text-[11px]">{prediction.bets?.btts?.reason || 'Phân tích khả năng ghi bàn từ cả hai câu lạc bộ.'}</p>
+                        </div>
+
+                        {/* Kèo Phạt Góc */}
+                        <div className="p-3 rounded-lg bg-card-border/20 border border-card-border/50">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[10px] font-bold text-gray-500 uppercase">Kèo Phạt Góc (O/U {prediction.corners_line ?? prediction.bets?.corners?.line ?? 8.5})</span>
+                            <div className="flex items-center space-x-1.5">
+                              <span className="bg-[#581C87]/25 text-purple-400 border border-[#581C87]/30 font-bold px-1.5 py-0.5 rounded text-[10px]">
+                                {translateRecommendation(prediction.recommendation_corners ?? prediction.bets?.corners?.recommendation)}
+                              </span>
+                              {renderBetOutcomeBadge('corners')}
+                            </div>
+                          </div>
+                          <p className="text-gray-300 leading-relaxed text-[11px]">{prediction.bets?.corners?.reason || 'Tỷ lệ phạt góc dựa trên nhịp độ trận đấu và thói quen đá biên.'}</p>
+                        </div>
+
+                        {/* Kèo Thẻ Phạt */}
+                        <div className="p-3 rounded-lg bg-card-border/20 border border-card-border/50">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[10px] font-bold text-gray-500 uppercase">Kèo Thẻ Phạt (O/U {prediction.cards_line ?? prediction.bets?.cards?.line ?? 3.5})</span>
+                            <div className="flex items-center space-x-1.5">
+                              <span className="bg-[#D97706]/20 text-[#F59E0B] border border-[#D97706]/35 font-bold px-1.5 py-0.5 rounded text-[10px]">
+                                {translateRecommendation(prediction.recommendation_cards ?? prediction.bets?.cards?.recommendation)}
+                              </span>
+                              {renderBetOutcomeBadge('cards')}
+                            </div>
+                          </div>
+                          <p className="text-gray-300 leading-relaxed text-[11px]">{prediction.bets?.cards?.reason || 'Đánh giá số lượng thẻ phạt từ mức độ quyết liệt và lịch sử phạm lỗi.'}</p>
+                        </div>
+                      </div>
+
+                      {showOutcome && evalDetails && evalDetails.summary && (
+                        <div className="mt-3 pt-2.5 border-t border-card-border/30 text-[10px] text-gray-400 italic">
+                          📢 <span className="font-bold text-gray-350">AI Nhận Xét:</span> {evalDetails.summary}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
               </div>
+            )}
 
+            {/* Tab: Trợ lý soi kèo (luôn mount, ẩn/hiện bằng class hidden để bảo toàn trạng thái chat) */}
+            <div className={`space-y-4 ${activeTab === 'chat' ? 'animate-fade-in' : 'hidden'}`}>
+              
               {/* Khung trò chuyện cùng AI Soi kèo */}
               <div className="glass-panel rounded-xl p-4 border border-card-border space-y-4">
                 <h3 className="text-gray-400 font-bold text-xs uppercase tracking-wider pb-2 border-b border-card-border/50 flex items-center justify-between">
@@ -1332,31 +1266,146 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
                 </form>
               </div>
 
-              {/* Grounded Sources */}
-              {prediction.sources && prediction.sources.length > 0 && (
-                <div className="glass-panel rounded-xl p-4 border border-card-border">
-                  <h3 className="text-gray-400 font-bold text-xs uppercase tracking-wider mb-3">
-                    Nguồn tin tham khảo (Google Search Grounding)
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {prediction.sources.map((src, idx) => (
-                      <a 
-                        key={idx}
-                        href={src.uri}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 rounded-lg bg-card-border/20 border border-card-border hover:border-primary/50 transition-colors flex items-center space-x-1.5 text-xs text-gray-300 hover:text-primary"
-                      >
-                        <span>📰</span>
-                        <span className="truncate flex-1 font-semibold text-[10px]">{src.title}</span>
-                        <span className="text-gray-500 font-bold text-[10px]">↗</span>
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-
             </div>
+
+            {/* Tab: Lịch sử & Quản trị */}
+            {activeTab === 'history' && (
+              <div className="space-y-4 animate-fade-in">
+                
+                {/* Runs Comparison/History List */}
+                {historyList.length > 0 && (
+                  <div className="glass-panel rounded-xl p-4 border border-card-border">
+                    <h3 className="text-gray-400 font-bold text-xs mb-3 uppercase tracking-wider flex items-center justify-between">
+                      <span>Lịch sử các lần dự đoán</span>
+                      <span className="text-[10px] text-gray-500 font-normal">Click để so sánh</span>
+                    </h3>
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                      {historyList.map((run, idx) => {
+                        const isActive = run.id === prediction.id;
+                        // Read score fields supporting database fields or nested API payload fields
+                        const pHome = run.predicted_home_score ?? run.predictedScore?.home;
+                        const pAway = run.predicted_away_score ?? run.predictedScore?.away;
+                        
+                        const pType = run.predict_type || run.predictType || 'full_time';
+                        const isFirstHalfType = pType === 'first_half';
+                        const actH = isFirstHalfType ? (run.actual_first_half_home_score ?? run.actualFirstHalfHomeScore) : run.actual_home_score;
+                        const actA = isFirstHalfType ? (run.actual_first_half_away_score ?? run.actualFirstHalfAwayScore) : run.actual_away_score;
+                        const hasActualResult = actH !== null && actH !== undefined && actA !== null && actA !== undefined;
+
+                        return (
+                          <div
+                            key={run.id}
+                            onClick={() => {
+                              setPrediction(run);
+                              saveLastUsedModel(run.modelUsed || run.model_used);
+                            }}
+                            className={`p-2.5 rounded-lg border text-xs cursor-pointer transition-all duration-150 flex items-center justify-between ${
+                              isActive 
+                                ? 'border-primary bg-primary/5 text-white shadow-sm glow-green' 
+                                : 'border-card-border/60 hover:border-card-border bg-card-border/10 text-gray-400 hover:text-white'
+                            }`}
+                          >
+                            <div className="flex flex-col space-y-0.5">
+                              <div className="flex items-center space-x-1.5">
+                                <span className="font-bold"># Lượt {historyList.length - idx}</span>
+                                <span className={`px-1 py-0.2 rounded text-[8px] font-black uppercase ${
+                                  pType === 'first_half'
+                                    ? 'bg-primary/20 text-primary border border-primary/20'
+                                    : pType === 'second_half'
+                                      ? 'bg-secondary/20 text-secondary border border-secondary/20'
+                                      : 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
+                                }`}>
+                                  {pType === 'first_half' ? 'H1' : (pType === 'second_half' ? 'H2' : 'FT')}
+                                </span>
+                              </div>
+                              <span className="text-[9px] text-gray-500">{formatDate(run.created_at)}</span>
+                            </div>
+                            
+                            <div className="flex items-center space-x-2">
+                              <span className="font-mono font-extrabold text-sm text-gray-200 bg-card-border/30 px-2 py-0.5 rounded border border-card-border/30">
+                                Dự đoán: {pHome}-{pAway}
+                              </span>
+                              {hasActualResult && (() => {
+                                const status = getPredictionStatus(
+                                  pHome, 
+                                  pAway, 
+                                  run.actual_home_score, 
+                                  run.actual_away_score, 
+                                  pType, 
+                                  run.actual_first_half_home_score ?? run.actualFirstHalfHomeScore, 
+                                  run.actual_first_half_away_score ?? run.actualFirstHalfAwayScore
+                                );
+                                return (
+                                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${status.colorClass}`}>
+                                    {status.text} ({actH}-{actA})
+                                  </span>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Grounded Sources */}
+                {prediction.sources && prediction.sources.length > 0 && (
+                  <div className="glass-panel rounded-xl p-4 border border-card-border">
+                    <h3 className="text-gray-400 font-bold text-xs uppercase tracking-wider mb-3">
+                      Nguồn tin tham khảo (Google Search Grounding)
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {prediction.sources.map((src, idx) => (
+                        <a 
+                          key={idx}
+                          href={src.uri}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 rounded-lg bg-card-border/20 border border-card-border hover:border-primary/50 transition-colors flex items-center space-x-1.5 text-xs text-gray-300 hover:text-primary"
+                        >
+                          <span>📰</span>
+                          <span className="truncate flex-1 font-semibold text-[10px]">{src.title}</span>
+                          <span className="text-gray-500 font-bold text-[10px]">↗</span>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Admin Results Update Panel */}
+                <div className="glass-panel rounded-xl p-4 border border-card-border space-y-3.5">
+                  <div>
+                    <h3 className="text-gray-400 font-bold text-xs mb-1 uppercase tracking-wider">Cập Nhật Kết Quả Thực Tế</h3>
+                    <p className="text-[10px] text-gray-500 leading-normal">
+                      AI sẽ tự động tra cứu tỉ số thực tế trực tuyến thông qua Google Search để cập nhật kết quả và chấm điểm các dự đoán.
+                    </p>
+                  </div>
+                  
+                  {/* Auto Update Button */}
+                  <button
+                    type="button"
+                    onClick={handleAutoUpdateResult}
+                    disabled={updatingAuto}
+                    className="w-full bg-[#151E2E] hover:bg-primary/20 border border-card-border hover:border-primary/50 text-white font-bold py-2 px-3 rounded-lg text-xs tracking-wider transition-all flex items-center justify-center space-x-1.5 shadow-sm active:scale-[0.99] cursor-pointer"
+                  >
+                    <span>🤖</span>
+                    <span>{updatingAuto ? 'Đang tìm kiếm & chấm điểm...' : 'TỰ ĐỘNG CẬP NHẬT (AI & GOOGLE SEARCH)'}</span>
+                  </button>
+
+                  {resMessage && (
+                    <div className={`mt-3 p-2.5 rounded-lg border text-xs leading-relaxed ${
+                      resMessage.success 
+                        ? 'border-primary/30 bg-primary/5 text-primary' 
+                        : 'border-red-500/30 bg-red-950/10 text-red-400'
+                    }`}>
+                      {resMessage.text}
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            )}
 
           </div>
         )}

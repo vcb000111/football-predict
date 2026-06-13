@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 
-export default function MatchSimulator({ match }) {
+export default function MatchSimulator({ match, isActive = true }) {
   const timeline = match.matchTimeline || [];
   const hasTimeline = timeline.length > 0;
 
@@ -58,7 +58,7 @@ export default function MatchSimulator({ match }) {
 
   // Thuật toán Time Skip & Simulation Engine
   useEffect(() => {
-    if (!isPlaying || isFinished || !hasTimeline) {
+    if (!isPlaying || isFinished || !hasTimeline || !isActive) {
       if (timerRef.current) clearInterval(timerRef.current);
       return;
     }
@@ -147,7 +147,7 @@ export default function MatchSimulator({ match }) {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isPlaying, currentMinute, speedMode, isFinished, hasTimeline]);
+  }, [isPlaying, currentMinute, speedMode, isFinished, hasTimeline, isActive]);
 
   // Hoạt ảnh ngẫu nhiên giữa sân khi không có sự kiện (Idle)
   const simulateIdleMovement = () => {
