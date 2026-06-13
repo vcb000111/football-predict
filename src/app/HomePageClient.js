@@ -43,6 +43,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
   const [selectedSeasonFilter, setSelectedSeasonFilter] = useState('All');
   const [layout, setLayout] = useState('grid'); // 'grid' or 'list'
   const [sortBy, setSortBy] = useState('date'); // 'date' | 'group' | 'history'
+  const [showPastMatches, setShowPastMatches] = useState(false);
   const [quickPredicting, setQuickPredicting] = useState({});
   const [activePredictMenu, setActivePredictMenu] = useState(null);
   const [activeActionMenu, setActiveActionMenu] = useState(null);
@@ -97,6 +98,9 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
       const persistedSearch = localStorage.getItem('homepage_search_query');
       if (persistedSearch) setSearchQuery(persistedSearch);
       
+      const persistedShowPastMatches = localStorage.getItem('homepage_show_past_matches');
+      if (persistedShowPastMatches) setShowPastMatches(persistedShowPastMatches === 'true');
+      
       setIsRestored(true);
     }
   }, []);
@@ -143,6 +147,12 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
       localStorage.setItem('homepage_season_filter', selectedSeasonFilter);
     }
   }, [selectedSeasonFilter, isRestored]);
+
+  useEffect(() => {
+    if (isRestored && typeof window !== 'undefined') {
+      localStorage.setItem('homepage_show_past_matches', showPastMatches.toString());
+    }
+  }, [showPastMatches, isRestored]);
 
   useEffect(() => {
     if (selectedSeasonFilter !== 'All') {
@@ -401,7 +411,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
     new Set(displayFixtures.map(f => f.season).filter(Boolean))
   ).sort();
 
-  // Lọc lịch thi đấu dựa trên tìm kiếm, bảng đấu, giải đấu và mùa giải
+  // Lọc lịch thi đấu dựa trên tìm kiếm, bảng đấu, giải đấu, mùa giải và trận đấu đã qua
   const filteredFixtures = displayFixtures.filter(fixture => {
     const matchesSearch = 
       fixture.homeTeam.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -412,7 +422,10 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
     const matchesTournament = selectedTournamentFilter === 'All' || fixture.tournament === selectedTournamentFilter;
     const matchesSeason = selectedSeasonFilter === 'All' || fixture.season === selectedSeasonFilter;
     
-    return matchesSearch && matchesGroup && matchesTournament && matchesSeason;
+    const isPast = fixture.actualHomeScore !== null && fixture.actualHomeScore !== undefined;
+    const matchesPastFilter = showPastMatches || !isPast;
+    
+    return matchesSearch && matchesGroup && matchesTournament && matchesSeason && matchesPastFilter;
   });
 
   // Sắp xếp các trận đấu dựa trên sortBy
@@ -599,6 +612,20 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                       <option key={s} value={s}>Mùa giải {s}</option>
                     ))}
                   </select>
+                </div>
+                <div className="col-span-2 sm:w-auto flex items-center">
+                  <div className="flex items-center space-x-2 bg-[#0E131F]/80 border border-card-border/80 rounded-lg py-1.5 px-3 select-none cursor-pointer w-full justify-center sm:justify-start">
+                    <input
+                      id="showPastMatchesCheckbox"
+                      type="checkbox"
+                      checked={showPastMatches}
+                      onChange={(e) => setShowPastMatches(e.target.checked)}
+                      className="w-3.5 h-3.5 rounded border-card-border text-primary focus:ring-primary cursor-pointer accent-primary shrink-0"
+                    />
+                    <label htmlFor="showPastMatchesCheckbox" className="text-gray-300 font-medium cursor-pointer text-[10.5px] whitespace-nowrap">
+                      Hiện các trận đã qua
+                    </label>
+                  </div>
                 </div>
               </div>
 
@@ -955,7 +982,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                         {/* Teams & Flags */}
                         <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-3 sm:w-2/5 px-2">
                           {/* Home Team */}
-                          <div className="flex min-w-0 items-center justify-end space-x-2.5">
+                          <div className="flex min-w-0 items-center justify-start space-x-2.5">
                             {getTeamFlag(fixture.homeTeam, "w-6.5 h-4.5 shrink-0")}
                             <span className="truncate font-bold text-white text-right max-w-[125px] sm:max-w-none">{fixture.homeTeam}</span>
                           </div>
@@ -971,7 +998,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                           )}
 
                           {/* Away Team */}
-                          <div className="flex min-w-0 items-center justify-start space-x-2.5">
+                          <div className="flex min-w-0 items-center justify-end space-x-2.5">
                             <span className="truncate font-bold text-white text-left max-w-[125px] sm:max-w-none">{fixture.awayTeam}</span>
                             {getTeamFlag(fixture.awayTeam, "w-6.5 h-4.5 shrink-0")}
                           </div>
