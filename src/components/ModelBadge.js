@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { getLastUsedModel, formatModelName } from '@/lib/models-client';
 
-export default function ModelBadge() {
+export default function ModelBadge({ isFloat = false }) {
   const [modelName, setModelName] = useState('Google Gemini');
 
   useEffect(() => {
@@ -23,6 +23,17 @@ export default function ModelBadge() {
       window.removeEventListener('last-model-used-changed', updateModel);
     };
   }, []);
+
+  if (isFloat) {
+    return (
+      <div className="flex items-center space-x-1.5 bg-[#0D1324]/80 backdrop-blur-md border border-card-border/60 rounded-full py-1 px-2.5 shadow-lg max-w-[180px] overflow-hidden whitespace-nowrap text-ellipsis">
+        <span className="h-1.5 w-1.5 rounded-full bg-primary live-indicator flex-shrink-0"></span>
+        <span className="text-[9px] font-bold text-gray-350 tracking-wide truncate transition-all duration-300">
+          {modelName}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="hidden sm:flex items-center space-x-2 bg-card-border/50 border border-card-border rounded-full py-1 px-3">

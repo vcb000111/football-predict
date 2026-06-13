@@ -36,6 +36,11 @@ export default function RootLayout({ children }) {
           <span className="font-extrabold text-white text-sm tracking-wider">AI</span>
         </Link>
 
+        {/* Model Badge Float cố định trên di động (đối diện với logo AI float bên trái) */}
+        <div className="fixed top-3.5 right-3 z-50 md:hidden">
+          <ModelBadge isFloat={true} />
+        </div>
+
         {/* Navigation Bar (Ẩn trên di động, chỉ hiện trên màn hình lớn) */}
         <header className="hidden md:block sticky top-0 z-50 glass-panel border-b border-card-border">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
