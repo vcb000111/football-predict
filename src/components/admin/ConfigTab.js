@@ -23,6 +23,7 @@ export default function ConfigTab({
   onCheckKey,
   onAddModel,
   onToggleModelStatus,
+  onToggleModelImageSupport,
   onDeleteModel,
   onMoveModel,
   onMoveProvider,
@@ -114,6 +115,7 @@ export default function ConfigTab({
               models={models}
               onAddModel={onAddModel}
               onToggleModelStatus={onToggleModelStatus}
+              onToggleModelImageSupport={onToggleModelImageSupport}
               onDeleteModel={onDeleteModel}
               onMoveModel={onMoveModel}
             />

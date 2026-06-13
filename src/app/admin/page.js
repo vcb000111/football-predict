@@ -393,11 +393,13 @@ export default function AdminConfigPage() {
       return;
     }
     const maxPriority = models.reduce((max, m) => m.priority > max ? m.priority : max, 0);
+    const supportsImage = provider === 'gemini' ? 1 : 0;
     const item = {
       provider,
       model_name: name.trim(),
       priority: maxPriority + 1,
-      status: 1
+      status: 1,
+      supports_image: supportsImage
     };
     setModels([...models, item]);
     showStatusMessage('➕ Đã thêm model tạm thời. Nhớ bấm "Lưu cấu hình" để cập nhật.');
@@ -407,6 +409,13 @@ export default function AdminConfigPage() {
     const updated = [...models];
     updated[index].status = updated[index].status === 1 ? 0 : 1;
     setModels(updated);
+  };
+
+  const handleToggleModelImageSupport = (index) => {
+    const updated = [...models];
+    updated[index].supports_image = updated[index].supports_image === 1 ? 0 : 1;
+    setModels(updated);
+    showStatusMessage('📷 Đã thay đổi cấu hình hỗ trợ hình ảnh của model. Nhớ bấm "Lưu cấu hình" để cập nhật.');
   };
 
   const handleDeleteModel = (index, id) => {
@@ -974,6 +983,7 @@ Chú ý: Chỉ trả về chuỗi JSON thô, không chứa markdown, không có 
                 onCheckKey={handleCheckKey}
                 onAddModel={handleAddModel}
                 onToggleModelStatus={handleToggleModelStatus}
+                onToggleModelImageSupport={handleToggleModelImageSupport}
                 onDeleteModel={handleDeleteModel}
                 onMoveModel={handleMoveModel}
                 onMoveProvider={handleMoveSearchProvider}

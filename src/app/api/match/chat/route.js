@@ -3,7 +3,7 @@ import { GoogleGenAI } from '@google/genai';
 import { getDB } from '@/lib/db';
 
 // Helper xoay vòng API Key
-async function callGeminiModel(model, apiKeys, prompt) {
+async function callGeminiModel(model, apiKeys, contents) {
   let lastError = null;
   for (let keyIdx = 0; keyIdx < apiKeys.length; keyIdx++) {
     const currentKey = apiKeys[keyIdx];
@@ -11,7 +11,7 @@ async function callGeminiModel(model, apiKeys, prompt) {
       const ai = new GoogleGenAI({ apiKey: currentKey });
       const response = await ai.models.generateContent({
         model: model,
-        contents: prompt,
+        contents: contents,
         config: {
           abortSignal: AbortSignal.timeout(40000), // Timeout sau 40 giây
           temperature: 0.2, // Tăng nhẹ tính tự nhiên khi tư vấn
@@ -57,18 +57,19 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const { matchId, message } = await request.json();
+    const { matchId, message, image } = await request.json();
 
-    if (!matchId || !message || !message.trim()) {
+    if (!matchId || ((!message || !message.trim()) && !image)) {
       return NextResponse.json({ error: 'Thiếu thông tin yêu cầu' }, { status: 400 });
     }
 
     const db = await getDB();
+    const cleanMessage = (message || '').trim();
 
     // 1. Lưu tin nhắn của User vào DB
     await db.run(
       `INSERT INTO match_chats (match_id, sender, message) VALUES (?, 'user', ?)`,
-      [matchId, message.trim()]
+      [matchId, cleanMessage || '[Hình ảnh]']
     );
 
     // 2. Lấy thông tin trận đấu để làm context từ DB
@@ -147,24 +148,44 @@ export async function POST(request) {
         '\n\n';
     }
 
-    const finalPrompt = `${systemPrompt}\n\n${conversationContext}Người dùng: ${message.trim()}\nAI:`;
+    const finalPrompt = `${systemPrompt}\n\n${conversationContext}Người dùng: ${cleanMessage}\nAI:`;
 
     // 5. Lấy danh sách Keys & Models xoay vòng từ SQLite
     const activeKeysRows = await db.all("SELECT key_value, provider FROM api_keys WHERE status = 1");
-    const activeModelsRows = await db.all("SELECT model_name, provider FROM ai_models WHERE status = 1 ORDER BY priority ASC");
+    const activeModelsRows = await db.all("SELECT model_name, provider, supports_image FROM ai_models WHERE status = 1 ORDER BY priority ASC");
 
     const geminiKeys = Array.from(new Set(activeKeysRows.filter(r => (r.provider || 'gemini') === 'gemini').map(row => row.key_value.trim())));
-    const models = activeModelsRows.map(row => row.model_name.trim());
 
     if (geminiKeys.length === 0) {
       throw new Error('Hệ thống chưa cấu hình API key Gemini.');
     }
 
     // Chọn model ưu tiên cao nhất của Gemini hoặc mặc định gemini-2.5-flash
-    const targetModel = models.find(m => m.includes('gemini')) || 'gemini-2.5-flash';
+    const activeGeminiModelObj = activeModelsRows.find(m => m.model_name.includes('gemini')) || { model_name: 'gemini-2.5-flash', provider: 'gemini', supports_image: 1 };
+    const targetModel = activeGeminiModelObj.model_name.trim();
+    const targetModelSupportsImage = activeGeminiModelObj.supports_image === 1;
 
-    console.log(`💬 [Match Chat API] Đang gửi prompt chat cho trận ${match.homeTeam} vs ${match.awayTeam} sử dụng model: ${targetModel}`);
-    const aiResult = await callGeminiModel(targetModel, geminiKeys, finalPrompt);
+    console.log(`💬 [Match Chat API] Đang gửi prompt chat cho trận ${match.homeTeam} vs ${match.awayTeam} sử dụng model: ${targetModel} (Hỗ trợ ảnh: ${targetModelSupportsImage})`);
+    
+    let requestContents = finalPrompt;
+    if (image && targetModelSupportsImage) {
+      const matches = image.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+      if (matches && matches.length === 3) {
+        const mimeType = matches[1];
+        const base64Data = matches[2];
+        requestContents = [
+          {
+            inlineData: {
+              data: base64Data,
+              mimeType: mimeType
+            }
+          },
+          finalPrompt
+        ];
+      }
+    }
+
+    const aiResult = await callGeminiModel(targetModel, geminiKeys, requestContents);
     const replyText = aiResult.response.text.trim();
 
     // 6. Lưu câu trả lời của AI vào DB

@@ -331,6 +331,7 @@ export async function getDB() {
         priority INTEGER DEFAULT 1,
         status INTEGER DEFAULT 1,
         provider TEXT DEFAULT 'gemini',
+        supports_image INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -340,6 +341,9 @@ export async function getDB() {
     } catch (e) {}
     try {
       await localDb.exec(`ALTER TABLE ai_models ADD COLUMN provider TEXT DEFAULT 'gemini'`);
+    } catch (e) {}
+    try {
+      await localDb.exec(`ALTER TABLE ai_models ADD COLUMN supports_image INTEGER DEFAULT 0`);
     } catch (e) {}
 
     await localDb.exec(`

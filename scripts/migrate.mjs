@@ -151,11 +151,19 @@ async function runMigration() {
       priority INTEGER DEFAULT 1,
       status INTEGER DEFAULT 1,
       provider TEXT DEFAULT 'gemini',
+      supports_image INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
   try {
     await db.exec(`ALTER TABLE ai_models ADD COLUMN provider TEXT DEFAULT 'gemini'`);
+  } catch (e) {}
+  try {
+    await db.exec(`ALTER TABLE ai_models ADD COLUMN supports_image INTEGER DEFAULT 0`);
+  } catch (e) {}
+  try {
+    await db.exec(`UPDATE ai_models SET supports_image = 1 WHERE model_name LIKE '%gemini%' OR provider = 'gemini'`);
+    console.log('✅ Đã tự động kích hoạt tính năng hỗ trợ ảnh cho các model Gemini trong DB.');
   } catch (e) {}
 
   // 4. Tạo bảng ai_lessons
@@ -312,21 +320,21 @@ async function runMigration() {
 
   // Seed ai_models
   const defaultModels = [
-    { name: 'gemini-3.5-flash', provider: 'gemini', priority: 1 },
-    { name: 'gemini-3-flash-preview', provider: 'gemini', priority: 2 },
-    { name: 'gemini-3.1-flash-lite', provider: 'gemini', priority: 3 },
-    { name: 'gemini-2.5-flash', provider: 'gemini', priority: 4 },
-    { name: 'gemini-2.5-flash-lite', provider: 'gemini', priority: 5 },
-    { name: 'meta-llama/llama-3.3-70b-instruct:free', provider: 'openrouter', priority: 6 },
-    { name: 'meta-llama/llama-3.1-8b-instruct:free', provider: 'openrouter', priority: 7 },
-    { name: 'deepseek/deepseek-chat', provider: 'openrouter', priority: 8 }
+    { name: 'gemini-3.5-flash', provider: 'gemini', priority: 1, supports_image: 1 },
+    { name: 'gemini-3-flash-preview', provider: 'gemini', priority: 2, supports_image: 1 },
+    { name: 'gemini-3.1-flash-lite', provider: 'gemini', priority: 3, supports_image: 1 },
+    { name: 'gemini-2.5-flash', provider: 'gemini', priority: 4, supports_image: 1 },
+    { name: 'gemini-2.5-flash-lite', provider: 'gemini', priority: 5, supports_image: 1 },
+    { name: 'meta-llama/llama-3.3-70b-instruct:free', provider: 'openrouter', priority: 6, supports_image: 0 },
+    { name: 'meta-llama/llama-3.1-8b-instruct:free', provider: 'openrouter', priority: 7, supports_image: 0 },
+    { name: 'deepseek/deepseek-chat', provider: 'openrouter', priority: 8, supports_image: 0 }
   ];
   for (const model of defaultModels) {
     try {
       // Dùng INSERT OR IGNORE
       await db.run(
-        `INSERT OR IGNORE INTO ai_models (model_name, priority, status, provider) VALUES (?, ?, 1, ?)`,
-        [model.name, model.priority, model.provider]
+        `INSERT OR IGNORE INTO ai_models (model_name, priority, status, provider, supports_image) VALUES (?, ?, 1, ?, ?)`,
+        [model.name, model.priority, model.provider, model.supports_image]
       );
     } catch (e) {
       console.warn(`Không thể seed model ${model.name}:`, e.message);
@@ -649,11 +657,6 @@ Tỷ lệ dự đoán đúng kết quả chung cuộc (1X2) gần đây của b�
   // Seed fixtures và groups từ fixtures.json
   console.log('🌱 Khởi tạo và seeding fixtures/tournament_groups...');
   try {
-    // Chỉ dọn dẹp fixtures và tournament_groups để đồng bộ mới hoàn toàn từ fixtures.json
-    await db.run("DELETE FROM fixtures");
-    await db.run("DELETE FROM tournament_groups");
-    console.log('🧹 Đã dọn dẹp dữ liệu cũ trong fixtures và tournament_groups.');
-
     // --- ĐỒNG BỘ DỰ ĐOÁN (PREDICTIONS) TỪ SQLITE LOCAL LÊN CLOUD ---
     if (isProduction) {
       console.log('🔄 Đang kiểm tra và đồng bộ predictions từ SQLite cục bộ lên Turso DB...');
@@ -728,7 +731,7 @@ Tỷ lệ dự đoán đúng kết quả chung cuộc (1X2) gần đây của b�
           if (grp.teams && Array.isArray(grp.teams)) {
             for (const team of grp.teams) {
               groupsStatements.push({
-                sql: `INSERT OR IGNORE INTO tournament_groups (tournament, season, group_name, team_name) VALUES (?, ?, ?, ?)`,
+                sql: `INSERT OR REPLACE INTO tournament_groups (tournament, season, group_name, team_name) VALUES (?, ?, ?, ?)`,
                 args: [defaultTournament, defaultSeason, groupName, team]
               });
             }
@@ -748,7 +751,7 @@ Tỷ lệ dự đoán đúng kết quả chung cuộc (1X2) gần đây của b�
           const isTestVal = f.isTest || (f.tournament && f.tournament.toLowerCase().includes('friendly')) ? 1 : 0;
 
           fixturesStatements.push({
-            sql: `INSERT OR IGNORE INTO fixtures (id, home_team, away_team, match_date, match_time, group_name, venue, tournament, season, actual_home_score, actual_away_score, actual_first_half_home_score, actual_first_half_away_score, is_test) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            sql: `INSERT OR REPLACE INTO fixtures (id, home_team, away_team, match_date, match_time, group_name, venue, tournament, season, actual_home_score, actual_away_score, actual_first_half_home_score, actual_first_half_away_score, is_test) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             args: [
               f.id,
               f.homeTeam,

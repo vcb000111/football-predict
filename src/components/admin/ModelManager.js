@@ -6,6 +6,7 @@ export default function ModelManager({
   models,
   onAddModel,
   onToggleModelStatus,
+  onToggleModelImageSupport,
   onDeleteModel,
   onMoveModel
 }) {
@@ -102,6 +103,15 @@ export default function ModelManager({
                     ▼
                   </button>
                   <span className="w-1 bg-white/5 h-6 mx-1 inline-block"></span>
+                  <button
+                    onClick={() => onToggleModelImageSupport(index)}
+                    className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase border cursor-pointer ${model.supports_image === 1
+                        ? 'bg-blue-500/10 text-blue-400 border-blue-500/30'
+                        : 'bg-gray-500/10 text-gray-400 border-gray-500/30'
+                      }`}
+                  >
+                    {model.supports_image === 1 ? '📷 CÓ ẢNH' : '📷 KHÔNG ẢNH'}
+                  </button>
                   <button
                     onClick={() => onToggleModelStatus(index)}
                     className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase border cursor-pointer ${model.status === 1

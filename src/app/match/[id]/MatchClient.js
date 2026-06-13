@@ -152,7 +152,7 @@ function formatModelName(model) {
   return formatted;
 }
 
-export default function MatchClient({ match }) {
+export default function MatchClient({ match, activeModelSupportsImage }) {
   const [loading, setLoading] = useState(true);
   const [predicting, setPredicting] = useState(false);
   const [error, setError] = useState(null);
@@ -168,6 +168,31 @@ export default function MatchClient({ match }) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
+
+  // States hỗ trợ đính kèm hình ảnh đa phương thức
+  const [imagePreview, setImagePreview] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 4 * 1024 * 1024) {
+      alert('Kích thước ảnh phải dưới 4MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   // States cho Form cập nhật kết quả thực tế
   const [resMessage, setResMessage] = useState(null);
@@ -268,10 +293,16 @@ export default function MatchClient({ match }) {
     };
   }, [match.id]);
 
-  const sendMessageToAI = async (messageText) => {
-    if (!messageText.trim() || sendingChat) return;
+  const sendMessageToAI = async (messageText, base64Image = null) => {
+    if (!messageText.trim() && !base64Image) return;
+    if (sendingChat) return;
 
-    const tempUserMsg = { sender: 'user', message: messageText, created_at: new Date().toISOString() };
+    const tempUserMsg = { 
+      sender: 'user', 
+      message: messageText, 
+      image: base64Image,
+      created_at: new Date().toISOString() 
+    };
     setChatMessages(prev => [...prev, tempUserMsg]);
     setSendingChat(true);
 
@@ -279,14 +310,25 @@ export default function MatchClient({ match }) {
       const res = await fetch('/api/match/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ matchId: match.id, message: messageText })
+        body: JSON.stringify({ 
+          matchId: match.id, 
+          message: messageText,
+          image: base64Image
+        })
       });
       const data = await res.json();
       if (res.ok && data.success) {
         const historyRes = await fetch(`/api/match/chat?matchId=${match.id}`);
         if (historyRes.ok) {
           const histData = await historyRes.json();
-          setChatMessages(histData.messages || []);
+          // Bảo lưu hình ảnh tạm thời để hiển thị trên UI phiên chat hiện tại
+          const updatedMsgs = (histData.messages || []).map((msg, mIdx) => {
+            if (mIdx === histData.messages.length - 2 && msg.sender === 'user') {
+              return { ...msg, image: base64Image };
+            }
+            return msg;
+          });
+          setChatMessages(updatedMsgs.length > 0 ? updatedMsgs : histData.messages);
         }
       } else {
         throw new Error(data.error || 'Gửi tin nhắn thất bại');
@@ -301,15 +343,17 @@ export default function MatchClient({ match }) {
 
   const handleSendChat = async (e) => {
     e.preventDefault();
-    if (!chatInput.trim() || sendingChat) return;
+    if ((!chatInput.trim() && !imagePreview) || sendingChat) return;
 
     const userMsgText = chatInput.trim();
+    const currentImg = imagePreview;
     setChatInput('');
-    await sendMessageToAI(userMsgText);
+    handleRemoveImage();
+    await sendMessageToAI(userMsgText, currentImg);
   };
 
   const handleSuggestedQuestionClick = async (question) => {
-    await sendMessageToAI(question);
+    await sendMessageToAI(question, null);
   };
 
   const handleRunNewPrediction = async () => {
@@ -1057,6 +1101,9 @@ export default function MatchClient({ match }) {
                                 : 'bg-[#151E2E] text-gray-200 border border-card-border rounded-tl-none'
                             }`}
                           >
+                            {msg.image && (
+                              <img src={msg.image} alt="Đính kèm" className="max-w-[180px] sm:max-w-[240px] rounded-xl mb-1.5 border border-card-border shadow-md object-cover animate-fade-in" />
+                            )}
                             {isUser ? (
                               <p className="whitespace-pre-line">{msg.message}</p>
                             ) : (
@@ -1114,20 +1161,54 @@ export default function MatchClient({ match }) {
                   )}
                 </div>
 
+                {/* Image Preview Box */}
+                {imagePreview && (
+                  <div className="relative w-fit bg-card-border/20 border border-card-border p-1.5 rounded-xl flex items-center space-x-2 animate-fade-in mb-2">
+                    <img src={imagePreview} alt="Xem trước" className="w-12 h-12 rounded-lg object-cover" />
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="absolute -top-1.5 -right-1.5 bg-rose-500/80 hover:bg-rose-600 text-white w-4.5 h-4.5 rounded-full flex items-center justify-center text-[9px] font-bold border border-rose-600 cursor-pointer shadow-md"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+
                 {/* Input form */}
-                <form onSubmit={handleSendChat} className="flex gap-2 pt-2 border-t border-card-border/30">
+                <form onSubmit={handleSendChat} className="flex items-center gap-2 pt-2 border-t border-card-border/30">
+                  {activeModelSupportsImage && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={sendingChat}
+                        className="bg-[#151E2E] hover:bg-[#1f2d47] border border-card-border hover:border-white/25 text-gray-400 hover:text-white w-9.5 h-9.5 rounded-xl transition-all flex items-center justify-center cursor-pointer disabled:opacity-45"
+                        title="Đính kèm hình ảnh"
+                      >
+                        📷
+                      </button>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleImageChange}
+                        accept="image/*"
+                        className="hidden"
+                      />
+                    </>
+                  )}
                   <input
                     type="text"
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     disabled={sendingChat}
-                    placeholder="Hỏi AI về chiến thuật, kèo phạt góc, tài xỉu..."
+                    placeholder={activeModelSupportsImage ? "Hỏi AI hoặc đính kèm ảnh phân tích bảng kèo..." : "Hỏi AI về chiến thuật, kèo phạt góc, tài xỉu..."}
                     className="flex-1 bg-[#070b14] border border-card-border rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-primary/80 transition-colors placeholder:text-gray-655"
                   />
                   <button
                     type="submit"
-                    disabled={sendingChat || !chatInput.trim()}
-                    className="bg-primary hover:bg-primary/95 disabled:opacity-40 disabled:hover:bg-primary text-black font-extrabold text-xs px-4 py-2 rounded-xl transition-all cursor-pointer active:scale-95 whitespace-nowrap"
+                    disabled={sendingChat || (!chatInput.trim() && !imagePreview)}
+                    className="bg-primary hover:bg-primary/95 disabled:opacity-40 disabled:hover:bg-primary text-black font-extrabold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer active:scale-95 whitespace-nowrap"
                   >
                     Gửi
                   </button>

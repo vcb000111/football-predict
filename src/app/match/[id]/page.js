@@ -42,5 +42,16 @@ export default async function MatchPage({ params }) {
     notFound();
   }
 
-  return <MatchClient match={match} />;
+  let activeModelSupportsImage = false;
+  try {
+    const db = await getDB();
+    const activeModel = await db.get("SELECT supports_image FROM ai_models WHERE status = 1 ORDER BY priority ASC LIMIT 1");
+    if (activeModel) {
+      activeModelSupportsImage = activeModel.supports_image === 1;
+    }
+  } catch (e) {
+    console.error('Lỗi khi truy vấn active model:', e);
+  }
+
+  return <MatchClient match={match} activeModelSupportsImage={activeModelSupportsImage} />;
 }

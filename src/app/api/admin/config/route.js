@@ -85,15 +85,16 @@ export async function POST(request) {
     // 4. Cập nhật hoặc Thêm mới AI models
     if (models && models.length > 0) {
       for (const model of models) {
+        const supportsImage = model.supports_image !== undefined ? (model.supports_image ? 1 : 0) : 0;
         if (model.id) {
           statements.push({
-            sql: `UPDATE ai_models SET model_name = ?, priority = ?, status = ?, provider = ? WHERE id = ?`,
-            args: [model.model_name.trim(), model.priority, model.status, model.provider || 'gemini', model.id]
+            sql: `UPDATE ai_models SET model_name = ?, priority = ?, status = ?, provider = ?, supports_image = ? WHERE id = ?`,
+            args: [model.model_name.trim(), model.priority, model.status, model.provider || 'gemini', supportsImage, model.id]
           });
         } else if (model.model_name && model.model_name.trim()) {
           statements.push({
-            sql: `INSERT OR IGNORE INTO ai_models (model_name, priority, status, provider) VALUES (?, ?, ?, ?)`,
-            args: [model.model_name.trim(), model.priority || 1, model.status !== undefined ? model.status : 1, model.provider || 'gemini']
+            sql: `INSERT OR IGNORE INTO ai_models (model_name, priority, status, provider, supports_image) VALUES (?, ?, ?, ?, ?)`,
+            args: [model.model_name.trim(), model.priority || 1, model.status !== undefined ? model.status : 1, model.provider || 'gemini', supportsImage]
           });
         }
       }
