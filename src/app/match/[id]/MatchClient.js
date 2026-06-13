@@ -60,6 +60,98 @@ function translateRecommendation(text) {
   return translated;
 }
 
+function renderMessageContent(text) {
+  if (!text) return null;
+  
+  const lines = text.split('\n');
+  
+  return lines.map((line, lineIdx) => {
+    let currentLine = line.trim();
+    if (!currentLine) {
+      return <div key={lineIdx} className="h-2" />;
+    }
+    
+    if (currentLine.startsWith('**') && currentLine.endsWith('**')) {
+      currentLine = currentLine.substring(2, currentLine.length - 2).trim();
+    }
+    
+    let isHeading = false;
+    let headingLevel = 0;
+    if (currentLine.startsWith('###')) {
+      isHeading = true;
+      headingLevel = 3;
+      currentLine = currentLine.substring(3).trim();
+    } else if (currentLine.startsWith('##')) {
+      isHeading = true;
+      headingLevel = 2;
+      currentLine = currentLine.substring(2).trim();
+    } else if (currentLine.startsWith('#')) {
+      isHeading = true;
+      headingLevel = 1;
+      currentLine = currentLine.substring(1).trim();
+    }
+    
+    let isListItem = false;
+    if (!isHeading && (currentLine.startsWith('* ') || currentLine.startsWith('- ') || currentLine.startsWith('• '))) {
+      isListItem = true;
+      currentLine = currentLine.substring(2).trim();
+    }
+    
+    const parseBold = (str) => {
+      const parts = str.split('**');
+      return parts.map((part, partIdx) => {
+        if (partIdx % 2 === 1) {
+          return <strong key={partIdx} className="font-extrabold text-white">{part}</strong>;
+        }
+        return part;
+      });
+    };
+    
+    const content = parseBold(currentLine);
+    
+    if (isHeading) {
+      if (headingLevel === 1) return <h1 key={lineIdx} className="text-sm font-black text-white mt-3 mb-1.5 uppercase tracking-wider">{content}</h1>;
+      if (headingLevel === 2) return <h2 key={lineIdx} className="text-xs font-black text-white mt-2.5 mb-1.5 uppercase tracking-wider">{content}</h2>;
+      return <h3 key={lineIdx} className="text-[11px] font-black text-primary mt-2 mb-1 uppercase tracking-wider">{content}</h3>;
+    }
+    
+    if (isListItem) {
+      return (
+        <div key={lineIdx} className="flex items-start pl-2.5 my-0.5">
+          <span className="text-primary mr-1.5 select-none">•</span>
+          <span className="flex-1 text-[11px] text-gray-300">{content}</span>
+        </div>
+      );
+    }
+    
+    return (
+      <div key={lineIdx} className="my-1 text-gray-300 text-xs leading-relaxed">
+        {content}
+      </div>
+    );
+  });
+}
+
+function formatModelName(model) {
+  if (!model) return 'Gemini';
+  const name = model.trim();
+  
+  if (name.includes('gemini-3.1-flash-lite') || name.includes('gemini-2.5-flash-lite')) {
+    return 'Gemini 3.1 Flash Lite';
+  }
+  if (name.includes('gemini-2.5-flash')) return 'Gemini 2.5 Flash';
+  if (name.includes('gemini-2.5-pro')) return 'Gemini 2.5 Pro';
+  if (name.includes('gemini-1.5-flash')) return 'Gemini 1.5 Flash';
+  if (name.includes('gemini-1.5-pro')) return 'Gemini 1.5 Pro';
+  
+  let formatted = name.replace(/-/g, ' ');
+  formatted = formatted.replace(/gemini/gi, 'Gemini');
+  formatted = formatted.replace(/flash/gi, 'Flash');
+  formatted = formatted.replace(/pro/gi, 'Pro');
+  formatted = formatted.replace(/lite/gi, 'Lite');
+  return formatted;
+}
+
 export default function MatchClient({ match }) {
   const [loading, setLoading] = useState(true);
   const [predicting, setPredicting] = useState(false);
@@ -67,6 +159,14 @@ export default function MatchClient({ match }) {
   const [prediction, setPrediction] = useState(null);
   const [historyList, setHistoryList] = useState([]);
   const [loadingStep, setLoadingStep] = useState(0);
+
+  // States cho Chat AI Persistent
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState('');
+  const [sendingChat, setSendingChat] = useState(false);
+  const [loadingChat, setLoadingChat] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const messagesEndRef = useRef(null);
 
   // States cho Form cập nhật kết quả thực tế
   const [resMessage, setResMessage] = useState(null);
@@ -76,6 +176,13 @@ export default function MatchClient({ match }) {
   const [predictType, setPredictType] = useState('full_time');
   const [firstHalfHomeScore, setFirstHalfHomeScore] = useState('');
   const [firstHalfAwayScore, setFirstHalfAwayScore] = useState('');
+
+  const suggestedQuestions = [
+    `Tư vấn kèo chấp ${match.homeTeam} vs ${match.awayTeam}`,
+    `Phân tích kèo tài xỉu ${prediction?.ou_line ?? 2.5} trận này`,
+    `Nhận định phạt góc và thẻ phạt`,
+    `Dự đoán tỷ số chính xác nhất`
+  ];
 
   const loadingSteps = [
     'Đang kết nối tới mô hình AI Google Gemini...',
@@ -93,6 +200,27 @@ export default function MatchClient({ match }) {
     return () => clearInterval(interval);
   }, [loading, predicting]);
 
+  const fetchChatHistory = async () => {
+    setLoadingChat(true);
+    try {
+      const res = await fetch(`/api/match/chat?matchId=${match.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setChatMessages(data.messages || []);
+      }
+    } catch (err) {
+      console.error('Lỗi tải lịch sử chat:', err);
+    } finally {
+      setLoadingChat(false);
+    }
+  };
+
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages]);
+
   // Load history when match changes or on mount
   useEffect(() => {
     let active = true;
@@ -103,6 +231,7 @@ export default function MatchClient({ match }) {
       setPrediction(null);
       setHistoryList([]);
       setResMessage(null);
+      fetchChatHistory();
       
       try {
         const res = await fetch(`/api/history?matchId=${match.id}`);
@@ -133,6 +262,50 @@ export default function MatchClient({ match }) {
       active = false;
     };
   }, [match.id]);
+
+  const sendMessageToAI = async (messageText) => {
+    if (!messageText.trim() || sendingChat) return;
+
+    const tempUserMsg = { sender: 'user', message: messageText, created_at: new Date().toISOString() };
+    setChatMessages(prev => [...prev, tempUserMsg]);
+    setSendingChat(true);
+
+    try {
+      const res = await fetch('/api/match/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matchId: match.id, message: messageText })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const historyRes = await fetch(`/api/match/chat?matchId=${match.id}`);
+        if (historyRes.ok) {
+          const histData = await historyRes.json();
+          setChatMessages(histData.messages || []);
+        }
+      } else {
+        throw new Error(data.error || 'Gửi tin nhắn thất bại');
+      }
+    } catch (err) {
+      console.error(err);
+      setChatMessages(prev => [...prev, { sender: 'ai', message: `❌ Lỗi: ${err.message || 'Không thể kết nối đến máy chủ AI.'}`, created_at: new Date().toISOString() }]);
+    } finally {
+      setSendingChat(false);
+    }
+  };
+
+  const handleSendChat = async (e) => {
+    e.preventDefault();
+    if (!chatInput.trim() || sendingChat) return;
+
+    const userMsgText = chatInput.trim();
+    setChatInput('');
+    await sendMessageToAI(userMsgText);
+  };
+
+  const handleSuggestedQuestionClick = async (question) => {
+    await sendMessageToAI(question);
+  };
 
   const handleRunNewPrediction = async () => {
     const currentMatchId = match.id;
@@ -841,6 +1014,119 @@ export default function MatchClient({ match }) {
                     {resMessage.text}
                   </div>
                 )}
+              </div>
+
+              {/* Khung trò chuyện cùng AI Soi kèo */}
+              <div className="glass-panel rounded-xl p-4 border border-card-border space-y-4">
+                <h3 className="text-gray-400 font-bold text-xs uppercase tracking-wider pb-2 border-b border-card-border/50 flex items-center justify-between">
+                  <div className="flex items-center space-x-1.5">
+                    <span>💬</span>
+                    <span>Trò chuyện cùng AI Soi kèo</span>
+                  </div>
+                  {loadingChat && <span className="text-[10px] text-primary animate-pulse">Đang tải...</span>}
+                </h3>
+
+                {/* Message List */}
+                <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1.5 custom-scrollbar flex flex-col">
+                  {chatMessages.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500 text-xs">
+                      Chưa có hội thoại nào. Hãy đặt câu hỏi cho AI về trận đấu này!
+                    </div>
+                  ) : (
+                    chatMessages.map((msg, idx) => {
+                      const isUser = msg.sender === 'user';
+                      return (
+                        <div
+                          key={idx}
+                          className={`flex flex-col space-y-1 max-w-[85%] ${
+                            isUser ? 'self-end items-end' : 'self-start items-start'
+                          }`}
+                        >
+                          <span className="text-[9px] text-gray-500 font-semibold px-1">
+                            {isUser ? 'Bạn' : `Chuyên gia ${formatModelName(msg.model_used || msg.modelUsed)}`}
+                          </span>
+                          <div
+                            className={`rounded-2xl px-3.5 py-2 text-xs leading-relaxed ${
+                              isUser
+                                ? 'bg-primary/20 text-primary border border-primary/20 rounded-tr-none'
+                                : 'bg-[#151E2E] text-gray-200 border border-card-border rounded-tl-none'
+                            }`}
+                          >
+                            {isUser ? (
+                              <p className="whitespace-pre-line">{msg.message}</p>
+                            ) : (
+                              renderMessageContent(msg.message)
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                  {sendingChat && (
+                    <div className="flex flex-col space-y-1 max-w-[85%] self-start items-start animate-pulse">
+                      <span className="text-[9px] text-gray-550 font-semibold px-1">
+                        {formatModelName(prediction?.modelUsed || prediction?.model_used || 'gemini-2.5-flash')} đang suy nghĩ...
+                      </span>
+                      <div className="rounded-2xl rounded-tl-none px-3.5 py-2 text-xs bg-[#151E2E] text-gray-400 border border-card-border">
+                        Đang phân tích dữ liệu trận đấu và kèo cược...
+                      </div>
+                    </div>
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+
+                {/* Suggested Questions */}
+                <div className="relative">
+                  {!sendingChat && (
+                    <div className="flex items-center">
+                      <button
+                        type="button"
+                        onClick={() => setShowSuggestions(!showSuggestions)}
+                        className="text-[10px] text-gray-400 hover:text-primary bg-card-border/30 hover:bg-primary/10 border border-card-border/50 rounded-lg px-2.5 py-1 transition-all cursor-pointer font-bold flex items-center space-x-1"
+                      >
+                        <span>💡 Gợi ý hỏi nhanh</span>
+                        <span className="text-[8px]">{showSuggestions ? '▲' : '▼'}</span>
+                      </button>
+                    </div>
+                  )}
+                  
+                  {showSuggestions && !sendingChat && (
+                    <div className="absolute bottom-full left-0 mb-1.5 w-full max-w-sm bg-[#0B0F17]/95 border border-card-border rounded-xl p-2 shadow-2xl z-20 space-y-1 backdrop-blur-md">
+                      {suggestedQuestions.map((q, qIdx) => (
+                        <button
+                          key={qIdx}
+                          type="button"
+                          onClick={() => {
+                            handleSuggestedQuestionClick(q);
+                            setShowSuggestions(false);
+                          }}
+                          className="w-full text-left text-[11px] text-gray-300 hover:bg-primary/20 hover:text-primary rounded-lg px-2.5 py-1.5 transition-all cursor-pointer font-medium border border-transparent hover:border-primary/20"
+                        >
+                          {q}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Input form */}
+                <form onSubmit={handleSendChat} className="flex gap-2 pt-2 border-t border-card-border/30">
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    disabled={sendingChat}
+                    placeholder="Hỏi AI về chiến thuật, kèo phạt góc, tài xỉu..."
+                    className="flex-1 bg-[#070b14] border border-card-border rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-primary/80 transition-colors placeholder:text-gray-655"
+                  />
+                  <button
+                    type="submit"
+                    disabled={sendingChat || !chatInput.trim()}
+                    className="bg-primary hover:bg-primary/95 disabled:opacity-40 disabled:hover:bg-primary text-black font-extrabold text-xs px-4 py-2 rounded-xl transition-all cursor-pointer active:scale-95 whitespace-nowrap"
+                  >
+                    Gửi
+                  </button>
+                </form>
               </div>
 
               {/* Grounded Sources */}

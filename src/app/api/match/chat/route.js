@@ -1,0 +1,182 @@
+import { NextResponse } from 'next/server';
+import { GoogleGenAI } from '@google/genai';
+import { getDB } from '@/lib/db';
+import fs from 'fs';
+import path from 'path';
+
+// Helper làm sạch và tìm trận đấu từ fixtures.json
+function getMatchFromFixtures(matchId) {
+  try {
+    const fixturesPath = path.join(process.cwd(), 'src', 'data', 'fixtures.json');
+    if (!fs.existsSync(fixturesPath)) return null;
+    
+    const fileContent = fs.readFileSync(fixturesPath, 'utf8');
+    const data = JSON.parse(fileContent);
+    return (data.fixtures || []).find(f => f.id === matchId);
+  } catch (error) {
+    console.error('Lỗi khi đọc fixtures.json:', error);
+    return null;
+  }
+}
+
+// Helper xoay vòng API Key
+async function callGeminiModel(model, apiKeys, prompt) {
+  let lastError = null;
+  for (let keyIdx = 0; keyIdx < apiKeys.length; keyIdx++) {
+    const currentKey = apiKeys[keyIdx];
+    try {
+      const ai = new GoogleGenAI({ apiKey: currentKey });
+      const response = await ai.models.generateContent({
+        model: model,
+        contents: prompt,
+        config: {
+          abortSignal: AbortSignal.timeout(40000), // Timeout sau 40 giây
+          temperature: 0.2, // Tăng nhẹ tính tự nhiên khi tư vấn
+        },
+      });
+      return {
+        response,
+        modelUsed: model,
+        keyIndexUsed: keyIdx
+      };
+    } catch (err) {
+      console.warn(`⚠️ [Match Chat AI Call] Model ${model} thất bại với Key #${keyIdx + 1}:`, err.message);
+      lastError = err;
+    }
+  }
+  throw lastError || new Error(`Tất cả keys đều thất bại cho model ${model}`);
+}
+
+export async function GET(request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const matchId = searchParams.get('matchId');
+
+    if (!matchId) {
+      return NextResponse.json({ error: 'Thiếu matchId' }, { status: 400 });
+    }
+
+    const db = await getDB();
+    const messages = await db.all(
+      `SELECT sender, message, model_used, created_at FROM match_chats WHERE match_id = ? ORDER BY id ASC`,
+      [matchId]
+    );
+
+    return NextResponse.json({ success: true, messages });
+  } catch (error) {
+    console.error('Lỗi khi lấy lịch sử chat:', error);
+    return NextResponse.json(
+      { error: 'Không thể tải lịch sử chat', details: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request) {
+  try {
+    const { matchId, message } = await request.json();
+
+    if (!matchId || !message || !message.trim()) {
+      return NextResponse.json({ error: 'Thiếu thông tin yêu cầu' }, { status: 400 });
+    }
+
+    const db = await getDB();
+
+    // 1. Lưu tin nhắn của User vào DB
+    await db.run(
+      `INSERT INTO match_chats (match_id, sender, message) VALUES (?, 'user', ?)`,
+      [matchId, message.trim()]
+    );
+
+    // 2. Lấy thông tin trận đấu để làm context
+    const match = getMatchFromFixtures(matchId);
+    if (!match) {
+      return NextResponse.json({ error: 'Không tìm thấy trận đấu' }, { status: 404 });
+    }
+
+    // Lấy thêm dự đoán gần nhất của trận đấu từ DB
+    const prediction = await db.get(
+      `SELECT * FROM predictions WHERE match_id = ? ORDER BY id DESC LIMIT 1`,
+      [matchId]
+    );
+
+    let predictionContext = '';
+    if (prediction) {
+      predictionContext = `
+- Nhận định dự kiến: Đội nhà thắng: ${prediction.win_prob_home}%, Hòa: ${prediction.win_prob_draw}%, Đội khách thắng: ${prediction.win_prob_away}%
+- Tỷ số dự đoán của AI: ${prediction.predicted_home_score} - ${prediction.predicted_away_score}
+- Đề xuất kèo 1X2: ${prediction.recommendation_1x2 || 'Không'}
+- Đề xuất kèo Tài Xỉu (O/U): ${prediction.recommendation_ou || 'Không'} (Tỷ lệ O/U: ${prediction.ou_line || 2.5})
+- Đề xuất kèo Chấp (Handicap): ${prediction.recommendation_handicap || 'Không'} (Tỷ lệ chấp: ${prediction.handicap_line || 0})
+- Kết quả thực tế (nếu có): Đội nhà ${prediction.actual_home_score !== null ? prediction.actual_home_score : 'chưa có'} - ${prediction.actual_away_score !== null ? prediction.actual_away_score : 'chưa có'} Đội khách.
+`;
+    }
+
+    // 3. Lấy 10 tin nhắn gần nhất làm lịch sử context đối thoại
+    const historyRows = await db.all(
+      `SELECT sender, message FROM match_chats WHERE match_id = ? ORDER BY id DESC LIMIT 10`,
+      [matchId]
+    );
+    // Đảo ngược mảng để đúng thứ tự thời gian
+    const historyList = [...historyRows].reverse();
+
+    // 4. Xây dựng prompt gửi cho AI
+    const systemPrompt = `Bạn là một trợ lý AI phân tích kèo bóng đá chuyên sâu. Hãy hỗ trợ tư vấn nhận định kèo cược cho người chơi dựa trên các thông số dữ liệu ELO, Poisson, Monte Carlo và tình huống thực tế của trận đấu sau.
+
+--- THÔNG TIN TRẬN ĐẤU ---
+- Trận đấu: ${match.homeTeam} vs ${match.awayTeam}
+- Giải đấu: ${match.tournament || 'Giải đấu khác'} | Mùa giải: ${match.season || 'Hiện tại'}
+- Thời gian: ${match.date} lúc ${match.time}
+- Địa điểm: ${match.venue || 'Chưa rõ'}
+${predictionContext}
+
+--- HƯỚNG DẪN TƯ VẤN ---
+1. Chỉ trả lời các câu hỏi liên quan đến trận đấu này, phong độ, chiến thuật, tình hình chấn thương, phân tích kèo cược thể thao.
+2. Từ chối lịch sự nếu người dùng hỏi các chủ đề ngoài bóng đá hoặc các trận đấu không liên quan.
+3. Câu trả lời cần ngắn gọn, rõ ràng, tập trung phân tích logic kèo và thực tế trận đấu để gợi ý lựa chọn tối ưu cho người chơi.`;
+
+    let conversationContext = '';
+    if (historyList && historyList.length > 0) {
+      conversationContext = '--- LỊCH SỬ TRÒ CHUYỆN GẦN ĐÂY ---\n' +
+        historyList.map(h => `${h.sender === 'user' ? 'Người dùng' : 'AI'}: ${h.message}`).join('\n') +
+        '\n\n';
+    }
+
+    const finalPrompt = `${systemPrompt}\n\n${conversationContext}Người dùng: ${message.trim()}\nAI:`;
+
+    // 5. Lấy danh sách Keys & Models xoay vòng từ SQLite
+    const activeKeysRows = await db.all("SELECT key_value, provider FROM api_keys WHERE status = 1");
+    const activeModelsRows = await db.all("SELECT model_name, provider FROM ai_models WHERE status = 1 ORDER BY priority ASC");
+
+    const geminiKeys = Array.from(new Set(activeKeysRows.filter(r => (r.provider || 'gemini') === 'gemini').map(row => row.key_value.trim())));
+    const models = activeModelsRows.map(row => row.model_name.trim());
+
+    if (geminiKeys.length === 0) {
+      throw new Error('Hệ thống chưa cấu hình API key Gemini.');
+    }
+
+    // Chọn model ưu tiên cao nhất của Gemini hoặc mặc định gemini-2.5-flash
+    const targetModel = models.find(m => m.includes('gemini')) || 'gemini-2.5-flash';
+
+    console.log(`💬 [Match Chat API] Đang gửi prompt chat cho trận ${match.homeTeam} vs ${match.awayTeam} sử dụng model: ${targetModel}`);
+    const aiResult = await callGeminiModel(targetModel, geminiKeys, finalPrompt);
+    const replyText = aiResult.response.text.trim();
+
+    // 6. Lưu câu trả lời của AI vào DB
+    await db.run(
+      `INSERT INTO match_chats (match_id, sender, message, model_used) VALUES (?, 'ai', ?, ?)`,
+      [matchId, replyText, aiResult.modelUsed || targetModel]
+    );
+
+    return NextResponse.json({
+      success: true,
+      reply: replyText
+    });
+  } catch (error) {
+    console.error('Lỗi trong tiến trình chat AI:', error);
+    return NextResponse.json(
+      { error: 'Lỗi xử lý phản hồi từ AI', details: error.message },
+      { status: 500 }
+    );
+  }
+}

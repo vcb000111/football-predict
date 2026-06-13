@@ -223,6 +223,25 @@ async function runMigration() {
     )
   `);
 
+  // 8. Tạo bảng match_chats
+  console.log('8. Khởi tạo bảng match_chats...');
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS match_chats (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      match_id TEXT,
+      sender TEXT, -- 'user' hoặc 'ai'
+      message TEXT,
+      model_used TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  try {
+    await db.exec(`ALTER TABLE match_chats ADD COLUMN model_used TEXT`);
+  } catch (e) {}
+  await db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_match_chats_match_id ON match_chats (match_id)
+  `);
+
   // --- SEEDING DỮ LIỆU MẶC ĐỊNH ---
   console.log('🌱 Bắt đầu seeding dữ liệu...');
 
