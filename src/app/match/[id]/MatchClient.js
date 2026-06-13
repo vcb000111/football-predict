@@ -321,6 +321,13 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
     return () => clearInterval(interval);
   }, [loading, predicting]);
 
+  // Đồng bộ tiêu đề trang trên client
+  useEffect(() => {
+    if (match) {
+      document.title = `${match.homeTeam} vs ${match.awayTeam} - Dự đoán trận đấu`;
+    }
+  }, [match]);
+
   const fetchChatHistory = async () => {
     setLoadingChat(true);
     try {

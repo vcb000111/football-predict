@@ -15,6 +15,7 @@ Tất cả những thay đổi nổi bật đối với dự án **FIFA World Cu
 * **Tích hợp form cập nhật kết quả thủ công:** Bổ sung giao diện và form nhập tỷ số cả trận và tỷ số hiệp 1 thực tế thủ công ngay trên giao diện chi tiết trận đấu, đồng bộ hóa với hệ thống chấm điểm cược.
 * **Tích hợp widget trạng thái API và lịch sử thao tác (API Activity Float):** Triển khai nút tròn Float ở góc dưới màn hình di động, tự động theo dõi số lượng API đang xử lý và lưu trữ lịch sử tối đa 7 thao tác gần nhất kèm theo khả năng chuyển hướng quay lại trang đã thao tác.
 * **Bổ sung định nghĩa dịch thuật và bộ lọc nâng cao cho API quản trị:** Tích hợp bản dịch tiếng Việt thân thiện cho các API đặc thù (Backtest, Import, AI cập nhật ELO) và tự động lọc bỏ các API nền (như stats, fixtures list) để tối ưu hóa độ nhiễu danh sách lịch sử.
+* **Hiển thị chi tiết trận đấu trong Lịch sử thao tác:** Tự động trích xuất thông tin hai đội bóng đối đầu từ nội dung yêu cầu API (JSON body) hoặc tiêu đề trang (động qua metadata SEO) và hiển thị chi tiết dạng "Dự đoán trận đấu: [Đội A] vs [Đội B]" thay vì chỉ hiển thị link thô.
 
 ### Changed (Thay đổi logic)
 * **Tối ưu hóa giao diện di động (Mobile layout):** Ẩn thanh header chính cồng kềnh trên điện thoại để tiết kiệm không gian hiển thị, thay thế bằng icon logo AI nhỏ dạng float fixed ở góc trên bên trái để định hướng về trang chủ.

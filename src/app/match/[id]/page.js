@@ -3,6 +3,36 @@ import dataFallback from '@/data/fixtures.json';
 import MatchClient from './MatchClient';
 import { getDB } from '@/lib/db';
 
+export async function generateMetadata({ params }) {
+  const { id } = await params;
+  let match = null;
+  try {
+    const db = await getDB();
+    const dbFixture = await db.get('SELECT home_team, away_team FROM fixtures WHERE id = ?', [id]);
+    if (dbFixture) {
+      match = {
+        homeTeam: dbFixture.home_team,
+        awayTeam: dbFixture.away_team
+      };
+    }
+  } catch (err) {
+    console.error('Lỗi khi truy vấn DB cho metadata:', err);
+  }
+
+  if (!match) {
+    match = dataFallback.fixtures.find((item) => item.id === id);
+  }
+
+  if (match) {
+    return {
+      title: `${match.homeTeam} vs ${match.awayTeam} - Dự đoán trận đấu`
+    };
+  }
+  return {
+    title: 'Chi tiết trận đấu'
+  };
+}
+
 export default async function MatchPage({ params }) {
   const { id } = await params;
   

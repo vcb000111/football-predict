@@ -40,15 +40,61 @@ class ApiRequestTracker {
   }
 
   // Dịch URL API thô sang tên thao tác tiếng Việt thân thiện
-  translateUrl(url, method) {
+  translateUrl(url, method, bodyText) {
     const cleanUrl = url.split('?')[0];
-    
+    let matchInfo = '';
+
+    // Bóc tách tên hai đội từ body của request
+    if (bodyText && typeof bodyText === 'string') {
+      try {
+        const bodyObj = JSON.parse(bodyText);
+        if (bodyObj.homeTeam && bodyObj.awayTeam) {
+          matchInfo = `${bodyObj.homeTeam} vs ${bodyObj.awayTeam}`;
+          if (bodyObj.matchId && typeof window !== 'undefined') {
+            localStorage.setItem(`match_teams_${bodyObj.matchId}`, matchInfo);
+          }
+        } else if (bodyObj.matchId && typeof window !== 'undefined') {
+          const cached = localStorage.getItem(`match_teams_${bodyObj.matchId}`);
+          if (cached) matchInfo = cached;
+        }
+      } catch (e) {}
+    }
+
+    // Bóc tách từ document.title nếu đang ở trang chi tiết trận đấu
+    if (!matchInfo && typeof window !== 'undefined' && window.location.pathname.startsWith('/match/')) {
+      const title = document.title;
+      if (title && title.includes(' vs ')) {
+        const parts = title.split(' - ');
+        if (parts[0].includes(' vs ')) {
+          matchInfo = parts[0];
+          const matchId = window.location.pathname.split('/').pop();
+          if (matchId) {
+            localStorage.setItem(`match_teams_${matchId}`, matchInfo);
+          }
+        }
+      }
+    }
+
+    // Bóc tách từ URL query parameter nếu có matchId
+    if (!matchInfo && typeof window !== 'undefined') {
+      try {
+        const urlObj = new URL(url, window.location.origin);
+        const matchId = urlObj.searchParams.get('matchId');
+        if (matchId) {
+          const cached = localStorage.getItem(`match_teams_${matchId}`);
+          if (cached) matchInfo = cached;
+        }
+      } catch (e) {}
+    }
+
+    const suffix = matchInfo ? `: ${matchInfo}` : '';
+
     // So khớp các tác vụ chi tiết trước
     if (cleanUrl.includes('/api/admin/backtest')) {
       return 'Chạy kiểm thử Backtest';
     }
     if (cleanUrl.includes('/api/admin/teams/ai-update')) {
-      return 'AI cập nhật ELO đội bóng';
+      return `AI cập nhật ELO đội bóng${suffix}`;
     }
     if (cleanUrl.includes('/api/fixtures/import')) {
       return 'Import lịch thi đấu';
@@ -57,13 +103,13 @@ class ApiRequestTracker {
       return 'Đồng bộ lịch thi đấu';
     }
     if (cleanUrl.includes('/api/predict')) {
-      return 'Dự đoán trận đấu';
+      return `Dự đoán trận đấu${suffix}`;
     }
     if (cleanUrl.includes('/api/match/chat')) {
-      return 'Hỏi đáp AI trận đấu';
+      return `Hỏi đáp AI trận đấu${suffix}`;
     }
     if (cleanUrl.includes('/api/results')) {
-      return 'Cập nhật tỷ số';
+      return `Cập nhật tỷ số${suffix}`;
     }
     if (cleanUrl.includes('/api/admin/config')) {
       return 'Cấu hình AI';
@@ -76,7 +122,7 @@ class ApiRequestTracker {
     }
     
     // Thao tác mặc định nếu không khớp
-    return `${method} ${cleanUrl.replace('/api/', '')}`;
+    return `${method} ${cleanUrl.replace('/api/', '')}${suffix}`;
   }
 
   // Chỉ ghi nhận lịch sử cho các thao tác chủ động chính
@@ -91,10 +137,10 @@ class ApiRequestTracker {
     );
   }
 
-  addRequest(url, method, pathname) {
+  addRequest(url, method, pathname, bodyText) {
     this.counter++;
     const id = this.counter;
-    const requestName = this.translateUrl(url, method);
+    const requestName = this.translateUrl(url, method, bodyText);
     
     this.activeRequests.set(id, {
       id,
@@ -167,7 +213,7 @@ export function useApiInterceptor() {
       if (isInternalApi) {
         // Lưu pathname trang hiện tại phát sinh request
         const currentPath = window.location.pathname + window.location.search;
-        requestId = apiTracker.addRequest(url, method, currentPath);
+        requestId = apiTracker.addRequest(url, method, currentPath, options.body);
       }
 
       let isSuccess = false;
