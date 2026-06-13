@@ -87,42 +87,34 @@ class ApiRequestTracker {
       } catch (e) {}
     }
 
-    const suffix = matchInfo ? `: ${matchInfo}` : '';
+    let actionName = '';
 
     // So khớp các tác vụ chi tiết trước
     if (cleanUrl.includes('/api/admin/backtest')) {
-      return 'Chạy kiểm thử Backtest';
-    }
-    if (cleanUrl.includes('/api/admin/teams/ai-update')) {
-      return `AI cập nhật ELO đội bóng${suffix}`;
-    }
-    if (cleanUrl.includes('/api/fixtures/import')) {
-      return 'Import lịch thi đấu';
-    }
-    if (cleanUrl.includes('/api/fixtures/sync')) {
-      return 'Đồng bộ lịch thi đấu';
-    }
-    if (cleanUrl.includes('/api/predict')) {
-      return `Dự đoán trận đấu${suffix}`;
-    }
-    if (cleanUrl.includes('/api/match/chat')) {
-      return `Hỏi đáp AI trận đấu${suffix}`;
-    }
-    if (cleanUrl.includes('/api/results')) {
-      return `Cập nhật tỷ số${suffix}`;
-    }
-    if (cleanUrl.includes('/api/admin/config')) {
-      return 'Cấu hình AI';
-    }
-    if (cleanUrl.includes('/api/admin/prompts')) {
-      return 'Cập nhật System Prompt';
-    }
-    if (cleanUrl.includes('/api/admin/teams')) {
-      return 'Cập nhật ELO đội bóng';
+      actionName = 'Chạy kiểm thử Backtest';
+    } else if (cleanUrl.includes('/api/admin/teams/ai-update')) {
+      actionName = 'AI cập nhật ELO đội bóng';
+    } else if (cleanUrl.includes('/api/fixtures/import')) {
+      actionName = 'Import lịch thi đấu';
+    } else if (cleanUrl.includes('/api/fixtures/sync')) {
+      actionName = 'Đồng bộ lịch thi đấu';
+    } else if (cleanUrl.includes('/api/predict')) {
+      actionName = 'Dự đoán trận đấu';
+    } else if (cleanUrl.includes('/api/match/chat')) {
+      actionName = 'Hỏi đáp AI trận đấu';
+    } else if (cleanUrl.includes('/api/results')) {
+      actionName = 'Cập nhật tỷ số';
+    } else if (cleanUrl.includes('/api/admin/config')) {
+      actionName = 'Cấu hình AI';
+    } else if (cleanUrl.includes('/api/admin/prompts')) {
+      actionName = 'Cập nhật System Prompt';
+    } else if (cleanUrl.includes('/api/admin/teams')) {
+      actionName = 'Cập nhật ELO đội bóng';
+    } else {
+      actionName = `${method} ${cleanUrl.replace('/api/', '')}`;
     }
     
-    // Thao tác mặc định nếu không khớp
-    return `${method} ${cleanUrl.replace('/api/', '')}${suffix}`;
+    return { actionName, matchInfo };
   }
 
   // Chỉ ghi nhận lịch sử cho các thao tác chủ động chính
@@ -140,13 +132,14 @@ class ApiRequestTracker {
   addRequest(url, method, pathname, bodyText) {
     this.counter++;
     const id = this.counter;
-    const requestName = this.translateUrl(url, method, bodyText);
+    const { actionName, matchInfo } = this.translateUrl(url, method, bodyText);
     
     this.activeRequests.set(id, {
       id,
       url,
       method,
-      name: requestName,
+      name: actionName,
+      matchInfo,
       pathname,
       startTime: Date.now()
     });
@@ -165,12 +158,14 @@ class ApiRequestTracker {
         const historyItem = {
           id: req.id + '_' + Date.now(),
           name: req.name,
+          matchInfo: req.matchInfo,
           url: req.url,
           method: req.method,
           pathname: req.pathname,
           duration: Date.now() - req.startTime,
           timestamp: Date.now(),
-          isSuccess
+          isSuccess,
+          isUnread: true
         };
 
         // Đẩy vào đầu mảng lịch sử, giới hạn 7 phần tử
@@ -184,6 +179,26 @@ class ApiRequestTracker {
         }
       }
 
+      this.notify();
+    }
+  }
+
+  markAllAsRead() {
+    let hasChanged = false;
+    this.historyRequests = this.historyRequests.map(item => {
+      if (item.isUnread) {
+        hasChanged = true;
+        return { ...item, isUnread: false };
+      }
+      return item;
+    });
+
+    if (hasChanged) {
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('api_activity_history', JSON.stringify(this.historyRequests));
+        } catch (e) {}
+      }
       this.notify();
     }
   }

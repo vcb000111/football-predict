@@ -39,7 +39,15 @@ export default function ApiActivityFloat() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Tự động đánh dấu đã đọc khi mở Popover
+  useEffect(() => {
+    if (isOpen) {
+      apiTracker.markAllAsRead();
+    }
+  }, [isOpen]);
+
   const activeCount = activeRequests.length;
+  const unreadCount = historyRequests.filter((item) => item.isUnread).length;
 
   // Tính khoảng cách thời gian thân thiện (ví dụ: vừa xong, 10s trước...)
   const formatTimeAgo = (timestamp) => {
@@ -79,43 +87,47 @@ export default function ApiActivityFloat() {
           </svg>
         )}
 
-        {/* Badge số lượng API đang chạy */}
-        {activeCount > 0 && (
+        {/* Badge số lượng API đang chạy hoặc chấm đỏ chưa xem */}
+        {activeCount > 0 ? (
           <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[9px] font-black h-4.5 w-4.5 rounded-full flex items-center justify-center border border-[#0B0F17]">
             {activeCount}
           </span>
+        ) : (
+          unreadCount > 0 && (
+            <span className="absolute top-0 right-0 bg-rose-500 h-2.5 w-2.5 rounded-full border border-[#0B0F17] animate-pulse"></span>
+          )
         )}
       </button>
 
       {/* Popover chi tiết */}
       {isOpen && (
-        <div className="absolute bottom-12 right-0 w-80 max-h-96 overflow-y-auto glass-panel border border-card-border/80 rounded-2xl p-4 shadow-2xl z-50 text-xs text-gray-300">
+        <div className="absolute bottom-12 right-0 w-72 max-h-96 overflow-y-auto glass-panel border border-card-border/80 rounded-2xl p-2.5 shadow-2xl z-50 text-xs text-gray-300">
           
           {/* Section 1: Yêu cầu API đang hoạt động */}
-          <div className="mb-4">
-            <div className="font-bold text-gray-200 border-b border-card-border/60 pb-1.5 mb-2 flex justify-between items-center">
-              <span className="uppercase tracking-wider text-[10px] text-gray-400 font-extrabold">Đang xử lý ({activeCount})</span>
-              <span className={`px-1.5 py-0.2 rounded text-[8px] font-black uppercase ${activeCount > 0 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/20' : 'bg-gray-500/10 text-gray-400'}`}>
+          <div className="mb-3">
+            <div className="font-bold text-gray-200 border-b border-card-border/60 pb-1 mb-1.5 flex justify-between items-center">
+              <span className="uppercase tracking-wider text-[9px] text-gray-400 font-extrabold">Đang xử lý ({activeCount})</span>
+              <span className={`px-1 py-0.2 rounded text-[7px] font-black uppercase ${activeCount > 0 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/20' : 'bg-gray-500/10 text-gray-400'}`}>
                 {activeCount > 0 ? 'Loading' : 'Idle'}
               </span>
             </div>
 
             {activeCount > 0 ? (
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 {activeRequests.map((req) => (
-                  <div key={req.id} className="flex items-center justify-between bg-card-border/10 p-2 rounded-lg border border-card-border/30">
-                    <div className="flex flex-col min-w-0 pr-2">
-                      <span className="font-bold text-[10px] text-gray-200">{req.name}</span>
-                      <span className="font-mono text-[8px] text-gray-450 truncate" title={req.url}>{req.method} {req.url.split('?')[0]}</span>
+                  <div key={req.id} className="flex items-center justify-between bg-card-border/10 p-1.5 rounded-lg border border-card-border/30">
+                    <div className="flex flex-col min-w-0 pr-1.5">
+                      <span className="font-bold text-[9px] text-gray-200">{req.name}</span>
+                      <span className="font-mono text-[7px] text-gray-450 truncate" title={req.url}>{req.method} {req.url.split('?')[0]}</span>
                     </div>
-                    <span className="text-[9px] text-gray-400 flex-shrink-0 bg-card-border/30 px-1.5 py-0.5 rounded font-mono">
+                    <span className="text-[8px] text-gray-400 flex-shrink-0 bg-card-border/30 px-1 py-0.5 rounded font-mono">
                       {Math.round((Date.now() - req.startTime) / 100) / 10}s
                     </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="py-2 text-center text-gray-500 text-[10px]">
+              <div className="py-1.5 text-center text-gray-500 text-[9px]">
                 Không có yêu cầu API nào đang chạy
               </div>
             )}
@@ -123,38 +135,41 @@ export default function ApiActivityFloat() {
 
           {/* Section 2: Lịch sử thao tác & Điều hướng nhanh */}
           <div>
-            <div className="font-bold text-gray-200 border-b border-card-border/60 pb-1.5 mb-2 uppercase tracking-wider text-[10px] text-gray-400 font-extrabold">
+            <div className="font-bold text-gray-200 border-b border-card-border/60 pb-1 mb-1.5 uppercase tracking-wider text-[9px] text-gray-400 font-extrabold">
               Lịch sử thao tác ({historyRequests.length})
             </div>
 
             {historyRequests.length > 0 ? (
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 {historyRequests.map((his) => (
                   <button
                     key={his.id}
                     onClick={() => handleNavigate(his.pathname)}
-                    className="w-full text-left flex items-center justify-between p-2 bg-card-border/5 hover:bg-card-border/15 border border-card-border/20 hover:border-card-border/50 rounded-lg transition-colors cursor-pointer group"
+                    className="w-full text-left flex items-center justify-between p-1.5 bg-card-border/5 hover:bg-card-border/15 border border-card-border/20 hover:border-card-border/50 rounded-lg transition-colors cursor-pointer group"
                     title={`Bấm để chuyển về trang ${his.pathname}`}
                   >
-                    <div className="flex flex-col min-w-0 pr-2">
-                      <span className="font-bold text-[10px] text-gray-250 group-hover:text-primary transition-colors flex items-center space-x-1">
-                        <span>{his.name}</span>
-                        <span className="text-[8px] text-gray-500 font-normal">→ Quay lại</span>
+                    <div className="flex flex-col min-w-0 pr-1.5 flex-1">
+                      <span className="font-bold text-[9px] text-gray-255 group-hover:text-primary transition-colors flex items-center">
+                        {his.isUnread && (
+                          <span className="h-1.5 w-1.5 rounded-full bg-primary inline-block mr-1 flex-shrink-0 animate-pulse" title="Chưa xem"></span>
+                        )}
+                        <span className="truncate">{his.name}</span>
+                        <span className="text-[7px] text-gray-500 font-normal ml-1 flex-shrink-0">→ Quay lại</span>
                       </span>
-                      <span className="font-mono text-[8px] text-gray-500 truncate">{his.pathname}</span>
+                      <span className="font-mono text-[8px] text-gray-500 truncate mt-0.5">{his.matchInfo || 'Hệ thống'}</span>
                     </div>
 
-                    <div className="flex flex-col items-end flex-shrink-0 space-y-0.5">
-                      <span className={`px-1 py-0.2 rounded text-[7px] font-black uppercase ${his.isSuccess ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
+                    <div className="flex flex-col items-end flex-shrink-0 space-y-0.5 ml-1">
+                      <span className={`px-0.8 py-0.1 rounded text-[6px] font-black uppercase ${his.isSuccess ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
                         {his.isSuccess ? 'Xong' : 'Lỗi'}
                       </span>
-                      <span className="text-[8px] text-gray-500">{formatTimeAgo(his.timestamp)}</span>
+                      <span className="text-[7px] text-gray-500 font-medium">{formatTimeAgo(his.timestamp)}</span>
                     </div>
                   </button>
                 ))}
               </div>
             ) : (
-              <div className="py-4 text-center text-gray-500 text-[10px]">
+              <div className="py-3 text-center text-gray-500 text-[9px]">
                 Chưa ghi nhận lịch sử thao tác nào
               </div>
             )}
