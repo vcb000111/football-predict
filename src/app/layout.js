@@ -3,6 +3,7 @@ import Link from "next/link";
 import "./globals.css";
 import ModelBadge from "@/components/ModelBadge";
 import BottomNavigation from "@/components/BottomNavigation";
+import ApiActivityFloat from "@/components/ApiActivityFloat";
 
 
 const outfit = Outfit({
@@ -112,6 +113,7 @@ export default function RootLayout({ children }) {
         </footer>
 
         <BottomNavigation />
+        <ApiActivityFloat />
 
       </body>
     </html>
