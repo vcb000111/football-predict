@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getDB } from '@/lib/db';
 import { updateMatchResult } from '@/lib/results-updater';
+import { revalidatePath } from 'next/cache';
 
 export async function POST(request) {
   try {
@@ -17,6 +18,15 @@ export async function POST(request) {
     const result = await updateMatchResult({ homeTeam, awayTeam, matchId, force, db });
 
     if (result.success) {
+      try {
+        revalidatePath('/');
+        if (matchId) {
+          revalidatePath(`/match/${matchId}`);
+        }
+        revalidatePath('/match/[id]');
+      } catch (cacheErr) {
+        console.warn('⚠️ Lỗi revalidatePath auto:', cacheErr.message);
+      }
       return NextResponse.json(result);
     } else {
       if (result.status === 'api_failed') {

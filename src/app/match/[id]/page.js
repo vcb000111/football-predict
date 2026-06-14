@@ -3,6 +3,8 @@ import dataFallback from '@/data/fixtures.json';
 import MatchClient from './MatchClient';
 import { getDB } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 export async function generateMetadata({ params }) {
   const { id } = await params;
   let match = null;

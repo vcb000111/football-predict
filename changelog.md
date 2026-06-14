@@ -2,6 +2,15 @@
 
 Tất cả những thay đổi nổi bật đối với dự án **FIFA World Cup 2026 AI Predictor** sẽ được tài liệu hóa trong file này.
 
+## [1.9.1] - 2026-06-14
+
+### Changed (Thay đổi logic)
+* **Chuyển đổi sang Dynamic Rendering (SSR) cho Trang chủ và Trang Chi tiết:** Cấu hình thuộc tính `export const dynamic = 'force-dynamic';` tại `src/app/page.js` và `src/app/match/[id]/page.js` để Next.js luôn render động trên mỗi request thực tế, loại bỏ hoàn toàn lỗi lưu cache trang tĩnh (SSG) trên Production.
+* **Tối ưu hóa truy vấn Database song song:** Tối ưu hóa các truy vấn SQLite/Turso DB độc lập tại trang chủ bằng `Promise.all` và gộp câu truy vấn bảng đấu để loại bỏ N+1 query, giúp tốc độ tải trang cực kỳ nhanh khi chạy SSR qua HTTP client.
+
+### Fixed (Sửa lỗi)
+* **Khắc phục lỗi cache hiển thị tỷ số:** Gọi hàm `revalidatePath` xóa cache của Next.js ngay sau khi cập nhật tỷ số thủ công hoặc tự động trong các API `/api/results` và `/api/results/auto`.
+
 ## [1.9.0] - 2026-06-13
 
 ### Added (Thêm mới)

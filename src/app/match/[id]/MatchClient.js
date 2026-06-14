@@ -709,7 +709,7 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
           <div className="space-y-4">
             
             {/* Tab Bar - Sticky, nằm dưới header desktop (z-50) và mobile floats (z-50) */}
-            <div className="sticky top-0 md:top-16 z-40 bg-[#0B0F17]/95 backdrop-blur-md flex border-b border-card-border/40 mb-4 overflow-x-auto whitespace-nowrap scrollbar-none -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 pt-14 md:pt-0" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+            <div className="sticky top-0 z-40 bg-[#0B0F17]/95 backdrop-blur-md flex border-b border-card-border/40 mb-4 overflow-x-auto whitespace-nowrap scrollbar-none -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
               {[
                 { id: 'analysis', label: 'Nhận định' },
                 { id: 'simulator', label: 'Mô phỏng' },

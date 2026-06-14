@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { getDB } from '@/lib/db';
 import { evaluateBetOutcome } from '@/lib/results-updater';
+import { revalidatePath } from 'next/cache';
 import fs from 'fs';
 import path from 'path';
 
@@ -231,6 +232,17 @@ Hãy trả về duy nhất nội dung bài học bằng tiếng Việt. Không t
       } catch (lessonErr) {
         console.warn('⚠️ Lỗi khi tự tạo bài học kinh nghiệm AI:', lessonErr.message);
       }
+    }
+
+    // Xóa cache Next.js cho trang chủ và các trang chi tiết liên quan
+    try {
+      revalidatePath('/');
+      if (predictionRecord.match_id) {
+        revalidatePath(`/match/${predictionRecord.match_id}`);
+      }
+      revalidatePath('/match/[id]');
+    } catch (cacheErr) {
+      console.warn('⚠️ Lỗi revalidatePath:', cacheErr.message);
     }
 
     return NextResponse.json({

@@ -2,6 +2,8 @@ import dataFallback from '../data/fixtures.json';
 import HomePageClient from './HomePageClient';
 import { getDB } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 export default async function Page() {
   let isKeyConfigured = !!process.env.GEMINI_API_KEYS || !!process.env.GEMINI_API_KEY;
   
@@ -14,24 +16,30 @@ export default async function Page() {
   try {
     const db = await getDB();
     
-    // Tự động kiểm tra API Key hoạt động trong Database để đồng bộ trạng thái UI
-    const keyCount = await db.get('SELECT COUNT(*) as count FROM api_keys WHERE status = 1');
+    // Thực hiện song song toàn bộ các truy vấn độc lập để tối ưu hóa TTFB
+    const [keyCount, counts, scores, latestPreds, dbGroupsData, dbFixtures] = await Promise.all([
+      db.get('SELECT COUNT(*) as count FROM api_keys WHERE status = 1'),
+      db.all('SELECT match_id, COUNT(*) as count FROM predictions WHERE match_id IS NOT NULL GROUP BY match_id'),
+      db.all(`SELECT match_id, actual_home_score, actual_away_score 
+              FROM predictions 
+              WHERE id IN (SELECT MAX(id) FROM predictions WHERE match_id IS NOT NULL AND actual_home_score IS NOT NULL GROUP BY match_id)`),
+      db.all(`SELECT match_id, predicted_home_score, predicted_away_score, actual_home_score, actual_away_score, is_correct,
+                     ou_line, corners_line, cards_line, predict_type, first_half_home_score, first_half_away_score,
+                     actual_first_half_home_score, actual_first_half_away_score
+              FROM predictions 
+              WHERE id IN (SELECT MAX(id) FROM predictions WHERE match_id IS NOT NULL GROUP BY match_id)`),
+      db.all("SELECT group_name, team_name FROM tournament_groups WHERE tournament = 'World Cup 2026' AND season = '2026'"),
+      db.all("SELECT * FROM fixtures")
+    ]);
+    
     if (keyCount && keyCount.count > 0) {
       isKeyConfigured = true;
     }
 
-    const counts = await db.all(
-      'SELECT match_id, COUNT(*) as count FROM predictions WHERE match_id IS NOT NULL GROUP BY match_id'
-    );
     counts.forEach((row) => {
       historyCounts[row.match_id] = row.count;
     });
 
-    const scores = await db.all(
-      `SELECT match_id, actual_home_score, actual_away_score 
-       FROM predictions 
-       WHERE id IN (SELECT MAX(id) FROM predictions WHERE match_id IS NOT NULL AND actual_home_score IS NOT NULL GROUP BY match_id)`
-    );
     scores.forEach((row) => {
       scoreMap[row.match_id] = {
         actualHomeScore: row.actual_home_score,
@@ -39,14 +47,6 @@ export default async function Page() {
       };
     });
 
-    // Lấy dự đoán gần nhất của mỗi trận đấu để hiển thị lên trang chủ
-    const latestPreds = await db.all(
-      `SELECT match_id, predicted_home_score, predicted_away_score, actual_home_score, actual_away_score, is_correct,
-              ou_line, corners_line, cards_line, predict_type, first_half_home_score, first_half_away_score,
-              actual_first_half_home_score, actual_first_half_away_score
-       FROM predictions 
-       WHERE id IN (SELECT MAX(id) FROM predictions WHERE match_id IS NOT NULL GROUP BY match_id)`
-    );
     latestPreds.forEach((row) => {
       latestPredictions[row.match_id] = {
         predictedHomeScore: row.predicted_home_score,
@@ -65,23 +65,19 @@ export default async function Page() {
       };
     });
 
-    // Truy vấn bảng đấu từ database
-    const dbGroups = await db.all(
-      "SELECT DISTINCT group_name FROM tournament_groups WHERE tournament = 'World Cup 2026' AND season = '2026'"
-    );
-    for (const g of dbGroups) {
-      const dbTeams = await db.all(
-        "SELECT team_name FROM tournament_groups WHERE tournament = 'World Cup 2026' AND season = '2026' AND group_name = ?",
-        [g.group_name]
-      );
-      groups.push({
-        name: g.group_name,
-        teams: dbTeams.map(t => t.team_name)
-      });
-    }
+    // Gom nhóm các đội bóng theo bảng đấu từ kết quả truy vấn gộp
+    const groupMap = {};
+    dbGroupsData.forEach((row) => {
+      if (!groupMap[row.group_name]) {
+        groupMap[row.group_name] = [];
+      }
+      groupMap[row.group_name].push(row.team_name);
+    });
+    groups = Object.keys(groupMap).map((name) => ({
+      name,
+      teams: groupMap[name]
+    }));
 
-    // Truy vấn lịch thi đấu từ database
-    const dbFixtures = await db.all("SELECT * FROM fixtures");
     fixtures = dbFixtures.map(f => ({
       id: f.id,
       homeTeam: f.home_team,

@@ -29,18 +29,7 @@ export default function RootLayout({ children }) {
     <html lang="vi" className={`${outfit.variable} ${inter.variable} h-full`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col bg-background text-foreground antialiased font-sans pb-[72px] md:pb-0" suppressHydrationWarning>
         
-        {/* Nút Logo AI Float cố định trên di động */}
-        <Link 
-          href="/" 
-          className="fixed top-3 left-3 z-50 md:hidden h-9 w-9 rounded-lg bg-gradient-to-tr from-primary to-secondary flex items-center justify-center glow-green shadow-lg border border-white/10"
-        >
-          <span className="font-extrabold text-white text-sm tracking-wider">AI</span>
-        </Link>
 
-        {/* Model Badge Float cố định trên di động (đối diện với logo AI float bên trái) */}
-        <div className="fixed top-3.5 right-3 z-50 md:hidden">
-          <ModelBadge isFloat={true} />
-        </div>
 
         {/* Navigation Bar (Ẩn trên di động, chỉ hiện trên màn hình lớn) */}
         <header className="hidden md:block sticky top-0 z-50 glass-panel border-b border-card-border">
