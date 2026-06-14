@@ -121,6 +121,23 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
     }
   }, []);
 
+  // Phone: Tự động cuộn xuống phần tìm kiếm khi vào trang chủ
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 640) {
+      const timer = setTimeout(() => {
+        const searchElement = document.getElementById('search-section');
+        if (searchElement) {
+          try {
+            searchElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          } catch (e) {
+            searchElement.scrollIntoView();
+          }
+        }
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
   // Save states to localStorage when they change
   useEffect(() => {
     if (isRestored && typeof window !== 'undefined') {
@@ -617,7 +634,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
         {(activeTab === 'fixtures' || activeTab === 'test-matches') && (
           <div>
             {/* Search, Group, Sorting & Layout Controls */}
-            <div className="glass-panel border border-card-border/60 rounded-xl p-3.5 mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 text-xs">
+            <div id="search-section" className="glass-panel border border-card-border/60 rounded-xl p-3.5 mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 text-xs">
               {/* Search & Group filters */}
               <div className="grid grid-cols-2 sm:flex sm:flex-row gap-2 flex-1">
                 <div className="relative col-span-2 sm:flex-1">

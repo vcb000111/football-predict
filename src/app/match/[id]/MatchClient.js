@@ -729,24 +729,26 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
             {/* Tab Bar - Sticky, nằm dưới header desktop (z-50) và mobile floats (z-50) */}
             <div className="sticky top-0 z-40 bg-[#0B0F17]/95 backdrop-blur-md flex border-b border-card-border/40 mb-4 overflow-x-auto whitespace-nowrap scrollbar-none -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
               {[
-                { id: 'analysis', label: 'Nhận định' },
-                { id: 'simulator', label: 'Mô phỏng' },
-                { id: 'bets', label: 'Soi kèo' },
-                { id: 'chat', label: 'Trợ lý soi kèo' },
-                { id: 'history', label: 'Lịch sử & Quản trị' }
+                { id: 'analysis', label: 'Nhận định', icon: '🧠' },
+                { id: 'simulator', label: 'Mô phỏng', icon: '🎮' },
+                { id: 'bets', label: 'Soi kèo', icon: '📊' },
+                { id: 'chat', label: 'Trợ lý soi kèo', icon: '💬' }
               ].map(tab => {
                 const isActive = activeTab === tab.id;
                 return (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`py-3 px-5 text-xs font-bold transition-all relative border-b-2 whitespace-nowrap cursor-pointer ${
+                    className={`py-3 px-3.5 sm:px-5 text-xs font-bold transition-all relative border-b-2 whitespace-nowrap cursor-pointer ${
                       isActive 
                         ? 'text-white border-primary font-black' 
                         : 'text-gray-400 border-transparent hover:text-gray-200'
                     }`}
                   >
-                    <span>{tab.label}</span>
+                    <span>
+                      <span className="hidden sm:inline">{tab.label}</span>
+                      <span className="inline sm:hidden text-sm" title={tab.label}>{tab.icon}</span>
+                    </span>
                     {isActive && (
                       <span className="absolute bottom-0 left-0 w-full h-[2px] bg-primary shadow-[0_0_10px_#10B981] animate-pulse"></span>
                     )}
@@ -788,7 +790,7 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
             
             {/* Tab: Nhận định */}
             {activeTab === 'analysis' && (
-              <div className="space-y-4 animate-fade-in">
+              <div id="prediction-section" className="space-y-4 animate-fade-in" style={{ scrollMarginTop: '56px' }}>
                 
                 {/* Context Feedback Indicator Banner */}
                 {prediction.historicalAccuracy && (
@@ -989,6 +991,150 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
                       {prediction.analysis?.predictionReasoning || prediction.prediction_reasoning || 'AI đánh giá cao khả năng áp đặt lối chơi và ghi bàn đột biến của bên tấn công.'}
                     </p>
                   </div>
+                </div>
+
+                {/* Runs Comparison/History List */}
+                {historyList.length > 0 && (
+                  <div className="glass-panel rounded-xl p-4 border border-card-border">
+                    <h3 className="text-gray-400 font-bold text-xs mb-3 uppercase tracking-wider flex items-center justify-between">
+                      <span>Lịch sử các lần dự đoán</span>
+                      <span className="text-[10px] text-gray-500 font-normal">Click để so sánh</span>
+                    </h3>
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                      {historyList.map((run, idx) => {
+                        const isActive = run.id === prediction.id;
+                        // Read score fields supporting database fields or nested API payload fields
+                        const pHome = run.predicted_home_score ?? run.predictedScore?.home;
+                        const pAway = run.predicted_away_score ?? run.predictedScore?.away;
+                        
+                        const pType = run.predict_type || run.predictType || 'full_time';
+                        const isFirstHalfType = pType === 'first_half';
+                        const actH = isFirstHalfType ? (run.actual_first_half_home_score ?? run.actualFirstHalfHomeScore) : run.actual_home_score;
+                        const actA = isFirstHalfType ? (run.actual_first_half_away_score ?? run.actualFirstHalfAwayScore) : run.actual_away_score;
+                        const hasActualResult = actH !== null && actH !== undefined && actA !== null && actA !== undefined;
+
+                        return (
+                          <div
+                            key={run.id}
+                            onClick={() => {
+                              setPrediction(run);
+                              saveLastUsedModel(run.modelUsed || run.model_used);
+                              
+                              // Phone: Tự động cuộn lên trên phiên dự đoán
+                              if (typeof window !== 'undefined' && window.innerWidth < 640) {
+                                const section = document.getElementById('prediction-section');
+                                if (section) {
+                                  try {
+                                    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                  } catch (e) {
+                                    section.scrollIntoView();
+                                  }
+                                }
+                              }
+                            }}
+                            className={`p-2.5 rounded-lg border text-xs cursor-pointer transition-all duration-150 flex items-center justify-between ${
+                              isActive 
+                                ? 'border-primary bg-primary/5 text-white shadow-sm glow-green' 
+                                : 'border-card-border/60 hover:border-card-border bg-card-border/10 text-gray-400 hover:text-white'
+                            }`}
+                          >
+                            <div className="flex flex-col space-y-0.5">
+                              <div className="flex items-center space-x-1.5">
+                                <span className="font-bold"># Lượt {historyList.length - idx}</span>
+                                <span className={`px-1 py-0.2 rounded text-[8px] font-black uppercase ${
+                                  pType === 'first_half'
+                                    ? 'bg-primary/20 text-primary border border-primary/20'
+                                    : pType === 'second_half'
+                                      ? 'bg-secondary/20 text-secondary border border-secondary/20'
+                                      : 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
+                                }`}>
+                                  {pType === 'first_half' ? 'H1' : (pType === 'second_half' ? 'H2' : 'FT')}
+                                </span>
+                              </div>
+                              <span className="text-[9px] text-gray-500">{formatDate(run.created_at)}</span>
+                            </div>
+                            
+                            <div className="flex items-center space-x-2">
+                              <span className="font-mono font-extrabold text-sm text-gray-200 bg-card-border/30 px-2 py-0.5 rounded border border-card-border/30">
+                                Dự đoán: {pHome}-{pAway}
+                              </span>
+                              {hasActualResult && (() => {
+                                const status = getPredictionStatus(
+                                  pHome, 
+                                  pAway, 
+                                  run.actual_home_score, 
+                                  run.actual_away_score, 
+                                  pType, 
+                                  run.actual_first_half_home_score ?? run.actualFirstHalfHomeScore, 
+                                  run.actual_first_half_away_score ?? run.actualFirstHalfAwayScore
+                                );
+                                return (
+                                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${status.colorClass}`}>
+                                    {status.text} ({actH}-{actA})
+                                  </span>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Grounded Sources */}
+                {prediction.sources && prediction.sources.length > 0 && (
+                  <div className="glass-panel rounded-xl p-4 border border-card-border">
+                    <h3 className="text-gray-400 font-bold text-xs uppercase tracking-wider mb-3">
+                      Nguồn tin tham khảo (Google Search Grounding)
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {prediction.sources.map((src, idx) => (
+                        <a 
+                          key={idx}
+                          href={src.uri}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 rounded-lg bg-card-border/20 border border-card-border hover:border-primary/50 transition-colors flex items-center space-x-1.5 text-xs text-gray-300 hover:text-primary"
+                        >
+                          <span>📰</span>
+                          <span className="truncate flex-1 font-semibold text-[10px]">{src.title}</span>
+                          <span className="text-gray-500 font-bold text-[10px]">↗</span>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Admin Results Update Panel */}
+                <div className="glass-panel rounded-xl p-4 border border-card-border space-y-3.5">
+                  <div>
+                    <h3 className="text-gray-400 font-bold text-xs mb-1 uppercase tracking-wider">Cập Nhật Kết Quả Thực Tế</h3>
+                    <p className="text-[10px] text-gray-500 leading-normal">
+                      AI sẽ tự động tra cứu tỉ số thực tế trực tuyến thông qua Google Search để cập nhật kết quả và chấm điểm các dự đoán.
+                    </p>
+                  </div>
+                  
+                  {/* Auto Update Button */}
+                  <button
+                    type="button"
+                    onClick={handleAutoUpdateResult}
+                    disabled={updatingAuto}
+                    className="w-full bg-[#151E2E] hover:bg-primary/20 border border-card-border hover:border-primary/50 text-white font-bold py-2 px-3 rounded-lg text-xs tracking-wider transition-all flex items-center justify-center space-x-1.5 shadow-sm active:scale-[0.99] cursor-pointer"
+                  >
+                    <span>🤖</span>
+                    <span>{updatingAuto ? 'Đang tìm kiếm & chấm điểm...' : 'TỰ ĐỘNG CẬP NHẬT (AI & GOOGLE SEARCH)'}</span>
+                  </button>
+
+                  {resMessage && (
+                    <div className={`mt-3 p-2.5 rounded-lg border text-xs leading-relaxed ${
+                      resMessage.success 
+                        ? 'border-primary/30 bg-primary/5 text-primary' 
+                        : 'border-red-500/30 bg-red-950/10 text-red-400'
+                    }`}>
+                      {resMessage.text}
+                    </div>
+                  )}
                 </div>
 
               </div>
@@ -1286,144 +1432,6 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
 
             </div>
 
-            {/* Tab: Lịch sử & Quản trị */}
-            {activeTab === 'history' && (
-              <div className="space-y-4 animate-fade-in">
-                
-                {/* Runs Comparison/History List */}
-                {historyList.length > 0 && (
-                  <div className="glass-panel rounded-xl p-4 border border-card-border">
-                    <h3 className="text-gray-400 font-bold text-xs mb-3 uppercase tracking-wider flex items-center justify-between">
-                      <span>Lịch sử các lần dự đoán</span>
-                      <span className="text-[10px] text-gray-500 font-normal">Click để so sánh</span>
-                    </h3>
-                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                      {historyList.map((run, idx) => {
-                        const isActive = run.id === prediction.id;
-                        // Read score fields supporting database fields or nested API payload fields
-                        const pHome = run.predicted_home_score ?? run.predictedScore?.home;
-                        const pAway = run.predicted_away_score ?? run.predictedScore?.away;
-                        
-                        const pType = run.predict_type || run.predictType || 'full_time';
-                        const isFirstHalfType = pType === 'first_half';
-                        const actH = isFirstHalfType ? (run.actual_first_half_home_score ?? run.actualFirstHalfHomeScore) : run.actual_home_score;
-                        const actA = isFirstHalfType ? (run.actual_first_half_away_score ?? run.actualFirstHalfAwayScore) : run.actual_away_score;
-                        const hasActualResult = actH !== null && actH !== undefined && actA !== null && actA !== undefined;
-
-                        return (
-                          <div
-                            key={run.id}
-                            onClick={() => {
-                              setPrediction(run);
-                              saveLastUsedModel(run.modelUsed || run.model_used);
-                            }}
-                            className={`p-2.5 rounded-lg border text-xs cursor-pointer transition-all duration-150 flex items-center justify-between ${
-                              isActive 
-                                ? 'border-primary bg-primary/5 text-white shadow-sm glow-green' 
-                                : 'border-card-border/60 hover:border-card-border bg-card-border/10 text-gray-400 hover:text-white'
-                            }`}
-                          >
-                            <div className="flex flex-col space-y-0.5">
-                              <div className="flex items-center space-x-1.5">
-                                <span className="font-bold"># Lượt {historyList.length - idx}</span>
-                                <span className={`px-1 py-0.2 rounded text-[8px] font-black uppercase ${
-                                  pType === 'first_half'
-                                    ? 'bg-primary/20 text-primary border border-primary/20'
-                                    : pType === 'second_half'
-                                      ? 'bg-secondary/20 text-secondary border border-secondary/20'
-                                      : 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
-                                }`}>
-                                  {pType === 'first_half' ? 'H1' : (pType === 'second_half' ? 'H2' : 'FT')}
-                                </span>
-                              </div>
-                              <span className="text-[9px] text-gray-500">{formatDate(run.created_at)}</span>
-                            </div>
-                            
-                            <div className="flex items-center space-x-2">
-                              <span className="font-mono font-extrabold text-sm text-gray-200 bg-card-border/30 px-2 py-0.5 rounded border border-card-border/30">
-                                Dự đoán: {pHome}-{pAway}
-                              </span>
-                              {hasActualResult && (() => {
-                                const status = getPredictionStatus(
-                                  pHome, 
-                                  pAway, 
-                                  run.actual_home_score, 
-                                  run.actual_away_score, 
-                                  pType, 
-                                  run.actual_first_half_home_score ?? run.actualFirstHalfHomeScore, 
-                                  run.actual_first_half_away_score ?? run.actualFirstHalfAwayScore
-                                );
-                                return (
-                                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${status.colorClass}`}>
-                                    {status.text} ({actH}-{actA})
-                                  </span>
-                                );
-                              })()}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Grounded Sources */}
-                {prediction.sources && prediction.sources.length > 0 && (
-                  <div className="glass-panel rounded-xl p-4 border border-card-border">
-                    <h3 className="text-gray-400 font-bold text-xs uppercase tracking-wider mb-3">
-                      Nguồn tin tham khảo (Google Search Grounding)
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {prediction.sources.map((src, idx) => (
-                        <a 
-                          key={idx}
-                          href={src.uri}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-2 rounded-lg bg-card-border/20 border border-card-border hover:border-primary/50 transition-colors flex items-center space-x-1.5 text-xs text-gray-300 hover:text-primary"
-                        >
-                          <span>📰</span>
-                          <span className="truncate flex-1 font-semibold text-[10px]">{src.title}</span>
-                          <span className="text-gray-500 font-bold text-[10px]">↗</span>
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Admin Results Update Panel */}
-                <div className="glass-panel rounded-xl p-4 border border-card-border space-y-3.5">
-                  <div>
-                    <h3 className="text-gray-400 font-bold text-xs mb-1 uppercase tracking-wider">Cập Nhật Kết Quả Thực Tế</h3>
-                    <p className="text-[10px] text-gray-500 leading-normal">
-                      AI sẽ tự động tra cứu tỉ số thực tế trực tuyến thông qua Google Search để cập nhật kết quả và chấm điểm các dự đoán.
-                    </p>
-                  </div>
-                  
-                  {/* Auto Update Button */}
-                  <button
-                    type="button"
-                    onClick={handleAutoUpdateResult}
-                    disabled={updatingAuto}
-                    className="w-full bg-[#151E2E] hover:bg-primary/20 border border-card-border hover:border-primary/50 text-white font-bold py-2 px-3 rounded-lg text-xs tracking-wider transition-all flex items-center justify-center space-x-1.5 shadow-sm active:scale-[0.99] cursor-pointer"
-                  >
-                    <span>🤖</span>
-                    <span>{updatingAuto ? 'Đang tìm kiếm & chấm điểm...' : 'TỰ ĐỘNG CẬP NHẬT (AI & GOOGLE SEARCH)'}</span>
-                  </button>
-
-                  {resMessage && (
-                    <div className={`mt-3 p-2.5 rounded-lg border text-xs leading-relaxed ${
-                      resMessage.success 
-                        ? 'border-primary/30 bg-primary/5 text-primary' 
-                        : 'border-red-500/30 bg-red-950/10 text-red-400'
-                    }`}>
-                      {resMessage.text}
-                    </div>
-                  )}
-                </div>
-
-              </div>
-            )}
 
           </div>
         )}
