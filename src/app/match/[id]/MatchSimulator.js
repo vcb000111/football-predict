@@ -12,6 +12,7 @@ export default function MatchSimulator({ match, isActive = true }) {
   const [speedMode, setSpeedMode] = useState('normal'); // 'normal' | 'skip' | 'pause'
   const [activeEvent, setActiveEvent] = useState(null);
   const [commentaryList, setCommentaryList] = useState([]);
+  const [subTab, setSubTab] = useState('live'); // 'live' | 'full'
   
   // Animation coordinates states
   const [ball, setBall] = useState({ x: 50, y: 30, scale: 1, rotate: 0 });
@@ -440,175 +441,236 @@ export default function MatchSimulator({ match, isActive = true }) {
         </div>
       </div>
 
+      {hasTimeline && (
+        <div className="flex border-b border-card-border/30 mb-4 text-xs">
+          <button
+            onClick={() => setSubTab('live')}
+            className={`pb-2.5 px-4 font-bold transition-all relative border-b-2 cursor-pointer ${
+              subTab === 'live' 
+                ? 'text-primary border-primary font-black' 
+                : 'text-gray-400 border-transparent hover:text-gray-200'
+            }`}
+          >
+            Xem live
+          </button>
+          <button
+            onClick={() => setSubTab('full')}
+            className={`pb-2.5 px-4 font-bold transition-all relative border-b-2 cursor-pointer ${
+              subTab === 'full' 
+                ? 'text-primary border-primary font-black' 
+                : 'text-gray-400 border-transparent hover:text-gray-200'
+            }`}
+          >
+            Full tình huống
+          </button>
+        </div>
+      )}
+
       {!hasTimeline ? (
         <div className="py-12 text-center text-xs text-gray-400 border border-dashed border-card-border/50 rounded-xl">
           🦖 Trận đấu chưa bắt đầu hoặc chưa có dữ liệu diễn biến. Vui lòng bấm cập nhật kết quả tự động để lấy dữ liệu.
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          
-          {/* SÂN BÓNG SVG 2D (7 cột) */}
-          <div className="lg:col-span-7 flex flex-col justify-center items-center">
-            <div className="relative w-full aspect-[100/60] rounded-xl overflow-hidden border border-card-border bg-[#102A1A] shadow-inner select-none">
-              <svg viewBox="0 0 100 60" className="w-full h-full">
-                {/* Cỏ sân bóng nền */}
-                <rect width="100" height="60" fill="#1b4d22" />
-                
-                {/* Sọc cỏ (Shading) */}
-                {[...Array(10)].map((_, idx) => (
-                  <rect 
-                    key={idx} 
-                    x={idx * 10} 
-                    y="0" 
-                    width="5" 
-                    height="60" 
-                    fill="#1e5426" 
-                  />
-                ))}
-
-                {/* Khung viền sân bóng */}
-                <rect x="2" y="2" width="96" height="56" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" />
-                
-                {/* Vạch kẻ giữa sân */}
-                <line x1="50" y1="2" x2="50" y2="58" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" />
-                
-                {/* Vòng tròn trung tâm */}
-                <circle cx="50" cy="30" r="9.15" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" />
-                <circle cx="50" cy="30" r="0.8" fill="rgba(255,255,255,0.8)" />
-
-                {/* Vòng cấm địa Home (Trái) */}
-                <rect x="2" y="12" width="14" height="36" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" />
-                <rect x="2" y="20" width="5" height="20" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" />
-                <circle cx="11.5" cy="30" r="0.6" fill="rgba(255,255,255,0.8)" />
-                <path d="M 16 23 A 9.15 9.15 0 0 1 16 37" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" />
-
-                {/* Vòng cấm địa Away (Phải) */}
-                <rect x="84" y="12" width="14" height="36" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" />
-                <rect x="93" y="20" width="5" height="20" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" />
-                <circle cx="88.5" cy="30" r="0.6" fill="rgba(255,255,255,0.8)" />
-                <path d="M 84 23 A 9.15 9.15 0 0 0 84 37" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" />
-
-                {/* Cột dọc & Khung thành hai bên */}
-                {/* Gôn Home */}
-                <rect x="0.2" y="25" width="1.8" height="10" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="0.8" />
-                <line x1="2" y1="25" x2="2" y2="35" stroke="rgba(255,255,255,0.9)" strokeWidth="1" />
-                {/* Gôn Away */}
-                <rect x="98" y="25" width="1.8" height="10" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="0.8" />
-                <line x1="98" y1="25" x2="98" y2="35" stroke="rgba(255,255,255,0.9)" strokeWidth="1" />
-
-                {/* BỤNG GÓC (Corner Arcs) */}
-                <path d="M 2 3.5 A 1.5 1.5 0 0 1 3.5 2" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" />
-                <path d="M 2 56.5 A 1.5 1.5 0 0 0 3.5 58" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" />
-                <path d="M 98 3.5 A 1.5 1.5 0 0 0 96.5 2" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" />
-                <path d="M 98 56.5 A 1.5 1.5 0 0 1 96.5 58" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" />
-
-                {/* VẼ CẦU THỦ HOME (Màu Xanh Neon) */}
-                {Object.keys(players).filter(k => k.startsWith('home')).map(key => {
-                  const p = players[key];
-                  return (
-                    <g key={key} style={{ transform: `translate3d(${p.x}px, ${p.y}px, 0)`, transition: isTransitioning.current ? 'all 1.5s ease-out' : 'all 0.5s ease-out' }} className="cursor-pointer">
-                      <circle cx="0" cy="0" r="2.2" fill="#10B981" stroke="#ffffff" strokeWidth="0.5" className={p.active ? "animate-pulse" : ""} />
-                      {p.active && (
-                        <circle cx="0" cy="0" r="3.8" fill="none" stroke="#10B981" strokeWidth="0.4" className="animate-ping" />
-                      )}
-                      <text x="0" y="0.8" fill="#000000" fontSize="2.2" fontWeight="black" textAnchor="middle" pointerEvents="none">{p.name}</text>
-                    </g>
-                  );
-                })}
-
-                {/* VẼ CẦU THỦ AWAY (Màu Đỏ/Cam Neon) */}
-                {Object.keys(players).filter(k => k.startsWith('away')).map(key => {
-                  const p = players[key];
-                  return (
-                    <g key={key} style={{ transform: `translate3d(${p.x}px, ${p.y}px, 0)`, transition: isTransitioning.current ? 'all 1.5s ease-out' : 'all 0.5s ease-out' }} className="cursor-pointer">
-                      <circle cx="0" cy="0" r="2.2" fill="#EF4444" stroke="#ffffff" strokeWidth="0.5" className={p.active ? "animate-pulse" : ""} />
-                      {p.active && (
-                        <circle cx="0" cy="0" r="3.8" fill="none" stroke="#EF4444" strokeWidth="0.4" className="animate-ping" />
-                      )}
-                      <text x="0" y="0.8" fill="#ffffff" fontSize="2.2" fontWeight="black" textAnchor="middle" pointerEvents="none">{p.name}</text>
-                    </g>
-                  );
-                })}
-
-                {/* VẼ TRỌNG TÀI (Màu Dạ Quang Còi) */}
-                <g style={{ transform: `translate3d(${referee.x}px, ${referee.y}px, 0)`, transition: 'all 1.2s ease-out' }}>
-                  <circle cx="0" cy="0" r="1.6" fill="#FBBF24" stroke="#000000" strokeWidth="0.4" />
-                  <text x="0" y="0.6" fill="#000000" fontSize="1.8" fontWeight="black" textAnchor="middle">👤</text>
+        <>
+          <div className={subTab === 'live' ? "grid grid-cols-1 lg:grid-cols-12 gap-4" : "hidden"}>
+            
+            {/* SÂN BÓNG SVG 2D (7 cột) */}
+            <div className="lg:col-span-7 flex flex-col justify-center items-center">
+              <div className="relative w-full aspect-[100/60] rounded-xl overflow-hidden border border-card-border bg-[#102A1A] shadow-inner select-none">
+                <svg viewBox="0 0 100 60" className="w-full h-full">
+                  {/* Cỏ sân bóng nền */}
+                  <rect width="100" height="60" fill="#1b4d22" />
                   
-                  {/* Thẻ phạt nổi bật trên đầu trọng tài */}
-                  {referee.activeCard && (
+                  {/* Sọc cỏ (Shading) */}
+                  {[...Array(10)].map((_, idx) => (
                     <rect 
-                      x="-1.1" 
-                      y="-4.5" 
-                      width="2.2" 
-                      height="3" 
-                      rx="0.3" 
-                      fill={referee.activeCard === 'Y' ? '#FBBF24' : '#EF4444'} 
-                      stroke="#ffffff" 
-                      strokeWidth="0.3" 
-                      className="animate-bounce"
-                    />
-                  )}
-                </g>
-
-                {/* VẼ QUẢ BÓNG ⚽ */}
-                <g style={{ transform: `translate3d(${ball.x}px, ${ball.y}px, 0) scale(${ball.scale}) rotate(${ball.rotate}deg)`, transition: isTransitioning.current ? 'all 1.2s ease-out' : 'all 0.4s ease-out' }}>
-                  <circle cx="0" cy="0" r="1.2" fill="#ffffff" stroke="#000000" strokeWidth="0.25" />
-                  <text x="0" y="0.5" fontSize="1.6" textAnchor="middle">⚽</text>
-                  {/* Bóng có vệt bóng mờ khi sút căng */}
-                  {ball.scale > 1.2 && (
-                    <circle cx="0" cy="0" r="2" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.3" className="animate-ping" />
-                  )}
-                </g>
-              </svg>
-            </div>
-          </div>
-
-          {/* NHẬN ĐỊNH / LOG COMMENTARY (5 cột) */}
-          <div className="lg:col-span-5 flex flex-col justify-between h-[210px] sm:h-auto">
-            {/* Live Commentary Box */}
-            <div className="flex-1 bg-[#090D16] border border-card-border/60 rounded-xl p-3.5 flex flex-col overflow-hidden relative min-h-[160px] max-h-[260px]">
-              <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-2 flex justify-between items-center border-b border-card-border/30 pb-1.5">
-                <span>Tường thuật trực tiếp (Live Commentary)</span>
-                <span className="text-primary animate-pulse">● LIVE VN</span>
-              </div>
-
-              {/* Dòng commentary chạy chữ */}
-              <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar text-xs">
-                {commentaryList.length === 0 ? (
-                  <div className="h-full flex items-center justify-center text-gray-400 italic text-[11px] py-8">
-                    Nhấn nút Giao Bóng để bắt đầu theo dõi trận đấu...
-                  </div>
-                ) : (
-                  commentaryList.map((log, idx) => (
-                    <div 
                       key={idx} 
-                      className={`p-2 rounded-lg border leading-relaxed flex items-start space-x-2 animate-fade-in ${
-                        idx === 0 
-                          ? 'bg-primary/10 border-primary/20 text-white' 
-                          : 'bg-[#151E2E]/30 border-card-border/40 text-gray-400'
-                      }`}
-                    >
-                      <span className="font-bold font-mono text-primary text-[10px] bg-primary/10 px-1.5 py-0.2 rounded mt-0.5">
-                        {Math.floor(log.minute)}'
-                      </span>
-                      <div className="flex-1 text-[11px]">
-                        <span className="mr-1">{getEventIcon(log.type)}</span>
-                        <span>{log.detail}</span>
-                      </div>
-                    </div>
-                  ))
-                )}
+                      x={idx * 10} 
+                      y="0" 
+                      width="5" 
+                      height="60" 
+                      fill="#1e5426" 
+                    />
+                  ))}
+
+                  {/* Khung viền sân bóng */}
+                  <rect x="2" y="2" width="96" height="56" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" />
+                  
+                  {/* Vạch kẻ giữa sân */}
+                  <line x1="50" y1="2" x2="50" y2="58" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" />
+                  
+                  {/* Vòng tròn trung tâm */}
+                  <circle cx="50" cy="30" r="9.15" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" />
+                  <circle cx="50" cy="30" r="0.8" fill="rgba(255,255,255,0.8)" />
+
+                  {/* Vòng cấm địa Home (Trái) */}
+                  <rect x="2" y="12" width="14" height="36" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" />
+                  <rect x="2" y="20" width="5" height="20" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" />
+                  <circle cx="11.5" cy="30" r="0.6" fill="rgba(255,255,255,0.8)" />
+                  <path d="M 16 23 A 9.15 9.15 0 0 1 16 37" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" />
+
+                  {/* Vòng cấm địa Away (Phải) */}
+                  <rect x="84" y="12" width="14" height="36" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" />
+                  <rect x="93" y="20" width="5" height="20" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" />
+                  <circle cx="88.5" cy="30" r="0.6" fill="rgba(255,255,255,0.8)" />
+                  <path d="M 84 23 A 9.15 9.15 0 0 0 84 37" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" />
+
+                  {/* Cột dọc & Khung thành hai bên */}
+                  {/* Gôn Home */}
+                  <rect x="0.2" y="25" width="1.8" height="10" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="0.8" />
+                  <line x1="2" y1="25" x2="2" y2="35" stroke="rgba(255,255,255,0.9)" strokeWidth="1" />
+                  {/* Gôn Away */}
+                  <rect x="98" y="25" width="1.8" height="10" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="0.8" />
+                  <line x1="98" y1="25" x2="98" y2="35" stroke="rgba(255,255,255,0.9)" strokeWidth="1" />
+
+                  {/* BỤNG GÓC (Corner Arcs) */}
+                  <path d="M 2 3.5 A 1.5 1.5 0 0 1 3.5 2" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" />
+                  <path d="M 2 56.5 A 1.5 1.5 0 0 0 3.5 58" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" />
+                  <path d="M 98 3.5 A 1.5 1.5 0 0 0 96.5 2" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" />
+                  <path d="M 98 56.5 A 1.5 1.5 0 0 1 96.5 58" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" />
+
+                  {/* VẼ CẦU THỦ HOME (Màu Xanh Neon) */}
+                  {Object.keys(players).filter(k => k.startsWith('home')).map(key => {
+                    const p = players[key];
+                    return (
+                      <g key={key} style={{ transform: `translate3d(${p.x}px, ${p.y}px, 0)`, transition: isTransitioning.current ? 'all 1.5s ease-out' : 'all 0.5s ease-out' }} className="cursor-pointer">
+                        <circle cx="0" cy="0" r="2.2" fill="#10B981" stroke="#ffffff" strokeWidth="0.5" className={p.active ? "animate-pulse" : ""} />
+                        {p.active && (
+                          <circle cx="0" cy="0" r="3.8" fill="none" stroke="#10B981" strokeWidth="0.4" className="animate-ping" />
+                        )}
+                        <text x="0" y="0.8" fill="#000000" fontSize="2.2" fontWeight="black" textAnchor="middle" pointerEvents="none">{p.name}</text>
+                      </g>
+                    );
+                  })}
+
+                  {/* VẼ CẦU THỦ AWAY (Màu Đỏ/Cam Neon) */}
+                  {Object.keys(players).filter(k => k.startsWith('away')).map(key => {
+                    const p = players[key];
+                    return (
+                      <g key={key} style={{ transform: `translate3d(${p.x}px, ${p.y}px, 0)`, transition: isTransitioning.current ? 'all 1.5s ease-out' : 'all 0.5s ease-out' }} className="cursor-pointer">
+                        <circle cx="0" cy="0" r="2.2" fill="#EF4444" stroke="#ffffff" strokeWidth="0.5" className={p.active ? "animate-pulse" : ""} />
+                        {p.active && (
+                          <circle cx="0" cy="0" r="3.8" fill="none" stroke="#EF4444" strokeWidth="0.4" className="animate-ping" />
+                        )}
+                        <text x="0" y="0.8" fill="#ffffff" fontSize="2.2" fontWeight="black" textAnchor="middle" pointerEvents="none">{p.name}</text>
+                      </g>
+                    );
+                  })}
+
+                  {/* VẼ TRỌNG TÀI (Màu Dạ Quang Còi) */}
+                  <g style={{ transform: `translate3d(${referee.x}px, ${referee.y}px, 0)`, transition: 'all 1.2s ease-out' }}>
+                    <circle cx="0" cy="0" r="1.6" fill="#FBBF24" stroke="#000000" strokeWidth="0.4" />
+                    <text x="0" y="0.6" fill="#000000" fontSize="1.8" fontWeight="black" textAnchor="middle">👤</text>
+                    
+                    {/* Thẻ phạt nổi bật trên đầu trọng tài */}
+                    {referee.activeCard && (
+                      <rect 
+                        x="-1.1" 
+                        y="-4.5" 
+                        width="2.2" 
+                        height="3" 
+                        rx="0.3" 
+                        fill={referee.activeCard === 'Y' ? '#FBBF24' : '#EF4444'} 
+                        stroke="#ffffff" 
+                        strokeWidth="0.3" 
+                        className="animate-bounce"
+                      />
+                    )}
+                  </g>
+
+                  {/* VẼ QUẢ BÓNG ⚽ */}
+                  <g style={{ transform: `translate3d(${ball.x}px, ${ball.y}px, 0) scale(${ball.scale}) rotate(${ball.rotate}deg)`, transition: isTransitioning.current ? 'all 1.2s ease-out' : 'all 0.4s ease-out' }}>
+                    <circle cx="0" cy="0" r="1.2" fill="#ffffff" stroke="#000000" strokeWidth="0.25" />
+                    <text x="0" y="0.5" fontSize="1.6" textAnchor="middle">⚽</text>
+                    {/* Bóng có vệt bóng mờ khi sút căng */}
+                    {ball.scale > 1.2 && (
+                      <circle cx="0" cy="0" r="2" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.3" className="animate-ping" />
+                    )}
+                  </g>
+                </svg>
               </div>
             </div>
+
+            {/* NHẬN ĐỊNH / LOG COMMENTARY (5 cột) */}
+            <div className="lg:col-span-5 flex flex-col justify-between h-[210px] sm:h-auto">
+              {/* Live Commentary Box */}
+              <div className="flex-1 bg-[#090D16] border border-card-border/60 rounded-xl p-3.5 flex flex-col overflow-hidden relative min-h-[160px] max-h-[260px]">
+                <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-2 flex justify-between items-center border-b border-card-border/30 pb-1.5">
+                  <span>Tường thuật trực tiếp (Live Commentary)</span>
+                  <span className="text-primary animate-pulse">● LIVE VN</span>
+                </div>
+
+                {/* Dòng commentary chạy chữ */}
+                <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar text-xs">
+                  {commentaryList.length === 0 ? (
+                    <div className="h-full flex items-center justify-center text-gray-400 italic text-[11px] py-8">
+                      Nhấn nút Giao Bóng để bắt đầu theo dõi trận đấu...
+                    </div>
+                  ) : (
+                    commentaryList.map((log, idx) => (
+                      <div 
+                        key={idx} 
+                        className={`p-2 rounded-lg border leading-relaxed flex items-start space-x-2 animate-fade-in ${
+                          idx === 0 
+                            ? 'bg-primary/10 border-primary/20 text-white' 
+                            : 'bg-[#151E2E]/30 border-card-border/40 text-gray-400'
+                        }`}
+                      >
+                        <span className="font-bold font-mono text-primary text-[10px] bg-primary/10 px-1.5 py-0.2 rounded mt-0.5">
+                          {Math.floor(log.minute)}'
+                        </span>
+                        <div className="flex-1 text-[11px]">
+                          <span className="mr-1">{getEventIcon(log.type)}</span>
+                          <span>{log.detail}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+
           </div>
 
-        </div>
+          {/* GIAO DIỆN FULL TÌNH HUỐNG */}
+          <div className={subTab === 'full' ? "bg-[#090D16] border border-card-border/60 rounded-xl p-4 max-h-[380px] overflow-y-auto custom-scrollbar space-y-3" : "hidden"}>
+            {timeline.map((event, idx) => {
+              let bgBorderClass = "bg-[#151E2E]/30 border-card-border/30 hover:border-card-border/60";
+              if (event.type === 'goal') {
+                bgBorderClass = "bg-emerald-500/10 border-emerald-500/30 hover:border-emerald-500/50";
+              } else if (event.type === 'red_card') {
+                bgBorderClass = "bg-rose-500/10 border-rose-500/30 hover:border-rose-500/50";
+              } else if (event.type === 'yellow_card') {
+                bgBorderClass = "bg-amber-500/10 border-amber-500/30 hover:border-amber-500/50";
+              }
+
+              let teamNameElement = null;
+              if (event.team === 'home') {
+                teamNameElement = <span className="font-bold text-emerald-400 mr-1.5">{match.homeTeam}</span>;
+              } else if (event.team === 'away') {
+                teamNameElement = <span className="font-bold text-rose-400 mr-1.5">{match.awayTeam}</span>;
+              }
+
+              return (
+                <div key={idx} className={`flex items-start space-x-3 p-3 rounded-lg border transition-all ${bgBorderClass}`}>
+                  <span className="font-bold font-mono text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-md self-start min-w-[32px] text-center">
+                    {event.minute}'
+                  </span>
+                  <span className="text-sm self-start">{getEventIcon(event.type)}</span>
+                  <div className="flex-1 text-xs text-gray-300">
+                    {teamNameElement}
+                    <span>{event.detail}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
 
       {/* THANH ĐIỀU KHIỂN WIDGET */}
       {hasTimeline && (
-        <div className="mt-3.5 pt-3 border-t border-card-border/30 flex flex-col sm:flex-row items-center justify-between gap-3.5 text-xs text-gray-300">
+        <div className={subTab === 'live' ? "mt-3.5 pt-3 border-t border-card-border/30 flex flex-col sm:flex-row items-center justify-between gap-3.5 text-xs text-gray-300" : "hidden"}>
           
           {/* Nút Play/Pause */}
           <div className="flex items-center space-x-3.5">
