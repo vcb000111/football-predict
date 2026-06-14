@@ -187,27 +187,8 @@ export async function POST(request) {
         return aliases[lower] || lower;
       };
 
-      // 2. Cập nhật file JSON
-      const fixturesFilePath = path.join(process.cwd(), 'src', 'data', 'fixtures.json');
-      if (fs.existsSync(fixturesFilePath)) {
-        const fileData = JSON.parse(fs.readFileSync(fixturesFilePath, 'utf8'));
-        const fixtureIndex = fileData.fixtures.findIndex(
-          (f) => f.id === predictionRecord.match_id || (normalizeTeamName(f.homeTeam) === normalizeTeamName(homeTeam) && normalizeTeamName(f.awayTeam) === normalizeTeamName(awayTeam))
-        );
-        if (fixtureIndex !== -1) {
-          fileData.fixtures[fixtureIndex].actualHomeScore = aHome;
-          fileData.fixtures[fixtureIndex].actualAwayScore = aAway;
-          if (aFirstHalfHome !== null && aFirstHalfAway !== null) {
-            fileData.fixtures[fixtureIndex].actualFirstHalfScore = {
-              home: aFirstHalfHome,
-              away: aFirstHalfAway
-            };
-          }
-          fileData.fixtures[fixtureIndex].matchTimeline = mockTimeline;
-          fs.writeFileSync(fixturesFilePath, JSON.stringify(fileData, null, 2), 'utf8');
-          console.log(`🟢 [fixtures.json - MANUAL] Đã cập nhật tỉ số cho trận đấu ${homeTeam} vs ${awayTeam}: ${aHome}-${aAway}, Hiệp 1: ${aFirstHalfHome}-${aFirstHalfAway}`);
-        }
-      }
+      // 2. Cập nhật file JSON (Đã loại bỏ để tránh trigger HMR reload trang)
+      console.log(`ℹ️ [Skip fixtures.json - MANUAL] Đã bỏ qua cập nhật file tĩnh.`);
     } catch (fsError) {
       console.error('Lỗi khi cập nhật fixtures (DB/File - MANUAL):', fsError);
     }
