@@ -4,8 +4,16 @@ Tất cả những thay đổi nổi bật đối với dự án **FIFA World Cu
 
 ## [1.9.1] - 2026-06-14
 
+### Added (Thêm mới)
+* **Tải lên nhiều hình ảnh (1-10 ảnh) trong Chat AI:** Nâng cấp hộp chat AI hỗ trợ người dùng đính kèm từ 1 đến 10 hình ảnh cùng lúc trong một tin nhắn.
+* **Đính kèm ảnh khi gửi câu hỏi gợi ý nhanh:** Cập nhật logic click câu hỏi gợi ý để tự động thu thập và gửi kèm danh sách ảnh đính kèm hiện có, thay vì bỏ qua như trước đây.
+* **Nén hình ảnh bằng Canvas ở phía Client:** Tích hợp cơ chế tự động nén chất lượng (JPEG 0.7) và thu nhỏ kích thước ảnh (tối đa 800px) tại Client-side trước khi truyền qua API, tránh lỗi vượt quá giới hạn 4MB Payload của Next.js.
+* **Lưới xem trước ảnh soạn thảo:** Thiết kế giao diện lưới ảnh xem trước nằm ngang kèm nút xóa nhanh cho từng ảnh trước khi gửi.
+* **Lưới ảnh hiển thị tin nhắn trong khung chat:** Tự động parse và hiển thị danh sách ảnh đính kèm thành lưới ảnh cỡ 120x120px trong khung chat, hỗ trợ click xem ảnh gốc trong tab mới và tương thích ngược với tin nhắn cũ.
+* **Xử lý tải lên Cloudinary song song:** Cải tiến API route `/api/match/chat` để thực hiện tải ảnh lên Cloudinary đồng thời bằng `Promise.all`, loại bỏ nguy cơ bị nghẽn thời gian chờ (Timeout) và lưu dữ liệu dưới dạng mảng JSON stringified vào cột image_url trong cơ sở dữ liệu.
+
 ### Changed (Thay đổi logic)
-* **Chuyển đổi sang Dynamic Rendering (SSR) cho Trang chủ và Trang Chi tiết:** Cấu hình thuộc tính `export const dynamic = 'force-dynamic';` tại `src/app/page.js` và `src/app/match/[id]/page.js` để Next.js luôn render động trên mỗi request thực tế, loại bỏ hoàn toàn lỗi lưu cache trang tĩnh (SSG) trên Production.
+* **Chuyển đổi sang Dynamic Rendering (SSR) cho Trang chủ và Trang Chi tiết:** Cấu hình thuộc tính `export const dynamic = 'force-dynamic';` tại `src/app/page.js` and `src/app/match/[id]/page.js` để Next.js luôn render động trên mỗi request thực tế, loại bỏ hoàn toàn lỗi lưu cache trang tĩnh (SSG) trên Production.
 * **Tối ưu hóa kích thước thanh Bottom Navigation:** Điều chỉnh giảm chiều cao từ `h-16` xuống `h-14`, thu gọn kích thước icon từ `w-5.5 h-5.5` xuống `w-5 h-5`, giảm margin và cỡ chữ xuống `text-[9px]` để giao diện trên thiết bị di động gọn gàng, tăng diện tích hiển thị nội dung chính.
 * **Tối ưu hóa truy vấn Database song song:** Tối ưu hóa các truy vấn SQLite/Turso DB độc lập tại trang chủ bằng `Promise.all` và gộp câu truy vấn bảng đấu để loại bỏ N+1 query, giúp tốc độ tải trang cực kỳ nhanh khi chạy SSR qua HTTP client.
 

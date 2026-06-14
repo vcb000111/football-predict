@@ -102,6 +102,15 @@ npm run dev
 
 ## 🛠️ Nhật Ký Thay Đổi (Changelog)
 
+### [2026-06-14] - Tải lên nhiều hình ảnh (1-10 ảnh) trong Chat AI, nén Canvas và Tối ưu SSR (v1.9.1)
+* **Tải lên nhiều hình ảnh (1-10 ảnh) trong Chat AI:** Cho phép đính kèm cùng lúc tối đa 10 ảnh trong ô chat AI trợ lý.
+* **Đính kèm ảnh khi gửi câu hỏi gợi ý nhanh:** Tự động thu thập và gửi kèm mảng ảnh đính kèm hiện tại khi sếp click vào câu hỏi gợi ý nhanh, đồng thời xóa xem trước ảnh.
+* **Tự động nén ảnh bằng Canvas ở Client-side:** Nén chất lượng hình ảnh về JPEG 0.7 và giảm chiều dài tối đa còn 800px trước khi tải lên, giữ dung lượng payload API luôn dưới 4MB.
+* **Hiển thị lưới ảnh đính kèm và phóng to:** Render lưới ảnh đính kèm trong tin nhắn (120x120px) và hỗ trợ click xem ảnh lớn trong tab mới, tương thích ngược với tin nhắn cũ.
+* **Xử lý upload ảnh Cloudinary song song:** Sử dụng `Promise.all` để tải nhiều ảnh lên Cloudinary đồng thời, loại bỏ nguy cơ nghẽn thời gian chờ (Timeout) và lưu dạng chuỗi JSON stringified vào cơ sở dữ liệu.
+* **Chuyển đổi sang Dynamic Rendering (SSR) cho Trang chủ và Chi tiết:** Thiết lập `export const dynamic = 'force-dynamic'` để Next.js luôn render động trên mỗi request, loại bỏ lỗi lưu cache trang tĩnh.
+* **Tối ưu hóa Bottom Navigation và SQL Query:** Thu gọn kích thước thanh nav chân trang và tối ưu hóa truy vấn Database song song trên trang chủ bằng `Promise.all`.
+
 ### [2026-06-13] - Dự đoán Hiệp 1 & Hiệp 2, tích hợp Cloudinary và Cấu hình động AI Model (v1.9.0)
 * **Hiển thị bảng phân tích trực quan:** Tự động định dạng lại các bảng phân tích dữ liệu, xác suất tỉ số hoặc kèo phụ của AI thành bảng HTML gọn gàng, đẹp mắt.
 * **Dán hình ảnh từ khay nhớ tạm (Ctrl+V):** Hỗ trợ dán trực tiếp hình ảnh từ khay nhớ tạm (clipboard) vào ô nhập liệu chat để gửi phân tích nhanh.

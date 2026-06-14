@@ -15,7 +15,7 @@ function getPredictionStatus(predHome, predAway, actHome, actAway, predictType =
   if (aHome === null || aHome === undefined || aAway === null || aAway === undefined) {
     return { status: 'pending', text: 'Chờ', colorClass: 'bg-gray-500/10 text-gray-400 border-gray-500/20' };
   }
-  
+
   const pHome = parseInt(predHome, 10);
   const pAway = parseInt(predAway, 10);
   const compareHome = parseInt(aHome, 10);
@@ -24,16 +24,16 @@ function getPredictionStatus(predHome, predAway, actHome, actAway, predictType =
   if (pHome === compareHome && pAway === compareAway) {
     return { status: 'correct', text: isFirstHalf ? 'Đúng H1' : 'Đúng', colorClass: 'bg-emerald-500/20 text-primary border border-primary/20 shadow-sm' };
   }
-  
+
   const predDiff = pHome - pAway;
   const actDiff = compareHome - compareAway;
   const predOutcome = predDiff > 0 ? 1 : (predDiff < 0 ? -1 : 0);
   const actOutcome = actDiff > 0 ? 1 : (actDiff < 0 ? -1 : 0);
-  
+
   if (predOutcome === actOutcome) {
     return { status: 'near', text: isFirstHalf ? 'Gần đúng H1' : 'Gần đúng', colorClass: 'bg-amber-500/20 text-amber-400 border border-amber-500/20' };
   }
-  
+
   return { status: 'incorrect', text: isFirstHalf ? 'Sai H1' : 'Sai', colorClass: 'bg-rose-500/20 text-rose-400 border-rose-500/20' };
 }
 
@@ -63,11 +63,11 @@ function translateRecommendation(text) {
 
 function renderMessageContent(text) {
   if (!text) return null;
-  
+
   const lines = text.split('\n');
   const elements = [];
   let i = 0;
-  
+
   const parseBold = (str) => {
     const parts = str.split('**');
     return parts.map((part, partIdx) => {
@@ -77,11 +77,11 @@ function renderMessageContent(text) {
       return part;
     });
   };
-  
+
   while (i < lines.length) {
     let line = lines[i];
     let trimmed = line.trim();
-    
+
     // Kiểm tra xem dòng có phải là một phần của bảng không
     if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
       // Gom nhóm tất cả các dòng bảng liên tiếp
@@ -90,7 +90,7 @@ function renderMessageContent(text) {
         tableLines.push(lines[i].trim());
         i++;
       }
-      
+
       // Parse bảng
       if (tableLines.length > 0) {
         // Dòng đầu tiên là header
@@ -98,13 +98,13 @@ function renderMessageContent(text) {
           .split('|')
           .map(c => c.trim())
           .filter((_, idx, arr) => idx > 0 && idx < arr.length - 1); // Bỏ cột rỗng đầu và cuối
-          
+
         // Dòng thứ hai thường là separator |---|:---|
         let startBodyIdx = 1;
         if (tableLines.length > 1 && tableLines[1].replace(/[\s\-:|]/g, '') === '') {
           startBodyIdx = 2; // Bỏ qua dòng separator
         }
-        
+
         const bodyRows = [];
         for (let rIdx = startBodyIdx; rIdx < tableLines.length; rIdx++) {
           const cells = tableLines[rIdx]
@@ -113,7 +113,7 @@ function renderMessageContent(text) {
             .filter((_, idx, arr) => idx > 0 && idx < arr.length - 1);
           bodyRows.push(cells);
         }
-        
+
         elements.push(
           <div key={`table-${i}`} className="overflow-x-auto my-3 rounded-lg border border-card-border/40 shadow-md">
             <table className="min-w-full divide-y divide-card-border/30 bg-[#111827]/30 text-[11px]">
@@ -143,18 +143,18 @@ function renderMessageContent(text) {
       }
       continue; // Bỏ qua i++ vì i đã được tăng trong vòng lặp tableLines
     }
-    
+
     // Xử lý các dòng text thông thường khác
     if (!trimmed) {
       elements.push(<div key={i} className="h-2" />);
       i++;
       continue;
     }
-    
+
     if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
       trimmed = trimmed.substring(2, trimmed.length - 2).trim();
     }
-    
+
     let isHeading = false;
     let headingLevel = 0;
     if (trimmed.startsWith('###')) {
@@ -170,15 +170,15 @@ function renderMessageContent(text) {
       headingLevel = 1;
       trimmed = trimmed.substring(1).trim();
     }
-    
+
     let isListItem = false;
     if (!isHeading && (trimmed.startsWith('* ') || trimmed.startsWith('- ') || trimmed.startsWith('• '))) {
       isListItem = true;
       trimmed = trimmed.substring(2).trim();
     }
-    
+
     const content = parseBold(trimmed);
-    
+
     if (isHeading) {
       if (headingLevel === 1) elements.push(<h1 key={i} className="text-sm font-black text-white mt-3 mb-1.5 uppercase tracking-wider">{content}</h1>);
       else if (headingLevel === 2) elements.push(<h2 key={i} className="text-xs font-black text-white mt-2.5 mb-1.5 uppercase tracking-wider">{content}</h2>);
@@ -199,14 +199,14 @@ function renderMessageContent(text) {
     }
     i++;
   }
-  
+
   return elements;
 }
 
 function formatModelName(model) {
   if (!model) return 'Gemini';
   const name = model.trim();
-  
+
   if (name.includes('gemini-3.1-flash-lite') || name.includes('gemini-2.5-flash-lite')) {
     return 'Gemini 3.1 Flash Lite';
   }
@@ -214,7 +214,7 @@ function formatModelName(model) {
   if (name.includes('gemini-2.5-pro')) return 'Gemini 2.5 Pro';
   if (name.includes('gemini-1.5-flash')) return 'Gemini 1.5 Flash';
   if (name.includes('gemini-1.5-pro')) return 'Gemini 1.5 Pro';
-  
+
   let formatted = name.replace(/-/g, ' ');
   formatted = formatted.replace(/gemini/gi, 'Gemini');
   formatted = formatted.replace(/flash/gi, 'Flash');
@@ -243,53 +243,129 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
   const chatContainerRef = useRef(null);
   const hasInitialScrolled = useRef(false);
 
-  // States hỗ trợ đính kèm hình ảnh đa phương thức
-  const [imagePreview, setImagePreview] = useState(null);
+  // States hỗ trợ đính kèm hình ảnh đa phương thức (Hỗ trợ 1-10 ảnh, tự động nén canvas để tối ưu payload)
+  const [imagePreviews, setImagePreviews] = useState([]);
   const fileInputRef = useRef(null);
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (file.size > 4 * 1024 * 1024) {
-      alert('Kích thước ảnh phải dưới 4MB');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result);
-    };
-    reader.readAsDataURL(file);
+  const resizeAndCompressImage = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const max_size = 800; // Giới hạn kích thước tối đa 800px
+
+          if (width > height) {
+            if (width > max_size) {
+              height *= max_size / width;
+              width = max_size;
+            }
+          } else {
+            if (height > max_size) {
+              width *= max_size / height;
+              height = max_size;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Nén chất lượng JPEG 0.7
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          resolve(dataUrl);
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
-  const handleRemoveImage = () => {
-    setImagePreview(null);
+  const handleImageChange = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const currentCount = imagePreviews.length;
+    if (currentCount >= 10) {
+      alert('Chỉ cho phép tải lên tối đa 10 ảnh');
+      return;
+    }
+
+    let filesToAdd = files;
+    if (currentCount + files.length > 10) {
+      alert('Hệ thống giới hạn tối đa 10 ảnh đính kèm. Chỉ nạp 10 ảnh đầu tiên.');
+      filesToAdd = files.slice(0, 10 - currentCount);
+    }
+
+    const compressedResults = [];
+    for (const file of filesToAdd) {
+      try {
+        const compressedBase64 = await resizeAndCompressImage(file);
+        compressedResults.push(compressedBase64);
+      } catch (err) {
+        console.error('Lỗi khi nén ảnh:', err);
+      }
+    }
+
+    setImagePreviews(prev => [...prev, ...compressedResults]);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  const handleInputPaste = (e) => {
+  const handleRemoveImage = (index) => {
+    setImagePreviews(prev => prev.filter((_, idx) => idx !== index));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleInputPaste = async (e) => {
     if (!activeModelSupportsImage) return;
     const items = e.clipboardData?.items;
     if (!items) return;
+
+    const imageItems = [];
     for (let i = 0; i < items.length; i++) {
       if (items[i].type.indexOf('image') !== -1) {
         const file = items[i].getAsFile();
         if (file) {
-          if (file.size > 4 * 1024 * 1024) {
-            alert('Kích thước ảnh phải dưới 4MB');
-            return;
-          }
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            setImagePreview(reader.result);
-          };
-          reader.readAsDataURL(file);
-          e.preventDefault();
-          break;
+          imageItems.push(file);
         }
       }
     }
+
+    if (imageItems.length === 0) return;
+
+    const currentCount = imagePreviews.length;
+    if (currentCount >= 10) {
+      alert('Chỉ cho phép tải lên tối đa 10 ảnh');
+      e.preventDefault();
+      return;
+    }
+
+    let filesToAdd = imageItems;
+    if (currentCount + imageItems.length > 10) {
+      alert('Hệ thống giới hạn tối đa 10 ảnh đính kèm. Chỉ nạp 10 ảnh đầu tiên.');
+      filesToAdd = imageItems.slice(0, 10 - currentCount);
+    }
+
+    const compressedResults = [];
+    for (const file of filesToAdd) {
+      try {
+        const compressedBase64 = await resizeAndCompressImage(file);
+        compressedResults.push(compressedBase64);
+      } catch (err) {
+        console.error('Lỗi khi nén ảnh paste:', err);
+      }
+    }
+
+    setImagePreviews(prev => [...prev, ...compressedResults]);
+    e.preventDefault();
   };
 
   // States cho Form cập nhật kết quả thực tế
@@ -302,6 +378,8 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
   const [firstHalfAwayScore, setFirstHalfAwayScore] = useState('');
 
   const suggestedQuestions = [
+    `Đánh giá 2 kèo này so với nhận định, nên vào kèo nào?`,
+    `So sánh 2 kèo này với nhận định, ưu tiên kèo nào hơn?`,
     `Tư vấn kèo chấp ${match.homeTeam} vs ${match.awayTeam}`,
     `Phân tích kèo tài xỉu ${prediction?.ou_line ?? 2.5} trận này`,
     `Nhận định phạt góc và thẻ phạt`,
@@ -368,7 +446,7 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
   // Load history when match changes or on mount
   useEffect(() => {
     let active = true;
-    
+
     const initAndLoad = async () => {
       hasInitialScrolled.current = false;
       setLoading(true);
@@ -377,12 +455,12 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
       setHistoryList([]);
       setResMessage(null);
       fetchChatHistory();
-      
+
       try {
         const res = await fetch(`/api/history?matchId=${match.id}`);
         if (!res.ok) throw new Error('Không thể tải lịch sử dự đoán');
         const data = await res.json();
-        
+
         if (!active) return;
 
         if (data.history && data.history.length > 0) {
@@ -408,15 +486,15 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
     };
   }, [match.id]);
 
-  const sendMessageToAI = async (messageText, base64Image = null) => {
-    if (!messageText.trim() && !base64Image) return;
+  const sendMessageToAI = async (messageText, base64Images = []) => {
+    if (!messageText.trim() && (!base64Images || base64Images.length === 0)) return;
     if (sendingChat) return;
 
-    const tempUserMsg = { 
-      sender: 'user', 
-      message: messageText, 
-      image: base64Image,
-      created_at: new Date().toISOString() 
+    const tempUserMsg = {
+      sender: 'user',
+      message: messageText,
+      image: base64Images.length > 0 ? JSON.stringify(base64Images) : null,
+      created_at: new Date().toISOString()
     };
     setChatMessages(prev => [...prev, tempUserMsg]);
     setSendingChat(true);
@@ -425,10 +503,10 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
       const res = await fetch('/api/match/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          matchId: match.id, 
+        body: JSON.stringify({
+          matchId: match.id,
           message: messageText,
-          image: base64Image
+          images: base64Images
         })
       });
       const data = await res.json();
@@ -439,7 +517,7 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
           // Bảo lưu hình ảnh tạm thời để hiển thị trên UI phiên chat hiện tại
           const updatedMsgs = (histData.messages || []).map((msg, mIdx) => {
             if (mIdx === histData.messages.length - 2 && msg.sender === 'user') {
-              return { ...msg, image: base64Image };
+              return { ...msg, image: base64Images.length > 0 ? JSON.stringify(base64Images) : null };
             }
             return msg;
           });
@@ -458,17 +536,19 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
 
   const handleSendChat = async (e) => {
     e.preventDefault();
-    if ((!chatInput.trim() && !imagePreview) || sendingChat) return;
+    if ((!chatInput.trim() && imagePreviews.length === 0) || sendingChat) return;
 
     const userMsgText = chatInput.trim();
-    const currentImg = imagePreview;
+    const currentImgs = [...imagePreviews];
     setChatInput('');
-    handleRemoveImage();
-    await sendMessageToAI(userMsgText, currentImg);
+    setImagePreviews([]);
+    await sendMessageToAI(userMsgText, currentImgs);
   };
 
   const handleSuggestedQuestionClick = async (question) => {
-    await sendMessageToAI(question, null);
+    const currentImgs = [...imagePreviews];
+    setImagePreviews([]);
+    await sendMessageToAI(question, currentImgs);
   };
 
   const handleRunNewPrediction = async () => {
@@ -497,13 +577,13 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
       }
 
       const newPred = await res.json();
-      
+
       // Nếu người dùng đã chuyển sang trận đấu khác, bỏ qua cập nhật state
       if (match.id !== currentMatchId) return;
 
       setPrediction(newPred);
       saveLastUsedModel(newPred.modelUsed);
-      
+
       // Tải lại lịch sử sau khi dự đoán thành công
       const histRes = await fetch(`/api/history?matchId=${currentMatchId}`);
       if (histRes.ok) {
@@ -527,9 +607,9 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
   const handleAutoUpdateResult = async () => {
     // Nếu trận đấu đã có kết quả thực tế, mặc định Force Update
     let isForce = false;
-    const hasResult = (match.actualHomeScore !== null && match.actualHomeScore !== undefined) || 
-                      (prediction && prediction.actual_home_score !== null && prediction.actual_home_score !== undefined);
-    
+    const hasResult = (match.actualHomeScore !== null && match.actualHomeScore !== undefined) ||
+      (prediction && prediction.actual_home_score !== null && prediction.actual_home_score !== undefined);
+
     if (hasResult) {
       isForce = true;
     }
@@ -609,7 +689,7 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
   return (
     <div className="min-h-screen py-5 bg-gradient-to-b from-[#0B0F17] via-[#0D1527] to-[#0A0D14] px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
-        
+
         {/* Navigation back */}
         <div className="mb-4">
           <Link href="/" className="text-gray-405 hover:text-primary transition-colors text-xs flex items-center space-x-1">
@@ -620,7 +700,7 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
         {/* Match Header Card */}
         <div className="glass-panel rounded-2xl p-4 mb-4 border border-card-border overflow-hidden relative">
           <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl pointer-events-none"></div>
-          
+
           <div className="text-center text-[10px] text-gray-500 font-semibold mb-3 flex items-center justify-center space-x-2">
             <span className="bg-card-border px-2.5 py-0.5 rounded-full uppercase tracking-wider">{match.group}</span>
             <span>•</span>
@@ -635,14 +715,14 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
                 {getTeamFlag(match.homeTeam, "w-8 h-5.5 sm:w-12 sm:h-8.5 object-cover")}
               </div>
             </div>
-            
+
             {/* VS */}
             <div className="w-2/12 flex justify-center">
               <span className="text-[9px] sm:text-[10px] font-black text-gray-600 tracking-wider border border-card-border/60 bg-[#0B0F17] px-2 sm:px-2.5 py-0.5 rounded-full glow-green">
                 VS
               </span>
             </div>
-            
+
             {/* Away Team */}
             <div className="flex flex-col sm:flex-row items-center sm:space-x-3 w-5/12 justify-center sm:justify-start space-y-1 sm:space-y-0">
               <div className="order-1">
@@ -692,7 +772,7 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
             <span className="text-3xl block mb-2">❌</span>
             <h3 className="text-red-400 font-bold text-sm mb-1">Đã xảy ra lỗi khi lấy nhận định</h3>
             <p className="text-gray-400 text-xs mb-4">{error}</p>
-            <button 
+            <button
               onClick={() => {
                 setError(null);
                 setLoading(true);
@@ -725,7 +805,7 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
         {/* PREDICTION CONTENT (LOADED) */}
         {prediction && (
           <div className="space-y-4">
-            
+
             {/* Tab Bar - Sticky, nằm dưới header desktop (z-50) và mobile floats (z-50) */}
             <div className="sticky top-0 z-40 bg-[#0B0F17]/95 backdrop-blur-md flex border-b border-card-border/40 mb-4 overflow-x-auto whitespace-nowrap scrollbar-none -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
               {[
@@ -739,11 +819,10 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`py-3 px-3.5 sm:px-5 text-xs font-bold transition-all relative border-b-2 whitespace-nowrap cursor-pointer ${
-                      isActive 
-                        ? 'text-white border-primary font-black' 
+                    className={`py-3 px-3.5 sm:px-5 text-xs font-bold transition-all relative border-b-2 whitespace-nowrap cursor-pointer ${isActive
+                        ? 'text-white border-primary font-black'
                         : 'text-gray-400 border-transparent hover:text-gray-200'
-                    }`}
+                      }`}
                   >
                     <span>
                       <span className="hidden sm:inline">{tab.label}</span>
@@ -764,8 +843,8 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
                   <span>🔴</span>
                   <span><strong>Yêu cầu dự đoán mới thất bại:</strong> {error}</span>
                 </span>
-                <button 
-                  onClick={() => setError(null)} 
+                <button
+                  onClick={() => setError(null)}
                   className="text-gray-400 hover:text-white font-bold px-2 py-0.5 rounded border border-card-border/60 hover:bg-card-border/20 text-[10px] cursor-pointer"
                 >
                   Đóng
@@ -787,11 +866,11 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
             <div className={`animate-fade-in ${activeTab === 'simulator' ? '' : 'hidden'}`}>
               <MatchSimulator match={localMatch} isActive={activeTab === 'simulator'} />
             </div>
-            
+
             {/* Tab: Nhận định */}
             {activeTab === 'analysis' && (
               <div id="prediction-section" className="space-y-4 animate-fade-in" style={{ scrollMarginTop: '56px' }}>
-                
+
                 {/* Context Feedback Indicator Banner */}
                 {prediction.historicalAccuracy && (
                   <div className="p-3 rounded-xl border border-primary/30 bg-primary/5 glow-green flex items-start space-x-2 text-[11px] text-primary leading-relaxed">
@@ -812,13 +891,12 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
                       <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Phiên Dự Đoán</span>
                       <span className="text-xs text-white font-semibold mt-0.5">ID: Lượt #{prediction.id}</span>
                     </div>
-                    <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase border ${
-                      prediction.predict_type === 'first_half' || prediction.predictType === 'first_half'
+                    <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase border ${prediction.predict_type === 'first_half' || prediction.predictType === 'first_half'
                         ? 'bg-primary/10 text-primary border-primary/20'
                         : prediction.predict_type === 'second_half' || prediction.predictType === 'second_half'
                           ? 'bg-secondary/10 text-secondary border-secondary/20'
                           : 'bg-gray-500/10 text-gray-400 border-gray-500/20'
-                    }`}>
+                      }`}>
                       {prediction.predict_type === 'first_half' || prediction.predictType === 'first_half' ? 'Hiệp 1' : (prediction.predict_type === 'second_half' || prediction.predictType === 'second_half' ? 'Hiệp 2' : 'Cả trận')}
                     </span>
                   </div>
@@ -867,9 +945,8 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
                     <button
                       onClick={handleRunNewPrediction}
                       disabled={predicting}
-                      className={`w-full bg-gradient-to-r from-primary to-secondary text-white font-bold py-2.5 px-4 rounded-xl text-xs tracking-wider transition-all duration-150 flex items-center justify-center space-x-1.5 shadow-md shadow-primary/10 ${
-                        predicting ? 'opacity-50 cursor-not-allowed scale-100' : 'hover:scale-[1.01] active:scale-[0.99] cursor-pointer'
-                      }`}
+                      className={`w-full bg-gradient-to-r from-primary to-secondary text-white font-bold py-2.5 px-4 rounded-xl text-xs tracking-wider transition-all duration-150 flex items-center justify-center space-x-1.5 shadow-md shadow-primary/10 ${predicting ? 'opacity-50 cursor-not-allowed scale-100' : 'hover:scale-[1.01] active:scale-[0.99] cursor-pointer'
+                        }`}
                     >
                       {predicting ? (
                         <>
@@ -890,17 +967,16 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
                 <div className="glass-panel rounded-xl p-4 border border-card-border glow-green relative overflow-hidden">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-gray-400 font-bold text-xs uppercase tracking-wider">Tỷ Số Dự Đoán & Xác Suất</h3>
-                    <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
-                      prediction.predict_type === 'first_half' || prediction.predictType === 'first_half'
+                    <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${prediction.predict_type === 'first_half' || prediction.predictType === 'first_half'
                         ? 'bg-primary/20 text-primary border border-primary/20'
                         : prediction.predict_type === 'second_half' || prediction.predictType === 'second_half'
                           ? 'bg-secondary/20 text-secondary border border-secondary/20'
                           : 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
-                    }`}>
+                      }`}>
                       {prediction.predict_type === 'first_half' || prediction.predictType === 'first_half' ? 'Hiệp 1 (H1)' : (prediction.predict_type === 'second_half' || prediction.predictType === 'second_half' ? 'Hiệp 2 (H2)' : 'Cả trận (FT)')}
                     </span>
                   </div>
-                  
+
                   <div className="flex items-center justify-center space-x-6 my-4">
                     <div className="flex flex-col items-center flex-1 max-w-[140px]">
                       <span className="text-[11px] sm:text-xs font-semibold text-gray-500 mb-1 text-center line-clamp-2 min-h-[32px] flex items-center justify-center">{match.homeTeam}</span>
@@ -924,9 +1000,9 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
                       return (
                         <>
                           <div className="flex justify-between text-[10px] font-semibold text-gray-400">
-                             <span>{match.homeTeam} ({prob.home}%)</span>
-                             <span>Hòa ({prob.draw}%)</span>
-                             <span>{match.awayTeam} ({prob.away}%)</span>
+                            <span>{match.homeTeam} ({prob.home}%)</span>
+                            <span>Hòa ({prob.draw}%)</span>
+                            <span>{match.awayTeam} ({prob.away}%)</span>
                           </div>
                           <div className="h-3 w-full rounded-full overflow-hidden flex bg-card-border">
                             <div className="h-full bg-gradient-to-r from-primary to-primary/80" style={{ width: `${prob.home}%` }}></div>
@@ -1006,7 +1082,7 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
                         // Read score fields supporting database fields or nested API payload fields
                         const pHome = run.predicted_home_score ?? run.predictedScore?.home;
                         const pAway = run.predicted_away_score ?? run.predictedScore?.away;
-                        
+
                         const pType = run.predict_type || run.predictType || 'full_time';
                         const isFirstHalfType = pType === 'first_half';
                         const actH = isFirstHalfType ? (run.actual_first_half_home_score ?? run.actualFirstHalfHomeScore) : run.actual_home_score;
@@ -1019,7 +1095,7 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
                             onClick={() => {
                               setPrediction(run);
                               saveLastUsedModel(run.modelUsed || run.model_used);
-                              
+
                               // Phone: Tự động cuộn lên trên phiên dự đoán
                               if (typeof window !== 'undefined' && window.innerWidth < 640) {
                                 const section = document.getElementById('prediction-section');
@@ -1032,40 +1108,38 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
                                 }
                               }
                             }}
-                            className={`p-2.5 rounded-lg border text-xs cursor-pointer transition-all duration-150 flex items-center justify-between ${
-                              isActive 
-                                ? 'border-primary bg-primary/5 text-white shadow-sm glow-green' 
+                            className={`p-2.5 rounded-lg border text-xs cursor-pointer transition-all duration-150 flex items-center justify-between ${isActive
+                                ? 'border-primary bg-primary/5 text-white shadow-sm glow-green'
                                 : 'border-card-border/60 hover:border-card-border bg-card-border/10 text-gray-400 hover:text-white'
-                            }`}
+                              }`}
                           >
                             <div className="flex flex-col space-y-0.5">
                               <div className="flex items-center space-x-1.5">
                                 <span className="font-bold"># Lượt {historyList.length - idx}</span>
-                                <span className={`px-1 py-0.2 rounded text-[8px] font-black uppercase ${
-                                  pType === 'first_half'
+                                <span className={`px-1 py-0.2 rounded text-[8px] font-black uppercase ${pType === 'first_half'
                                     ? 'bg-primary/20 text-primary border border-primary/20'
                                     : pType === 'second_half'
                                       ? 'bg-secondary/20 text-secondary border border-secondary/20'
                                       : 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
-                                }`}>
+                                  }`}>
                                   {pType === 'first_half' ? 'H1' : (pType === 'second_half' ? 'H2' : 'FT')}
                                 </span>
                               </div>
                               <span className="text-[9px] text-gray-500">{formatDate(run.created_at)}</span>
                             </div>
-                            
+
                             <div className="flex items-center space-x-2">
                               <span className="font-mono font-extrabold text-sm text-gray-200 bg-card-border/30 px-2 py-0.5 rounded border border-card-border/30">
                                 Dự đoán: {pHome}-{pAway}
                               </span>
                               {hasActualResult && (() => {
                                 const status = getPredictionStatus(
-                                  pHome, 
-                                  pAway, 
-                                  run.actual_home_score, 
-                                  run.actual_away_score, 
-                                  pType, 
-                                  run.actual_first_half_home_score ?? run.actualFirstHalfHomeScore, 
+                                  pHome,
+                                  pAway,
+                                  run.actual_home_score,
+                                  run.actual_away_score,
+                                  pType,
+                                  run.actual_first_half_home_score ?? run.actualFirstHalfHomeScore,
                                   run.actual_first_half_away_score ?? run.actualFirstHalfAwayScore
                                 );
                                 return (
@@ -1090,7 +1164,7 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {prediction.sources.map((src, idx) => (
-                        <a 
+                        <a
                           key={idx}
                           href={src.uri}
                           target="_blank"
@@ -1114,7 +1188,7 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
                       AI sẽ tự động tra cứu tỉ số thực tế trực tuyến thông qua Google Search để cập nhật kết quả và chấm điểm các dự đoán.
                     </p>
                   </div>
-                  
+
                   {/* Auto Update Button */}
                   <button
                     type="button"
@@ -1127,11 +1201,10 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
                   </button>
 
                   {resMessage && (
-                    <div className={`mt-3 p-2.5 rounded-lg border text-xs leading-relaxed ${
-                      resMessage.success 
-                        ? 'border-primary/30 bg-primary/5 text-primary' 
+                    <div className={`mt-3 p-2.5 rounded-lg border text-xs leading-relaxed ${resMessage.success
+                        ? 'border-primary/30 bg-primary/5 text-primary'
                         : 'border-red-500/30 bg-red-950/10 text-red-400'
-                    }`}>
+                      }`}>
                       {resMessage.text}
                     </div>
                   )}
@@ -1143,12 +1216,12 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
             {/* Tab: Soi kèo */}
             {activeTab === 'bets' && (
               <div className="space-y-4 animate-fade-in">
-                
+
                 {/* Recommended Bets Card */}
                 {(() => {
                   const evalDetails = prediction.bet_evaluation_details;
                   const showOutcome = evalDetails && (prediction.actual_home_score !== null && prediction.actual_home_score !== undefined);
-                  
+
                   const renderBetOutcomeBadge = (betType) => {
                     if (!showOutcome || !evalDetails[betType]) return null;
                     const { outcome, reason } = evalDetails[betType];
@@ -1177,7 +1250,7 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
                   return (
                     <div className="glass-panel rounded-xl p-4 border border-card-border">
                       <h3 className="text-gray-400 font-bold text-xs mb-3 uppercase tracking-wider">Soi Kèo Cùng AI Pundit</h3>
-                      
+
                       <div className="space-y-3 text-xs">
                         {/* Kèo 1X2 */}
                         <div className="p-3 rounded-lg bg-card-border/20 border border-card-border/50">
@@ -1278,7 +1351,7 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
 
             {/* Tab: Trợ lý soi kèo (luôn mount, ẩn/hiện bằng class hidden để bảo toàn trạng thái chat) */}
             <div className={`space-y-4 ${activeTab === 'chat' ? 'animate-fade-in' : 'hidden'}`}>
-              
+
               {/* Khung trò chuyện cùng AI Soi kèo */}
               <div className="glass-panel rounded-xl p-4 border border-card-border space-y-4">
                 <h3 className="text-gray-400 font-bold text-xs uppercase tracking-wider pb-2 border-b border-card-border/50 flex items-center justify-between">
@@ -1301,23 +1374,45 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
                       return (
                         <div
                           key={idx}
-                          className={`flex flex-col space-y-1 max-w-[85%] ${
-                            isUser ? 'self-end items-end' : 'self-start items-start'
-                          }`}
+                          className={`flex flex-col space-y-1 max-w-[85%] ${isUser ? 'self-end items-end' : 'self-start items-start'
+                            }`}
                         >
                           <span className="text-[9px] text-gray-500 font-semibold px-1">
                             {isUser ? 'Bạn' : `Chuyên gia ${formatModelName(msg.model_used || msg.modelUsed)}`}
                           </span>
                           <div
-                            className={`rounded-2xl px-3.5 py-2 text-xs leading-relaxed ${
-                              isUser
+                            className={`rounded-2xl px-3.5 py-2 text-xs leading-relaxed ${isUser
                                 ? 'bg-primary/20 text-primary border border-primary/20 rounded-tr-none'
                                 : 'bg-[#151E2E] text-gray-200 border border-card-border rounded-tl-none'
-                            }`}
+                              }`}
                           >
-                            {(msg.imageUrl || msg.image) && (
-                              <img src={msg.imageUrl || msg.image} alt="Đính kèm" className="max-w-[180px] sm:max-w-[240px] rounded-xl mb-1.5 border border-card-border shadow-md object-cover animate-fade-in" />
-                            )}
+                            {(() => {
+                              const imgSource = msg.imageUrl || msg.image;
+                              if (!imgSource) return null;
+                              try {
+                                if (imgSource.startsWith('[')) {
+                                  const urls = JSON.parse(imgSource);
+                                  if (Array.isArray(urls)) {
+                                    return (
+                                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 mb-1.5 max-w-[380px]">
+                                        {urls.map((url, uIdx) => (
+                                          <a key={uIdx} href={url} target="_blank" rel="noopener noreferrer" className="block relative aspect-square w-[80px] h-[80px] sm:w-[100px] sm:h-[100px] md:w-[120px] md:h-[120px] rounded-lg overflow-hidden border border-card-border shadow-sm hover:opacity-90 transition-opacity">
+                                            <img src={url} alt={`Đính kèm ${uIdx + 1}`} className="w-full h-full object-cover" />
+                                          </a>
+                                        ))}
+                                      </div>
+                                    );
+                                  }
+                                }
+                              } catch (e) {
+                                console.error("Error parsing message images:", e);
+                              }
+                              return (
+                                <a href={imgSource} target="_blank" rel="noopener noreferrer" className="block mb-1.5">
+                                  <img src={imgSource} alt="Đính kèm" className="max-w-[180px] sm:max-w-[240px] rounded-xl border border-card-border shadow-md object-cover animate-fade-in hover:opacity-95" />
+                                </a>
+                              );
+                            })()}
                             {isUser ? (
                               <p className="whitespace-pre-line">{msg.message}</p>
                             ) : (
@@ -1355,7 +1450,7 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
                       </button>
                     </div>
                   )}
-                  
+
                   {showSuggestions && !sendingChat && (
                     <div className="absolute bottom-full left-0 mb-1.5 w-full max-w-sm bg-[#0B0F17]/95 border border-card-border rounded-xl p-2 shadow-2xl z-20 space-y-1 backdrop-blur-md">
                       {suggestedQuestions.map((q, qIdx) => (
@@ -1375,17 +1470,21 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
                   )}
                 </div>
 
-                {/* Image Preview Box */}
-                {imagePreview && (
-                  <div className="relative w-fit bg-card-border/20 border border-card-border p-1.5 rounded-xl flex items-center space-x-2 animate-fade-in mb-2">
-                    <img src={imagePreview} alt="Xem trước" className="w-12 h-12 rounded-lg object-cover" />
-                    <button
-                      type="button"
-                      onClick={handleRemoveImage}
-                      className="absolute -top-1.5 -right-1.5 bg-rose-500/80 hover:bg-rose-600 text-white w-4.5 h-4.5 rounded-full flex items-center justify-center text-[9px] font-bold border border-rose-600 cursor-pointer shadow-md"
-                    >
-                      ✕
-                    </button>
+                {/* Image Previews Box */}
+                {imagePreviews.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-2 animate-fade-in">
+                    {imagePreviews.map((preview, pIdx) => (
+                      <div key={pIdx} className="relative w-fit bg-card-border/20 border border-card-border p-1.5 rounded-xl flex items-center space-x-2">
+                        <img src={preview} alt={`Xem trước ${pIdx + 1}`} className="w-12 h-12 rounded-lg object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage(pIdx)}
+                          className="absolute -top-1.5 -right-1.5 bg-rose-500/80 hover:bg-rose-600 text-white w-4.5 h-4.5 rounded-full flex items-center justify-center text-[9px] font-bold border border-rose-600 cursor-pointer shadow-md"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 )}
 
@@ -1422,7 +1521,7 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
                   />
                   <button
                     type="submit"
-                    disabled={sendingChat || (!chatInput.trim() && !imagePreview)}
+                    disabled={sendingChat || (!chatInput.trim() && imagePreviews.length === 0)}
                     className="bg-primary hover:bg-primary/95 disabled:opacity-40 disabled:hover:bg-primary text-black font-extrabold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer active:scale-95 whitespace-nowrap"
                   >
                     Gửi

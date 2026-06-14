@@ -66,32 +66,46 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const { matchId, message, image } = await request.json();
+    const { matchId, message, image, images } = await request.json();
 
-    if (!matchId || ((!message || !message.trim()) && !image)) {
+    if (!matchId || ((!message || !message.trim()) && !image && (!images || images.length === 0))) {
       return NextResponse.json({ error: 'Thiếu thông tin yêu cầu' }, { status: 400 });
     }
 
     const db = await getDB();
     const cleanMessage = (message || '').trim();
 
-    let imageUrl = null;
-    if (image) {
+    let imageUrls = [];
+    if (images && Array.isArray(images) && images.length > 0) {
+      const limitImages = images.slice(0, 10);
+      try {
+        const uploadPromises = limitImages.map(img => 
+          cloudinary.uploader.upload(img, { folder: 'football-predict-chats' })
+            .then(res => res.secure_url)
+        );
+        imageUrls = await Promise.all(uploadPromises);
+        console.log('✅ Upload Cloudinary thành công cho các ảnh:', imageUrls);
+      } catch (cloudinaryErr) {
+        console.error('❌ Lỗi upload Cloudinary song song:', cloudinaryErr.message);
+      }
+    } else if (image) {
       try {
         const uploadResponse = await cloudinary.uploader.upload(image, {
           folder: 'football-predict-chats',
         });
-        imageUrl = uploadResponse.secure_url;
-        console.log('✅ Upload Cloudinary thành công:', imageUrl);
+        imageUrls.push(uploadResponse.secure_url);
+        console.log('✅ Upload Cloudinary thành công (tương thích ngược):', imageUrls[0]);
       } catch (cloudinaryErr) {
-        console.error('❌ Lỗi upload Cloudinary (tiến hành fallback chỉ chat text):', cloudinaryErr.message);
+        console.error('❌ Lỗi upload Cloudinary (single image):', cloudinaryErr.message);
       }
     }
+
+    const dbImageUrl = imageUrls.length > 0 ? JSON.stringify(imageUrls) : null;
 
     // 1. Lưu tin nhắn của User vào DB
     await db.run(
       `INSERT INTO match_chats (match_id, sender, message, image_url) VALUES (?, 'user', ?, ?)`,
-      [matchId, cleanMessage || '[Hình ảnh]', imageUrl]
+      [matchId, cleanMessage || '[Hình ảnh]', dbImageUrl]
     );
 
     // 2. Lấy thông tin trận đấu để làm context từ DB
@@ -189,22 +203,36 @@ export async function POST(request) {
 
     console.log(`💬 [Match Chat API] Đang gửi prompt chat cho trận ${match.homeTeam} vs ${match.awayTeam} sử dụng model: ${targetModel} (Hỗ trợ ảnh: ${targetModelSupportsImage})`);
     
-    let requestContents = finalPrompt;
-    if (image && targetModelSupportsImage) {
+    let requestContents = [];
+    if (images && Array.isArray(images) && images.length > 0 && targetModelSupportsImage) {
+      const limitImages = images.slice(0, 10);
+      for (const imgBase64 of limitImages) {
+        const matches = imgBase64.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+        if (matches && matches.length === 3) {
+          requestContents.push({
+            inlineData: {
+              data: matches[2],
+              mimeType: matches[1]
+            }
+          });
+        }
+      }
+      requestContents.push(finalPrompt);
+    } else if (image && targetModelSupportsImage) {
       const matches = image.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
       if (matches && matches.length === 3) {
-        const mimeType = matches[1];
-        const base64Data = matches[2];
         requestContents = [
           {
             inlineData: {
-              data: base64Data,
-              mimeType: mimeType
+              data: matches[2],
+              mimeType: matches[1]
             }
           },
           finalPrompt
         ];
       }
+    } else {
+      requestContents = finalPrompt;
     }
 
     const aiResult = await callGeminiModel(targetModel, geminiKeys, requestContents);
