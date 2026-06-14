@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { getDB } from '@/lib/db';
-import { evaluateBetOutcome } from '@/lib/results-updater';
+import { evaluateBetOutcome, generateMockTimeline } from '@/lib/results-updater';
 import { revalidatePath } from 'next/cache';
 import fs from 'fs';
 import path from 'path';
@@ -128,19 +128,49 @@ export async function POST(request) {
       ]
     );
 
+    // Tạo timeline giả lập cho cập nhật thủ công để hiển thị live simulator
+    const mockTimeline = generateMockTimeline(homeTeam, awayTeam, aHome, aAway, aFirstHalfHome, aFirstHalfAway);
+    const timelineStr = JSON.stringify(mockTimeline);
+
     // Cập nhật database fixtures và fixtures.json
     try {
       // 1. Cập nhật DB
-      await db.run(
-        `UPDATE fixtures 
-         SET actual_home_score = ?, 
-             actual_away_score = ?, 
-             actual_first_half_home_score = ?, 
-             actual_first_half_away_score = ? 
-         WHERE id = ? OR (home_team = ? AND away_team = ?)`,
-        [aHome, aAway, aFirstHalfHome, aFirstHalfAway, predictionRecord.match_id, homeTeam, awayTeam]
-      );
-      console.log(`🟢 [DB fixtures - MANUAL] Đã cập nhật tỉ số cho trận đấu ${homeTeam} vs ${awayTeam}: ${aHome}-${aAway}`);
+      try {
+        await db.run(
+          `UPDATE fixtures 
+           SET actual_home_score = ?, 
+               actual_away_score = ?, 
+               actual_first_half_home_score = ?, 
+               actual_first_half_away_score = ?,
+               match_timeline = ?
+           WHERE id = ? OR (home_team = ? AND away_team = ?)`,
+          [aHome, aAway, aFirstHalfHome, aFirstHalfAway, timelineStr, predictionRecord.match_id, homeTeam, awayTeam]
+        );
+        console.log(`🟢 [DB fixtures - MANUAL] Đã cập nhật tỉ số và timeline cho trận đấu ${homeTeam} vs ${awayTeam}: ${aHome}-${aAway}`);
+      } catch (dbErr) {
+        // Tự động khôi phục nếu cột match_timeline chưa tồn tại (Self-healing)
+        if (dbErr.message && (dbErr.message.includes('no such column') || dbErr.message.includes('match_timeline'))) {
+          console.warn('⚠️ Cột match_timeline chưa tồn tại, đang chạy ALTER TABLE...');
+          try {
+            await db.exec(`ALTER TABLE fixtures ADD COLUMN match_timeline TEXT DEFAULT NULL`);
+            await db.run(
+              `UPDATE fixtures 
+               SET actual_home_score = ?, 
+                   actual_away_score = ?, 
+                   actual_first_half_home_score = ?, 
+                   actual_first_half_away_score = ?,
+                   match_timeline = ?
+               WHERE id = ? OR (home_team = ? AND away_team = ?)`,
+              [aHome, aAway, aFirstHalfHome, aFirstHalfAway, timelineStr, predictionRecord.match_id, homeTeam, awayTeam]
+            );
+            console.log(`🟢 [DB fixtures - MANUAL - Self-healed] Đã cập nhật thành công.`);
+          } catch (alterErr) {
+            console.error('❌ Không thể tự phục hồi cột match_timeline:', alterErr);
+          }
+        } else {
+          throw dbErr;
+        }
+      }
 
       // Helper normalize để so sánh tên đội
       const normalizeTeamName = (name) => {
@@ -173,6 +203,7 @@ export async function POST(request) {
               away: aFirstHalfAway
             };
           }
+          fileData.fixtures[fixtureIndex].matchTimeline = mockTimeline;
           fs.writeFileSync(fixturesFilePath, JSON.stringify(fileData, null, 2), 'utf8');
           console.log(`🟢 [fixtures.json - MANUAL] Đã cập nhật tỉ số cho trận đấu ${homeTeam} vs ${awayTeam}: ${aHome}-${aAway}, Hiệp 1: ${aFirstHalfHome}-${aFirstHalfAway}`);
         }
@@ -250,6 +281,8 @@ Hãy trả về duy nhất nội dung bài học bằng tiếng Việt. Không t
       predictionId: predictionRecord.id,
       predictedScore: { home: pHome, away: pAway },
       actualScore: { home: aHome, away: aAway },
+      actualFirstHalfScore: { home: aFirstHalfHome, away: aFirstHalfAway },
+      matchTimeline: mockTimeline,
       isCorrect: isCorrect === 1,
       betEvaluations: evalDetails,
       message: 'Cập nhật kết quả trận đấu và chấm điểm AI thành công.'

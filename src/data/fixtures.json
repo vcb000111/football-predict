@@ -287,7 +287,92 @@
       "group": "Group C",
       "venue": "MetLife Stadium, New York/New Jersey",
       "tournament": "World Cup 2026",
-      "season": "2026"
+      "season": "2026",
+      "actualHomeScore": 1,
+      "actualAwayScore": 1,
+      "actualFirstHalfScore": {
+        "home": 0,
+        "away": 1
+      },
+      "matchTimeline": [
+        {
+          "minute": 1,
+          "team": "none",
+          "type": "kickoff",
+          "player": "",
+          "detail": "Trận đấu bắt đầu tại MetLife Stadium."
+        },
+        {
+          "minute": 7,
+          "team": "home",
+          "type": "goal",
+          "player": "Vinícius Júnior",
+          "detail": "Vinícius Júnior bỏ lỡ cơ hội sớm cho Brazil."
+        },
+        {
+          "minute": 45,
+          "team": "home",
+          "type": "yellow_card",
+          "player": "Ibanez",
+          "detail": "Thẻ vàng cho Ibanez (Brazil)."
+        },
+        {
+          "minute": 45,
+          "team": "home",
+          "type": "yellow_card",
+          "player": "Casemiro",
+          "detail": "Thẻ vàng cho Casemiro (Brazil)."
+        },
+        {
+          "minute": 45,
+          "team": "none",
+          "type": "half_time",
+          "player": "",
+          "detail": "Hiệp 1 kết thúc, Morocco tạm dẫn trước."
+        },
+        {
+          "minute": 45,
+          "team": "home",
+          "type": "substitution",
+          "player": "Danilo, Fabinho",
+          "detail": "Brazil thay đổi nhân sự đầu hiệp 2."
+        },
+        {
+          "minute": 61,
+          "team": "home",
+          "type": "substitution",
+          "player": "Matheus Cunha, Luiz Henrique",
+          "detail": "Brazil tăng cường hàng công."
+        },
+        {
+          "minute": 88,
+          "team": "away",
+          "type": "goal",
+          "player": "Ismael Saibari",
+          "detail": "⚽ VÀOOO! Ismael Saibari chích bóng kỹ thuật qua đầu Alisson mở tỷ số cho Morocco."
+        },
+        {
+          "minute": 89,
+          "team": "none",
+          "type": "substitution",
+          "player": "Soufiane Rahimi",
+          "detail": "Morocco thay người bảo toàn tỷ số."
+        },
+        {
+          "minute": 90,
+          "team": "home",
+          "type": "goal",
+          "player": "Vinícius Júnior",
+          "detail": "⚽ VÀOOO! Vinícius Júnior đi bóng đẳng cấp và dứt điểm góc xa cân bằng tỷ số 1-1."
+        },
+        {
+          "minute": 90,
+          "team": "none",
+          "type": "full_time",
+          "player": "",
+          "detail": "🏁 Trận đấu kết thúc với tỷ số hòa 1-1."
+        }
+      ]
     },
     {
       "id": "m8",

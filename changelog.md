@@ -6,6 +6,7 @@ Tất cả những thay đổi nổi bật đối với dự án **FIFA World Cu
 
 ### Changed (Thay đổi logic)
 * **Chuyển đổi sang Dynamic Rendering (SSR) cho Trang chủ và Trang Chi tiết:** Cấu hình thuộc tính `export const dynamic = 'force-dynamic';` tại `src/app/page.js` và `src/app/match/[id]/page.js` để Next.js luôn render động trên mỗi request thực tế, loại bỏ hoàn toàn lỗi lưu cache trang tĩnh (SSG) trên Production.
+* **Tối ưu hóa kích thước thanh Bottom Navigation:** Điều chỉnh giảm chiều cao từ `h-16` xuống `h-14`, thu gọn kích thước icon từ `w-5.5 h-5.5` xuống `w-5 h-5`, giảm margin và cỡ chữ xuống `text-[9px]` để giao diện trên thiết bị di động gọn gàng, tăng diện tích hiển thị nội dung chính.
 * **Tối ưu hóa truy vấn Database song song:** Tối ưu hóa các truy vấn SQLite/Turso DB độc lập tại trang chủ bằng `Promise.all` và gộp câu truy vấn bảng đấu để loại bỏ N+1 query, giúp tốc độ tải trang cực kỳ nhanh khi chạy SSR qua HTTP client.
 
 ### Fixed (Sửa lỗi)

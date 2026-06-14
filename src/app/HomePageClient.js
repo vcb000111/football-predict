@@ -10,7 +10,7 @@ export function getPredictionStatus(predHome, predAway, actHome, actAway) {
   if (actHome === null || actHome === undefined || actAway === null || actAway === undefined) {
     return { status: 'pending', text: 'Chờ thi đấu', colorClass: 'bg-gray-500/10 text-gray-400 border-gray-500/20' };
   }
-  
+
   const pHome = parseInt(predHome, 10);
   const pAway = parseInt(predAway, 10);
   const aHome = parseInt(actHome, 10);
@@ -20,17 +20,17 @@ export function getPredictionStatus(predHome, predAway, actHome, actAway) {
   if (pHome === aHome && pAway === aAway) {
     return { status: 'correct', text: 'Đúng tỷ số', colorClass: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 glow-green-sm' };
   }
-  
+
   // Gần đúng (Đúng kết quả 1X2 nhưng lệch tỷ số)
   const predDiff = pHome - pAway;
   const actDiff = aHome - aAway;
   const predOutcome = predDiff > 0 ? 1 : (predDiff < 0 ? -1 : 0);
   const actOutcome = actDiff > 0 ? 1 : (actDiff < 0 ? -1 : 0);
-  
+
   if (predOutcome === actOutcome) {
     return { status: 'near', text: 'Gần đúng', colorClass: 'bg-amber-500/10 text-amber-400 border-amber-500/30' };
   }
-  
+
   // Sai hoàn toàn
   return { status: 'incorrect', text: 'Sai kết quả', colorClass: 'bg-rose-500/10 text-rose-400 border-rose-500/30' };
 }
@@ -44,7 +44,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
   const [layout, setLayout] = useState('grid'); // 'grid' or 'list'
   const [sortBy, setSortBy] = useState('date'); // 'date' | 'group' | 'history'
   const [showPastMatches, setShowPastMatches] = useState(false);
-  
+
   // States cho cơ chế đồng bộ đa giải đấu & xem trước (Preview Modal)
   const [showSyncConfigModal, setShowSyncConfigModal] = useState(false);
   const [syncTournament, setSyncTournament] = useState('World Cup 2026');
@@ -107,7 +107,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
 
       const persistedSearch = localStorage.getItem('homepage_search_query');
       if (persistedSearch) setSearchQuery(persistedSearch);
-      
+
       const persistedShowPastMatches = localStorage.getItem('homepage_show_past_matches');
       if (persistedShowPastMatches) setShowPastMatches(persistedShowPastMatches === 'true');
 
@@ -116,7 +116,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
 
       const persistedSyncSeason = localStorage.getItem('homepage_sync_season');
       if (persistedSyncSeason) setSyncSeason(persistedSyncSeason);
-      
+
       setIsRestored(true);
     }
   }, []);
@@ -184,8 +184,8 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
 
   useEffect(() => {
     if (selectedSeasonFilter !== 'All') {
-      const currentTabFixtures = activeTab === 'test-matches' 
-        ? localFixtures.filter(f => f.isTest) 
+      const currentTabFixtures = activeTab === 'test-matches'
+        ? localFixtures.filter(f => f.isTest)
         : localFixtures.filter(f => !f.isTest);
       const hasMatchInNewTab = currentTabFixtures.some(f => f.season === selectedSeasonFilter);
       if (!hasMatchInNewTab) {
@@ -230,8 +230,8 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
       if (data.modelUsed) {
         saveLastUsedModel(data.modelUsed);
       }
-      
-      
+
+
       setModalData({
         fixture,
         prediction: data
@@ -289,7 +289,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
         });
         const predData = await predRes.json();
         if (!predRes.ok) throw new Error(predData.error || 'Lỗi khi dự đoán tự động');
-        
+
         setLocalHistoryCounts(prev => ({
           ...prev,
           [fixture.id]: 1
@@ -311,7 +311,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
       if (!res.ok) throw new Error(data.error || 'Lỗi khi tự động lấy kết quả');
 
       if (data.success && data.actualScore) {
-        setLocalFixtures(prev => 
+        setLocalFixtures(prev =>
           prev.map(f => {
             if (f.id === fixture.id) {
               return {
@@ -381,7 +381,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Lỗi đồng bộ lịch thi đấu');
-      
+
       if (data.newFixtures && data.newFixtures.length > 0) {
         setSyncPreviewMatches(data.newFixtures);
         setShowSyncConfigModal(false);
@@ -407,10 +407,10 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Lỗi khi import lịch thi đấu');
-      
+
       showToast(data.message || 'Đã thêm trận đấu thành công!', true);
       setSyncPreviewMatches(null);
-      
+
       // Reload trang để đồng bộ hoàn toàn dữ liệu
       setTimeout(() => {
         window.location.reload();
@@ -453,8 +453,8 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
   const { groups } = initialData;
 
   // Phân chia trận đấu chính thức và trận thử nghiệm
-  const displayFixtures = activeTab === 'test-matches' 
-    ? localFixtures.filter(f => f.isTest) 
+  const displayFixtures = activeTab === 'test-matches'
+    ? localFixtures.filter(f => f.isTest)
     : localFixtures.filter(f => !f.isTest);
 
   // Lấy danh sách giải đấu duy nhất của các trận đấu hiển thị
@@ -469,18 +469,18 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
 
   // Lọc lịch thi đấu dựa trên tìm kiếm, bảng đấu, giải đấu, mùa giải và trận đấu đã qua
   const filteredFixtures = displayFixtures.filter(fixture => {
-    const matchesSearch = 
+    const matchesSearch =
       fixture.homeTeam.toLowerCase().includes(searchQuery.toLowerCase()) ||
       fixture.awayTeam.toLowerCase().includes(searchQuery.toLowerCase()) ||
       fixture.group.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     const matchesGroup = selectedGroupFilter === 'All' || fixture.group === selectedGroupFilter;
     const matchesTournament = selectedTournamentFilter === 'All' || fixture.tournament === selectedTournamentFilter;
     const matchesSeason = selectedSeasonFilter === 'All' || fixture.season === selectedSeasonFilter;
-    
+
     const isPast = fixture.actualHomeScore !== null && fixture.actualHomeScore !== undefined;
     const matchesPastFilter = showPastMatches || !isPast;
-    
+
     return matchesSearch && matchesGroup && matchesTournament && matchesSeason && matchesPastFilter;
   });
 
@@ -506,21 +506,20 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
 
   return (
     <div className="min-h-screen pb-6 bg-gradient-to-b from-[#0B0F17] via-[#0D1527] to-[#0A0D14]">
-      
+
       {/* Toast Notification */}
       {toastMessage && (
-        <div className={`fixed bottom-5 right-5 z-50 p-4 rounded-xl border text-xs font-semibold backdrop-blur-md shadow-2xl transition-all duration-300 animate-slide-in ${
-          toastMessage.success 
-            ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' 
-            : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
-        }`}>
+        <div className={`fixed bottom-5 right-5 z-50 p-4 rounded-xl border text-xs font-semibold backdrop-blur-md shadow-2xl transition-all duration-300 animate-slide-in ${toastMessage.success
+          ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+          : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
+          }`}>
           <div className="flex items-center space-x-2">
             <span>{toastMessage.success ? '✅' : '🔴'}</span>
             <span>{toastMessage.text}</span>
           </div>
         </div>
       )}
-      
+
       {/* Hero Header Section */}
       <section className="relative overflow-hidden py-5 border-b border-card-border/50">
         {/* Glow Effects */}
@@ -528,7 +527,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
         <div className="absolute top-1/3 right-1/4 translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full bg-secondary/5 blur-[80px] pointer-events-none"></div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          
+
           {/* Warning Banner if API Key is missing */}
           {!isKeyConfigured && (
             <div className="mb-6 max-w-xl mx-auto glass-panel border border-accent/40 rounded-xl p-3.5 bg-accent/5 glow-gold">
@@ -548,26 +547,26 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
           <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white mb-4">
             Dự Đoán Kết Quả Bằng <span className="text-gradient">AI Thế Hệ Mới</span>
           </h1>
-          
+
           <p className="max-w-xl mx-auto text-xs sm:text-sm text-gray-400 mb-6 leading-relaxed">
             Phân tích chuyên sâu các loại kèo dựa trên dữ liệu tìm kiếm thời gian thực Google Search Grounding từ AI Gemini. Tự động lưu và học hỏi từ lịch sử SQLite.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center gap-3 justify-center w-full max-w-xs sm:max-w-none mx-auto">
-            <button 
+            <button
               onClick={() => { setActiveTab('fixtures'); }}
               className="w-full sm:w-auto bg-gradient-to-r from-primary to-primary/80 hover:from-primary hover:to-primary text-white font-bold py-2 px-5 rounded-xl shadow-md text-xs transition-all duration-200 text-center"
             >
               Xem Lịch Dự Đoán
             </button>
-            <Link 
+            <Link
               href="/stats"
               className="w-full sm:w-auto bg-gradient-to-r from-[#1E293B] to-[#0F172A] border border-card-border hover:border-indigo-500/40 text-white font-bold py-2 px-5 rounded-xl text-xs transition-all duration-200 flex items-center justify-center space-x-1.5"
             >
               <span>📊</span>
               <span>Thống Kê AI</span>
             </Link>
-            <Link 
+            <Link
               href="/custom"
               className="w-full sm:w-auto glass-panel text-white hover:text-secondary font-bold py-2 px-5 rounded-xl text-xs hover:border-secondary/40 transition-all duration-200 text-center"
             >
@@ -580,37 +579,34 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
 
       {/* Tabs and Content Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-        
+
         {/* Navigation Tabs */}
         <div className="flex items-center justify-between border-b border-card-border pb-2.5 mb-6">
-          <div className="flex space-x-4 flex-wrap">
+          <div className="flex space-x-2 flex-wrap">
             <button
               onClick={() => setActiveTab('fixtures')}
-              className={`pb-2.5 text-sm sm:text-base font-bold border-b-2 transition-all duration-200 px-1 cursor-pointer ${
-                activeTab === 'fixtures' 
-                  ? 'border-primary text-primary' 
-                  : 'border-transparent text-gray-400 hover:text-gray-200'
-              }`}
+              className={`text-sm sm:text-base font-bold border-b-2 transition-all duration-200 px-1 cursor-pointer ${activeTab === 'fixtures'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-gray-400 hover:text-gray-200'
+                }`}
             >
               📅 Lịch Thi Đấu & Dự Đoán
             </button>
             <button
               onClick={() => setActiveTab('test-matches')}
-              className={`pb-2.5 text-sm sm:text-base font-bold border-b-2 transition-all duration-200 px-1 cursor-pointer ${
-                activeTab === 'test-matches' 
-                  ? 'border-accent text-accent' 
-                  : 'border-transparent text-gray-400 hover:text-gray-200'
-              }`}
+              className={`text-sm sm:text-base font-bold border-b-2 transition-all duration-200 px-1 cursor-pointer ${activeTab === 'test-matches'
+                ? 'border-accent text-accent'
+                : 'border-transparent text-gray-400 hover:text-gray-200'
+                }`}
             >
               🧪 Trận Đấu Thử Nghiệm
             </button>
             <button
               onClick={() => setActiveTab('groups')}
-              className={`pb-2.5 text-sm sm:text-base font-bold border-b-2 transition-all duration-200 px-1 cursor-pointer ${
-                activeTab === 'groups' 
-                  ? 'border-secondary text-secondary' 
-                  : 'border-transparent text-gray-400 hover:text-gray-200'
-              }`}
+              className={`text-sm sm:text-base font-bold border-b-2 transition-all duration-200 px-1 cursor-pointer ${activeTab === 'groups'
+                ? 'border-secondary text-secondary'
+                : 'border-transparent text-gray-400 hover:text-gray-200'
+                }`}
             >
               🏆 Các Bảng Đấu (48 Đội)
             </button>
@@ -693,31 +689,28 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                   <div className="bg-card-border/40 p-0.5 rounded-lg flex space-x-0.5">
                     <button
                       onClick={() => setSortBy('date')}
-                      className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all duration-150 ${
-                        sortBy === 'date' 
-                          ? 'bg-primary text-white shadow-sm' 
-                          : 'text-gray-400 hover:text-gray-200'
-                      }`}
+                      className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all duration-150 ${sortBy === 'date'
+                        ? 'bg-primary text-white shadow-sm'
+                        : 'text-gray-400 hover:text-gray-200'
+                        }`}
                     >
                       Ngày
                     </button>
                     <button
                       onClick={() => setSortBy('group')}
-                      className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all duration-150 ${
-                        sortBy === 'group' 
-                          ? 'bg-primary text-white shadow-sm' 
-                          : 'text-gray-400 hover:text-gray-200'
-                      }`}
+                      className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all duration-150 ${sortBy === 'group'
+                        ? 'bg-primary text-white shadow-sm'
+                        : 'text-gray-400 hover:text-gray-200'
+                        }`}
                     >
                       Bảng
                     </button>
                     <button
                       onClick={() => setSortBy('history')}
-                      className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all duration-150 ${
-                        sortBy === 'history' 
-                          ? 'bg-primary text-white shadow-sm' 
-                          : 'text-gray-400 hover:text-gray-200'
-                      }`}
+                      className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all duration-150 ${sortBy === 'history'
+                        ? 'bg-primary text-white shadow-sm'
+                        : 'text-gray-400 hover:text-gray-200'
+                        }`}
                     >
                       Độ Hot (Lịch sử)
                     </button>
@@ -730,28 +723,26 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                   <div className="bg-card-border/40 p-0.5 rounded-lg flex space-x-0.5">
                     <button
                       onClick={() => setLayout('grid')}
-                      className={`px-2 py-1 rounded-md transition-all duration-150 flex items-center justify-center ${
-                        layout === 'grid' 
-                          ? 'bg-secondary text-white shadow-sm' 
-                          : 'text-gray-400 hover:text-gray-200'
-                      }`}
+                      className={`px-2 py-1 rounded-md transition-all duration-150 flex items-center justify-center ${layout === 'grid'
+                        ? 'bg-secondary text-white shadow-sm'
+                        : 'text-gray-400 hover:text-gray-200'
+                        }`}
                       title="Dạng Lưới"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                       </svg>
                     </button>
                     <button
                       onClick={() => setLayout('list')}
-                      className={`px-2 py-1 rounded-md transition-all duration-150 flex items-center justify-center ${
-                        layout === 'list' 
-                          ? 'bg-secondary text-white shadow-sm' 
-                          : 'text-gray-400 hover:text-gray-200'
-                      }`}
+                      className={`px-2 py-1 rounded-md transition-all duration-150 flex items-center justify-center ${layout === 'list'
+                        ? 'bg-secondary text-white shadow-sm'
+                        : 'text-gray-400 hover:text-gray-200'
+                        }`}
                       title="Dạng Danh Sách"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
                       </svg>
                     </button>
                   </div>
@@ -762,11 +753,10 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                   <button
                     onClick={() => setShowSyncConfigModal(true)}
                     disabled={syncing}
-                    className={`px-3 py-1.5 rounded-lg border font-bold text-[10px] tracking-wider transition-all duration-150 flex items-center space-x-1.5 active:scale-[0.98] cursor-pointer ${
-                      syncing 
-                        ? 'bg-[#151E2E] border-card-border text-gray-400' 
-                        : 'bg-primary/10 hover:bg-primary/20 border-primary/30 hover:border-primary/50 text-primary hover:text-white'
-                    }`}
+                    className={`px-3 py-1.5 rounded-lg border font-bold text-[10px] tracking-wider transition-all duration-150 flex items-center space-x-1.5 active:scale-[0.98] cursor-pointer ${syncing
+                      ? 'bg-[#151E2E] border-card-border text-gray-400'
+                      : 'bg-primary/10 hover:bg-primary/20 border-primary/30 hover:border-primary/50 text-primary hover:text-white'
+                      }`}
                     title="Đồng bộ lịch thi đấu & Vòng đấu từ Internet (AI)"
                   >
                     <span>{syncing ? '🔄 Đang quét...' : '🔄 Đồng bộ lịch (AI)'}</span>
@@ -776,11 +766,10 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
             </div>
 
             {syncMessage && (
-              <div className={`mb-4 p-2.5 rounded-lg border text-[11px] leading-relaxed text-center animate-fade-in ${
-                syncMessage.success 
-                  ? 'border-primary/30 bg-primary/5 text-primary' 
-                  : 'border-red-500/30 bg-red-950/10 text-red-400'
-              }`}>
+              <div className={`mb-4 p-2.5 rounded-lg border text-[11px] leading-relaxed text-center animate-fade-in ${syncMessage.success
+                ? 'border-primary/30 bg-primary/5 text-primary'
+                : 'border-red-500/30 bg-red-950/10 text-red-400'
+                }`}>
                 {syncMessage.text}
               </div>
             )}
@@ -792,7 +781,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                   {sortedAndFilteredFixtures.map((fixture) => {
                     const historyCount = localHistoryCounts[fixture.id] || 0;
                     return (
-                      <div 
+                      <div
                         key={fixture.id}
                         className="glass-panel rounded-xl p-4 hover:border-primary/45 transition-all duration-200 flex flex-col justify-between"
                       >
@@ -833,14 +822,14 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                             <span className="mr-1">📍</span>
                             <span className="truncate">{fixture.venue}</span>
                           </div>
-                          
+
                           {(() => {
                             const pred = localLatestPredictions[fixture.id];
                             if (!pred) return null;
                             const status = getPredictionStatus(
-                              pred.predictedHomeScore, 
-                              pred.predictedAwayScore, 
-                              fixture.actualHomeScore, 
+                              pred.predictedHomeScore,
+                              pred.predictedAwayScore,
+                              fixture.actualHomeScore,
                               fixture.actualAwayScore,
                               pred.predictType || 'full_time',
                               pred.actualFirstHalfHomeScore,
@@ -856,16 +845,16 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                               </div>
                             );
                           })()}
-                          
+
                           <div className="grid grid-cols-3 sm:grid-cols-2 gap-1.5">
-                            <Link 
+                            <Link
                               href={`/match/${fixture.id}`}
                               className="bg-card-border hover:bg-primary/20 border border-card-border hover:border-primary/50 text-white font-bold py-1.5 px-1 rounded-lg text-center text-[11px] transition-all duration-150 flex items-center justify-center space-x-1"
                               title="Xem chi tiết & lịch sử dự đoán"
                             >
                               <span>🔍 Chi Tiết</span>
                             </Link>
-                            
+
                             <div className="relative predict-menu-container">
                               <button
                                 onClick={(e) => {
@@ -874,11 +863,10 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                                   setActiveActionMenu(null);
                                 }}
                                 disabled={quickPredicting[fixture.id] || syncingStats[fixture.id]}
-                                className={`w-full text-white font-bold py-1.5 px-1 rounded-lg text-center text-[11px] transition-all duration-150 flex items-center justify-center space-x-1 active:scale-[0.98] cursor-pointer ${
-                                  quickPredicting[fixture.id]
-                                    ? 'bg-[#151E2E] text-gray-500 border border-card-border'
-                                    : 'bg-gradient-to-r from-primary/80 to-secondary/80 hover:from-primary hover:to-secondary border border-primary/20 hover:border-primary/40'
-                                }`}
+                                className={`w-full text-white font-bold py-1.5 px-1 rounded-lg text-center text-[11px] transition-all duration-150 flex items-center justify-center space-x-1 active:scale-[0.98] cursor-pointer ${quickPredicting[fixture.id]
+                                  ? 'bg-[#151E2E] text-gray-500 border border-card-border'
+                                  : 'bg-gradient-to-r from-primary/80 to-secondary/80 hover:from-primary hover:to-secondary border border-primary/20 hover:border-primary/40'
+                                  }`}
                               >
                                 <span>{quickPredicting[fixture.id] ? '⏳ Chạy...' : '⚡ Nhanh'}</span>
                               </button>
@@ -918,7 +906,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                                         : '';
 
                                       const promptVal = prompt(
-                                        `Nhập tỷ số Hiệp 1 thực tế (Định dạng: Home-Away, ví dụ: 1-0):`, 
+                                        `Nhập tỷ số Hiệp 1 thực tế (Định dạng: Home-Away, ví dụ: 1-0):`,
                                         defaultH1
                                       );
                                       if (promptVal === null) return;
@@ -977,11 +965,10 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                             <button
                               onClick={() => handleUpdateMatchStats(fixture)}
                               disabled={syncingStats[fixture.id] || quickPredicting[fixture.id] || updatingAutoList[fixture.id]}
-                              className={`hidden sm:flex text-white font-bold py-1.5 px-1 rounded-lg text-center text-[11px] transition-all duration-150 items-center justify-center space-x-1 active:scale-[0.98] cursor-pointer ${
-                                syncingStats[fixture.id]
-                                  ? 'bg-[#151E2E] text-gray-500 border border-card-border'
-                                  : 'bg-gradient-to-r from-indigo-500/20 to-purple-500/20 hover:from-indigo-500/35 hover:to-purple-500/35 border border-indigo-500/30 hover:border-indigo-500/50 text-indigo-300'
-                              }`}
+                              className={`hidden sm:flex text-white font-bold py-1.5 px-1 rounded-lg text-center text-[11px] transition-all duration-150 items-center justify-center space-x-1 active:scale-[0.98] cursor-pointer ${syncingStats[fixture.id]
+                                ? 'bg-[#151E2E] text-gray-500 border border-card-border'
+                                : 'bg-gradient-to-r from-indigo-500/20 to-purple-500/20 hover:from-indigo-500/35 hover:to-purple-500/35 border border-indigo-500/30 hover:border-indigo-500/50 text-indigo-300'
+                                }`}
                               title="Cập nhật ELO, FIFA Rank và phong độ mới nhất bằng AI/Search"
                             >
                               <span>{syncingStats[fixture.id] ? '⏳ Stats...' : '⚡ Stats AI'}</span>
@@ -990,19 +977,18 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                             <button
                               onClick={() => handleAutoUpdate(fixture)}
                               disabled={updatingAutoList[fixture.id] || quickPredicting[fixture.id] || syncingStats[fixture.id]}
-                              className={`hidden sm:flex text-white font-bold py-1.5 px-1 rounded-lg text-center text-[11px] transition-all duration-150 items-center justify-center space-x-0.5 active:scale-[0.98] cursor-pointer ${
-                                updatingAutoList[fixture.id]
-                                  ? 'bg-[#151E2E] text-gray-500 border border-card-border'
-                                  : 'bg-[#1E293B]/70 hover:bg-primary/25 border border-card-border hover:border-primary/40'
-                              }`}
+                              className={`hidden sm:flex text-white font-bold py-1.5 px-1 rounded-lg text-center text-[11px] transition-all duration-150 items-center justify-center space-x-0.5 active:scale-[0.98] cursor-pointer ${updatingAutoList[fixture.id]
+                                ? 'bg-[#151E2E] text-gray-500 border border-card-border'
+                                : 'bg-[#1E293B]/70 hover:bg-primary/25 border border-card-border hover:border-primary/40'
+                                }`}
                               title="Tự động cập nhật kết quả thực tế (AI & Google Search)"
                             >
                               <span>🤖 {updatingAutoList[fixture.id] ? 'KQ...' : 'Kết Quả'}</span>
                             </button>
                           </div>
-                          
+
                           {historyCount > 0 && (
-                            <Link 
+                            <Link
                               href={`/match/${fixture.id}?tab=history`}
                               className="w-full bg-[#151E2E]/60 hover:bg-secondary/15 border border-card-border/60 hover:border-secondary/40 text-gray-300 hover:text-white py-1.5 px-3 rounded-lg text-[10px] font-bold transition-all duration-150 flex items-center justify-center space-x-1"
                             >
@@ -1021,7 +1007,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                   {sortedAndFilteredFixtures.map((fixture) => {
                     const historyCount = localHistoryCounts[fixture.id] || 0;
                     return (
-                      <div 
+                      <div
                         key={fixture.id}
                         className="glass-panel rounded-lg px-3 py-2 hover:border-primary/45 transition-all duration-150 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 text-xs animate-fade-in"
                       >
@@ -1065,14 +1051,14 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                           <span className="text-[10px] text-gray-500 truncate max-w-[155px] hidden md:inline-block">
                             📍 {fixture.venue.split(',')[0]}
                           </span>
-                          
+
                           {(() => {
                             const pred = localLatestPredictions[fixture.id];
                             if (!pred) return null;
                             const status = getPredictionStatus(
-                              pred.predictedHomeScore, 
-                              pred.predictedAwayScore, 
-                              fixture.actualHomeScore, 
+                              pred.predictedHomeScore,
+                              pred.predictedAwayScore,
+                              fixture.actualHomeScore,
                               fixture.actualAwayScore,
                               pred.predictType || 'full_time',
                               pred.actualFirstHalfHomeScore,
@@ -1088,16 +1074,16 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                               </div>
                             );
                           })()}
-                          
+
                           <div className="flex space-x-1.5 w-full sm:w-auto justify-end">
-                            <Link 
+                            <Link
                               href={`/match/${fixture.id}`}
                               className="bg-card-border hover:bg-primary/20 border border-card-border hover:border-primary/50 text-white w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-all duration-150 flex items-center justify-center"
                               title="Xem chi tiết & phân tích chuyên sâu"
                             >
                               <span>🔍</span>
                             </Link>
-                            
+
                             <div className="relative predict-menu-container">
                               <button
                                 onClick={(e) => {
@@ -1106,11 +1092,10 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                                   setActiveActionMenu(null);
                                 }}
                                 disabled={quickPredicting[fixture.id] || syncingStats[fixture.id]}
-                                className={`text-white w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-all duration-150 flex items-center justify-center active:scale-[0.98] cursor-pointer ${
-                                  quickPredicting[fixture.id]
-                                    ? 'bg-[#151E2E] text-gray-550 border border-card-border'
-                                    : 'bg-gradient-to-r from-primary/80 to-secondary/80 hover:from-primary hover:to-secondary border border-primary/25 hover:border-primary/45 shadow-sm'
-                                }`}
+                                className={`text-white w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-all duration-150 flex items-center justify-center active:scale-[0.98] cursor-pointer ${quickPredicting[fixture.id]
+                                  ? 'bg-[#151E2E] text-gray-550 border border-card-border'
+                                  : 'bg-gradient-to-r from-primary/80 to-secondary/80 hover:from-primary hover:to-secondary border border-primary/25 hover:border-primary/45 shadow-sm'
+                                  }`}
                                 title={quickPredicting[fixture.id] ? 'Đang phân tích...' : 'Phân tích nhanh bằng AI'}
                               >
                                 <span>{quickPredicting[fixture.id] ? '⏳' : '⚡'}</span>
@@ -1151,7 +1136,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                                         : '';
 
                                       const promptVal = prompt(
-                                        `Nhập tỷ số Hiệp 1 thực tế (Định dạng: Home-Away, ví dụ: 1-0):`, 
+                                        `Nhập tỷ số Hiệp 1 thực tế (Định dạng: Home-Away, ví dụ: 1-0):`,
                                         defaultH1
                                       );
                                       if (promptVal === null) return;
@@ -1177,31 +1162,29 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                             <button
                               onClick={() => handleUpdateMatchStats(fixture)}
                               disabled={syncingStats[fixture.id] || quickPredicting[fixture.id] || updatingAutoList[fixture.id]}
-                              className={`hidden sm:flex text-white w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-all duration-150 items-center justify-center active:scale-[0.98] cursor-pointer ${
-                                syncingStats[fixture.id]
-                                  ? 'bg-[#151E2E] text-gray-500 border border-card-border'
-                                  : 'bg-gradient-to-r from-indigo-500/10 to-purple-500/10 hover:from-indigo-500/25 hover:to-purple-500/25 border border-indigo-500/25 hover:border-indigo-500/45 text-indigo-300'
-                              }`}
+                              className={`hidden sm:flex text-white w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-all duration-150 items-center justify-center active:scale-[0.98] cursor-pointer ${syncingStats[fixture.id]
+                                ? 'bg-[#151E2E] text-gray-500 border border-card-border'
+                                : 'bg-gradient-to-r from-indigo-500/10 to-purple-500/10 hover:from-indigo-500/25 hover:to-purple-500/25 border border-indigo-500/25 hover:border-indigo-500/45 text-indigo-300'
+                                }`}
                               title={syncingStats[fixture.id] ? 'Đang đồng bộ stats...' : 'Cập nhật Stats AI của 2 đội'}
                             >
                               <span>{syncingStats[fixture.id] ? '⏳' : '📊'}</span>
                             </button>
-                            
+
                             <button
                               onClick={() => handleAutoUpdate(fixture)}
                               disabled={updatingAutoList[fixture.id] || quickPredicting[fixture.id] || syncingStats[fixture.id]}
-                              className={`hidden sm:flex text-white w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-all duration-150 items-center justify-center active:scale-[0.98] cursor-pointer ${
-                                updatingAutoList[fixture.id]
-                                  ? 'bg-[#151E2E] text-gray-500 border border-card-border'
-                                  : 'bg-[#1E293B]/70 hover:bg-primary/25 border border-card-border hover:border-primary/40'
-                              }`}
+                              className={`hidden sm:flex text-white w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-all duration-150 items-center justify-center active:scale-[0.98] cursor-pointer ${updatingAutoList[fixture.id]
+                                ? 'bg-[#151E2E] text-gray-500 border border-card-border'
+                                : 'bg-[#1E293B]/70 hover:bg-primary/25 border border-card-border hover:border-primary/40'
+                                }`}
                               title={updatingAutoList[fixture.id] ? 'Đang cập nhật...' : 'Tự động cập nhật kết quả thực tế (AI)'}
                             >
                               <span>{updatingAutoList[fixture.id] ? '🔄' : '🤖'}</span>
                             </button>
 
                             {historyCount > 0 && (
-                              <Link 
+                              <Link
                                 href={`/match/${fixture.id}?tab=history`}
                                 className="hidden sm:flex bg-card-border/60 hover:bg-secondary/20 border border-card-border/50 hover:border-secondary/50 text-gray-300 hover:text-white w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-all duration-150 items-center justify-center relative"
                                 title={`Xem lịch sử (${historyCount} lần dự đoán)`}
@@ -1273,7 +1256,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
         {activeTab === 'groups' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {groups.map((group) => (
-              <div 
+              <div
                 key={group.name}
                 className="glass-panel rounded-xl p-4 border border-card-border"
               >
@@ -1283,7 +1266,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                 </div>
                 <ul className="space-y-2">
                   {group.teams.map((team, idx) => (
-                    <li 
+                    <li
                       key={team}
                       className="flex items-center justify-between p-1.5 rounded-lg bg-card-border/20 border border-card-border/30 hover:bg-card-border/30 transition-colors"
                     >
@@ -1307,7 +1290,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-fade-in">
           {/* Backdrop click closes modal */}
           <div className="absolute inset-0" onClick={() => setModalData(null)}></div>
-          
+
           <div className="glass-panel border border-card-border/80 rounded-2xl w-full max-w-lg p-5 relative z-10 shadow-2xl glow-cyan animate-scale-in max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
             <div className="flex justify-between items-start border-b border-card-border pb-3 mb-4">
@@ -1319,7 +1302,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                   <span>⚡ Phân Tích Nhanh Dự Đoán AI</span>
                 </h2>
               </div>
-              <button 
+              <button
                 onClick={() => setModalData(null)}
                 className="text-gray-400 hover:text-white font-bold text-base p-1 transition-colors leading-none cursor-pointer"
               >
@@ -1332,13 +1315,13 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
               <div className="absolute top-0 right-0 text-[8px] text-gray-550 font-bold bg-card-border/40 px-2 py-0.5 rounded-bl">
                 {getVNTime(modalData.fixture.date, modalData.fixture.time, modalData.fixture.venue).formatted} (VN)
               </div>
-              
+
               {modalData.prediction.modelUsed && (
                 <div className="absolute top-0 left-0 text-[7px] text-gray-400 font-bold bg-card-border/40 px-2 py-0.5 rounded-br uppercase tracking-wide">
                   Model: {formatModelName(modalData.prediction.modelUsed)}
                 </div>
               )}
-              
+
               <div className="flex items-center justify-center space-x-4 mt-1">
                 <div className="flex items-center space-x-2 w-5/12 justify-end">
                   <span className="font-extrabold text-xs text-white truncate">{modalData.fixture.homeTeam}</span>
@@ -1457,7 +1440,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                   </span>
                   <span className="text-[9px] text-gray-500 font-bold">Tỉ lệ mô phỏng động</span>
                 </div>
-                
+
                 {/* 1X2 Probabilities */}
                 <div className="mb-3.5">
                   <div className="flex justify-between text-[10px] text-gray-300 font-bold mb-1">
@@ -1510,7 +1493,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
             {/* Recommended Bets Panel */}
             <div className="space-y-2 mb-4.5">
               <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider block pl-0.5">Các Kèo AI Khuyến Nghị</span>
-              
+
               <div className="grid grid-cols-2 gap-2 text-xs">
                 {/* 1X2 & OU */}
                 <div className="p-2.5 rounded-lg bg-[#0E1321] border border-card-border/50">
@@ -1583,20 +1566,19 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-fade-in">
           {/* Backdrop click closes modal */}
           <div className="absolute inset-0" onClick={() => setResultModalData(null)}></div>
-          
+
           <div className="glass-panel border border-card-border/80 rounded-2xl w-full max-w-xl p-5 relative z-10 shadow-2xl glow-cyan animate-scale-in max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
             <div className="flex justify-between items-start border-b border-card-border pb-3 mb-4">
               <div>
-                <span className={`border text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
-                  resultModalData.success 
-                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
-                    : resultModalData.status === 'error'
-                      ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-                      : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                }`}>
-                  {resultModalData.success 
-                    ? '🤖 Cập nhật kết quả RAG thành công' 
+                <span className={`border text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${resultModalData.success
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                  : resultModalData.status === 'error'
+                    ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                    : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                  }`}>
+                  {resultModalData.success
+                    ? '🤖 Cập nhật kết quả RAG thành công'
                     : resultModalData.status === 'error'
                       ? '❌ Lỗi hệ thống'
                       : '⚠️ Trạng thái trận đấu'}
@@ -1605,7 +1587,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                   <span>📊 Kết Quả Thực Tế Trực Tuyến</span>
                 </h2>
               </div>
-              <button 
+              <button
                 onClick={() => setResultModalData(null)}
                 className="text-gray-400 hover:text-white font-bold text-base p-1 transition-colors leading-none cursor-pointer"
               >
@@ -1618,13 +1600,13 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
               <div className="absolute top-0 right-0 text-[8px] text-gray-550 font-bold bg-card-border/40 px-2 py-0.5 rounded-bl">
                 {getVNTime(resultModalData.fixture.date, resultModalData.fixture.time, resultModalData.fixture.venue).formatted} (VN)
               </div>
-              
+
               {resultModalData.modelUsed && (
                 <div className="absolute top-0 left-0 text-[7px] text-gray-400 font-bold bg-card-border/40 px-2 py-0.5 rounded-br uppercase tracking-wide">
                   Chấm điểm bởi: {formatModelName(resultModalData.modelUsed)}
                 </div>
               )}
-              
+
               <div className="flex items-center justify-center space-x-4 mt-2">
                 {/* Home Team */}
                 <div className="flex items-center space-x-2.5 w-5/12 justify-end">
@@ -1659,13 +1641,12 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
             {/* Content Body */}
             <div className="space-y-4 mb-5">
               {/* Summary / Message Text */}
-              <div className={`p-3.5 rounded-xl border text-xs leading-relaxed ${
-                resultModalData.success 
-                  ? 'bg-emerald-500/5 text-emerald-300 border-emerald-500/20' 
-                  : resultModalData.status === 'error'
-                    ? 'bg-rose-500/5 text-rose-300 border-rose-500/20'
-                    : 'bg-amber-500/5 text-amber-300 border-amber-500/20'
-              }`}>
+              <div className={`p-3.5 rounded-xl border text-xs leading-relaxed ${resultModalData.success
+                ? 'bg-emerald-500/5 text-emerald-300 border-emerald-500/20'
+                : resultModalData.status === 'error'
+                  ? 'bg-rose-500/5 text-rose-300 border-rose-500/20'
+                  : 'bg-amber-500/5 text-amber-300 border-amber-500/20'
+                }`}>
                 <p className="font-bold mb-1 flex items-center space-x-1.5">
                   <span>{resultModalData.success ? '📝 Nhận định đối chiếu kết quả:' : 'ℹ️ Thông tin trạng thái:'}</span>
                 </p>
@@ -1678,14 +1659,14 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
               {resultModalData.success && resultModalData.betEvaluations && (
                 <div className="space-y-2">
                   <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider block pl-0.5">Kết Quả Chấm Điểm Các Kèo (AI Pundit)</span>
-                  
+
                   <div className="space-y-2 max-h-[35vh] overflow-y-auto pr-1">
                     {(() => {
                       const pred = localLatestPredictions[resultModalData.fixture.id];
                       const ouLine = pred?.ou_line ?? pred?.bets?.overUnder?.line ?? 2.5;
                       const cornersLine = pred?.corners_line ?? pred?.bets?.corners?.line ?? 8.5;
                       const cardsLine = pred?.cards_line ?? pred?.bets?.cards?.line ?? 3.5;
-                      
+
                       return Object.entries({
                         'Châu Âu (1X2)': { data: resultModalData.betEvaluations.oneXTwo },
                         [`Tài Xỉu ${ouLine}`]: { data: resultModalData.betEvaluations.overUnder },
@@ -1695,21 +1676,20 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                         [`Thẻ Phạt (O/U ${cardsLine})`]: { data: resultModalData.betEvaluations.cards }
                       }).map(([betName, { data: evalItem }]) => {
                         if (!evalItem || evalItem.outcome === 'n/a') return null;
-                        
+
                         const isCorrect = evalItem.outcome === 'correct';
                         const isRefund = evalItem.outcome === 'refund';
-                        
+
                         return (
                           <div key={betName} className="p-3 bg-[#0d1324] border border-card-border/40 rounded-xl flex flex-col gap-1.5">
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-extrabold text-white">{betName}</span>
-                              <span className={`px-2.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${
-                                isCorrect
-                                  ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                                  : isRefund
-                                    ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-                                    : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
-                              }`}>
+                              <span className={`px-2.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${isCorrect
+                                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                                : isRefund
+                                  ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                                  : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
+                                }`}>
                                 {isCorrect ? '✅ ĐÚNG' : isRefund ? '🔄 HOÀ' : '❌ SAI'}
                               </span>
                             </div>
@@ -1753,7 +1733,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
           <div className="glass-panel border border-card-border/80 rounded-2xl w-full max-w-md p-5 relative z-10 shadow-2xl animate-scale-in text-left">
             <div className="flex justify-between items-start border-b border-card-border pb-3 mb-4">
               <h2 className="text-sm font-extrabold text-white">🔄 Cấu hình Đồng bộ lịch (AI)</h2>
-              <button 
+              <button
                 onClick={() => !syncing && setShowSyncConfigModal(false)}
                 disabled={syncing}
                 className="text-gray-400 hover:text-white font-bold text-base p-1 transition-colors leading-none cursor-pointer disabled:opacity-50"
@@ -1761,7 +1741,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                 ✕
               </button>
             </div>
-            
+
             <div className="space-y-4 mb-5 text-xs">
               <div>
                 <label className="block text-gray-400 font-bold mb-1.5 uppercase tracking-wider text-[10px]">Giải đấu</label>
@@ -1776,7 +1756,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                   ))}
                   <option value="NEW">[Giải đấu mới...]</option>
                 </select>
-                
+
                 {syncTournament === 'NEW' && (
                   <input
                     type="text"
@@ -1802,7 +1782,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                   ))}
                   <option value="NEW">[Mùa giải mới...]</option>
                 </select>
-                
+
                 {syncSeason === 'NEW' && (
                   <input
                     type="text"
@@ -1828,7 +1808,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                 onClick={() => {
                   const targetTournament = syncTournament === 'NEW' ? customTournament.trim() : syncTournament;
                   const targetSeason = syncSeason === 'NEW' ? customSeason.trim() : syncSeason;
-                  
+
                   if (!targetTournament) {
                     alert('Vui lòng nhập tên giải đấu mới!');
                     return;
@@ -1859,7 +1839,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                 <h2 className="text-sm font-extrabold text-white">📋 Xem trước trận đấu mới quét được ({syncPreviewMatches.length} trận)</h2>
                 <p className="text-[10px] text-gray-400 mt-1">Vui lòng rà soát lại thông tin trước khi import vào hệ thống.</p>
               </div>
-              <button 
+              <button
                 onClick={() => !isImporting && setSyncPreviewMatches(null)}
                 disabled={isImporting}
                 className="text-gray-400 hover:text-white font-bold text-base p-1 transition-colors leading-none cursor-pointer disabled:opacity-50"
@@ -1867,7 +1847,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                 ✕
               </button>
             </div>
-            
+
             {/* Matches list */}
             <div className="space-y-2.5 max-h-[50vh] overflow-y-auto pr-1 text-xs">
               {syncPreviewMatches.length > 0 ? (
@@ -1883,16 +1863,16 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                             📅 {match.date} {match.time}
                           </span>
                         </div>
-                        
+
                         <div className="flex items-center space-x-3 mt-1.5">
                           <span className="text-white font-extrabold text-xs">{match.homeTeam}</span>
                           <span className="text-gray-500 font-black text-[10px]">VS</span>
                           <span className="text-white font-extrabold text-xs">{match.awayTeam}</span>
                         </div>
-                        
+
                         <p className="text-[10px] text-gray-500 mt-1">📍 {match.venue}</p>
                       </div>
-                      
+
                       <div className="sm:ml-4 flex items-center justify-end">
                         <button
                           onClick={() => handleImportMatches([match])}

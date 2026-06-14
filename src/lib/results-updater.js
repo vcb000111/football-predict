@@ -619,6 +619,8 @@ export async function updateMatchResult({ homeTeam, awayTeam, matchId, force, db
         success: true,
         status: 'finished',
         actualScore: { home: mockHomeScore, away: mockAwayScore },
+        actualFirstHalfScore: { home: mockFirstHalfHome, away: mockFirstHalfAway },
+        matchTimeline: mockTimeline,
         message: 'Đã giả lập kết quả và chấm điểm thành công.'
       };
     }
@@ -890,7 +892,8 @@ Chỉ trả về JSON thô. Do NOT include markdown blocks.
         actualCards: aCards,
         betEvaluations: realEvalDetails || parsedData.betEvaluations || {},
         summary: parsedData.summary,
-        modelUsed: callResult.modelUsed
+        modelUsed: callResult.modelUsed,
+        matchTimeline: parsedData.matchTimeline || JSON.parse(matchTimeline)
       };
     } else {
       return {

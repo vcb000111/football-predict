@@ -224,6 +224,7 @@ function formatModelName(model) {
 }
 
 export default function MatchClient({ match, activeModelSupportsImage }) {
+  const [localMatch, setLocalMatch] = useState(match);
   const [loading, setLoading] = useState(true);
   const [predicting, setPredicting] = useState(false);
   const [error, setError] = useState(null);
@@ -328,6 +329,11 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
     if (match) {
       document.title = `${match.homeTeam} vs ${match.awayTeam} - Dự đoán trận đấu`;
     }
+  }, [match]);
+
+  // Đồng bộ localMatch khi prop match thay đổi
+  useEffect(() => {
+    setLocalMatch(match);
   }, [match]);
 
   const fetchChatHistory = async () => {
@@ -551,6 +557,18 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
           text: `🤖 Tự động cập nhật thành công! Trận đấu kết thúc với tỷ số thực tế: ${data.actualScore.home}-${data.actualScore.away}. ${data.summary || ''}`
         });
 
+        // Cập nhật localMatch tức thì trên Client
+        setLocalMatch(prev => ({
+          ...prev,
+          actualHomeScore: data.actualScore.home,
+          actualAwayScore: data.actualScore.away,
+          actualFirstHalfScore: data.actualFirstHalfScore ? {
+            home: data.actualFirstHalfScore.home,
+            away: data.actualFirstHalfScore.away
+          } : prev.actualFirstHalfScore,
+          matchTimeline: data.matchTimeline || prev.matchTimeline
+        }));
+
         // Tải lại lịch sử để cập nhật UI
         const histRes = await fetch(`/api/history?matchId=${match.id}`);
         if (histRes.ok) {
@@ -765,7 +783,7 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
 
             {/* Tab: Mô phỏng */}
             <div className={`animate-fade-in ${activeTab === 'simulator' ? '' : 'hidden'}`}>
-              <MatchSimulator match={match} isActive={activeTab === 'simulator'} />
+              <MatchSimulator match={localMatch} isActive={activeTab === 'simulator'} />
             </div>
             
             {/* Tab: Nhận định */}
