@@ -306,8 +306,8 @@
           "minute": 7,
           "team": "home",
           "type": "goal",
-          "player": "Vinícius Júnior",
-          "detail": "Vinícius Júnior bỏ lỡ cơ hội sớm cho Brazil."
+          "player": "Vinicius Junior",
+          "detail": "Vinicius Jr ghi bàn gỡ hòa cho Brazil."
         },
         {
           "minute": 45,
@@ -328,49 +328,98 @@
           "team": "none",
           "type": "half_time",
           "player": "",
-          "detail": "Hiệp 1 kết thúc, Morocco tạm dẫn trước."
+          "detail": "Hiệp 1 kết thúc với tỷ số 1-1."
+        },
+        {
+          "minute": 46,
+          "team": "none",
+          "type": "kickoff",
+          "player": "",
+          "detail": "Hiệp 2 bắt đầu."
         },
         {
           "minute": 45,
           "team": "home",
           "type": "substitution",
-          "player": "Danilo, Fabinho",
-          "detail": "Brazil thay đổi nhân sự đầu hiệp 2."
+          "player": "Danilo",
+          "detail": "Danilo vào sân thay người."
+        },
+        {
+          "minute": 45,
+          "team": "home",
+          "type": "substitution",
+          "player": "Fabinho",
+          "detail": "Fabinho vào sân thay người."
         },
         {
           "minute": 61,
           "team": "home",
           "type": "substitution",
-          "player": "Matheus Cunha, Luiz Henrique",
-          "detail": "Brazil tăng cường hàng công."
+          "player": "Matheus Cunha",
+          "detail": "Matheus Cunha vào sân."
+        },
+        {
+          "minute": 61,
+          "team": "home",
+          "type": "substitution",
+          "player": "Luiz Henrique",
+          "detail": "Luiz Henrique vào sân."
+        },
+        {
+          "minute": 65,
+          "team": "away",
+          "type": "substitution",
+          "player": "Samir El Mourabet",
+          "detail": "Samir El Mourabet vào sân cho Morocco."
+        },
+        {
+          "minute": 65,
+          "team": "away",
+          "type": "substitution",
+          "player": "Chemsdine Talbi",
+          "detail": "Chemsdine Talbi vào sân cho Morocco."
+        },
+        {
+          "minute": 80,
+          "team": "home",
+          "type": "substitution",
+          "player": "Danilo Santos",
+          "detail": "Danilo Santos vào sân."
+        },
+        {
+          "minute": 80,
+          "team": "away",
+          "type": "substitution",
+          "player": "Ayoube Amaimouni",
+          "detail": "Ayoube Amaimouni vào sân."
+        },
+        {
+          "minute": 80,
+          "team": "away",
+          "type": "substitution",
+          "player": "Anass Salah Eddine",
+          "detail": "Anass Salah Eddine vào sân."
         },
         {
           "minute": 88,
           "team": "away",
           "type": "goal",
           "player": "Ismael Saibari",
-          "detail": "⚽ VÀOOO! Ismael Saibari chích bóng kỹ thuật qua đầu Alisson mở tỷ số cho Morocco."
+          "detail": "Ismael Saibari ghi bàn đưa Morocco dẫn trước."
         },
         {
           "minute": 89,
-          "team": "none",
+          "team": "away",
           "type": "substitution",
           "player": "Soufiane Rahimi",
-          "detail": "Morocco thay người bảo toàn tỷ số."
-        },
-        {
-          "minute": 90,
-          "team": "home",
-          "type": "goal",
-          "player": "Vinícius Júnior",
-          "detail": "⚽ VÀOOO! Vinícius Júnior đi bóng đẳng cấp và dứt điểm góc xa cân bằng tỷ số 1-1."
+          "detail": "Soufiane Rahimi vào sân."
         },
         {
           "minute": 90,
           "team": "none",
           "type": "full_time",
           "player": "",
-          "detail": "🏁 Trận đấu kết thúc với tỷ số hòa 1-1."
+          "detail": "Trận đấu kết thúc với tỷ số 1-1."
         }
       ]
     },
@@ -383,7 +432,85 @@
       "group": "Group B",
       "venue": "Levi's Stadium, San Francisco Bay Area",
       "tournament": "World Cup 2026",
-      "season": "2026"
+      "season": "2026",
+      "actualHomeScore": 1,
+      "actualAwayScore": 1,
+      "actualFirstHalfScore": {
+        "home": 0,
+        "away": 1
+      },
+      "matchTimeline": [
+        {
+          "minute": 1,
+          "team": "none",
+          "type": "kickoff",
+          "player": "",
+          "detail": "Trận đấu bắt đầu tại sân Levi's."
+        },
+        {
+          "minute": 17,
+          "team": "away",
+          "type": "goal",
+          "player": "Breel Embolo",
+          "detail": "⚽ VÀOOO! Breel Embolo thực hiện thành công quả phạt đền mở tỷ số 1-0 cho Thụy Sĩ."
+        },
+        {
+          "minute": 35,
+          "team": "home",
+          "type": "save",
+          "player": "Mahmud Abunada",
+          "detail": "🧤 Cứu thua! Thủ môn Qatar cản phá thành công pha dứt điểm của đội khách."
+        },
+        {
+          "minute": 45,
+          "team": "none",
+          "type": "half_time",
+          "player": "",
+          "detail": "⏱️ Hết hiệp 1! Thụy Sĩ tạm dẫn 1-0."
+        },
+        {
+          "minute": 55,
+          "team": "away",
+          "type": "yellow_card",
+          "player": "Cầu thủ Thụy Sĩ",
+          "detail": "🟨 Thẻ vàng cho pha phạm lỗi chiến thuật ở khu vực giữa sân."
+        },
+        {
+          "minute": 65,
+          "team": "home",
+          "type": "substitution",
+          "player": "Qatar",
+          "detail": "🔄 Thay người để tăng cường sức tấn công."
+        },
+        {
+          "minute": 78,
+          "team": "away",
+          "type": "yellow_card",
+          "player": "Cầu thủ Thụy Sĩ",
+          "detail": "🟨 Thẻ vàng tiếp theo cho đội khách."
+        },
+        {
+          "minute": 85,
+          "team": "home",
+          "type": "yellow_card",
+          "player": "Cầu thủ Qatar",
+          "detail": "🟨 Thẻ vàng cho lỗi phản ứng."
+        },
+        {
+          "minute": 90,
+          "team": "home",
+          "type": "goal",
+          "player": "Boualem Khoukhi",
+          "detail": "⚽ VÀOOO! Boualem Khoukhi đánh đầu đẳng cấp gỡ hòa 1-1 cho Qatar trong những phút cuối."
+        },
+        {
+          "minute": 90,
+          "team": "none",
+          "type": "full_time",
+          "player": "",
+          "detail": "🏁 Trận đấu kết thúc với tỷ số hòa 1-1. Qatar giành điểm lịch sử."
+        }
+      ]
     },
     {
       "id": "m9",
