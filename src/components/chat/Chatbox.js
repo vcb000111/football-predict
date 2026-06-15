@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { renderMessageContent } from '@/lib/markdown';
+import Swal from 'sweetalert2';
 
 // Hàm loại bỏ thẻ XML <followups>...</followups> khi hiển thị nội dung chat
 const cleanMessageContent = (content) => {
@@ -29,6 +30,24 @@ const extractFollowups = (content) => {
     return followups;
   }
   return [];
+};
+
+// Hàm helper đọc sessionStorage an toàn tránh SyntaxError do chuỗi rác
+const safeGetItem = (key) => {
+  if (typeof window === 'undefined') return null;
+  const val = sessionStorage.getItem(key);
+  if (!val || val === 'undefined' || val === 'null') return null;
+  return val;
+};
+
+const safeJsonParse = (str) => {
+  if (!str) return null;
+  try {
+    return JSON.parse(str);
+  } catch (e) {
+    console.error('Lỗi JSON.parse:', e);
+    return null;
+  }
 };
 
 export default function Chatbox() {
@@ -72,9 +91,198 @@ export default function Chatbox() {
   const chatContainerRef = useRef(null);
   const [reloadTrigger, setReloadTrigger] = useState(0);
 
-  // 1. Kiểm tra trạng thái đăng nhập và tải lịch sử tương ứng
+  // States quản lý nhiều session chat
+  const [sessions, setSessions] = useState([]);
+  const [activeSessionId, setActiveSessionId] = useState('default_session');
+  const [showSessionsMenu, setShowSessionsMenu] = useState(false);
+  const activeSessionRef = useRef(activeSessionId);
+
   useEffect(() => {
-    const checkAndLoad = async () => {
+    activeSessionRef.current = activeSessionId;
+  }, [activeSessionId]);
+
+  // Load danh sách session của người dùng đã đăng nhập từ API
+  const loadSessions = useCallback(async (overrideUser = null) => {
+    const activeUser = overrideUser !== null ? overrideUser : user;
+    if (!activeUser) return;
+    try {
+      const res = await fetch('/api/chat/assistant/sessions');
+      const data = await res.json();
+      if (data.success && data.sessions) {
+        setSessions(data.sessions);
+        if (data.sessions.length > 0) {
+          setActiveSessionId(data.sessions[0].id);
+        } else {
+          await createNewSession(activeUser, []);
+        }
+      }
+    } catch (err) {
+      console.error('Lỗi tải danh sách session:', err);
+    }
+  }, [user]);
+
+  // Load danh sách session của khách từ sessionStorage
+  const loadGuestSessions = useCallback(() => {
+    const oldChats = safeGetItem('assistant_chats');
+    let loadedSessions = [];
+
+    const savedSessions = safeGetItem('assistant_sessions');
+    if (savedSessions) {
+      const parsed = safeJsonParse(savedSessions);
+      if (Array.isArray(parsed)) {
+        loadedSessions = parsed;
+      }
+    }
+
+    if (oldChats && loadedSessions.length === 0) {
+      const defaultSessionObj = { id: 'default_session', title: 'Đoạn chat mặc định', createdAt: new Date().toISOString() };
+      loadedSessions = [defaultSessionObj];
+      sessionStorage.setItem('assistant_sessions', JSON.stringify(loadedSessions));
+      sessionStorage.setItem('assistant_chats_default_session', oldChats);
+      sessionStorage.removeItem('assistant_chats');
+    }
+
+    if (loadedSessions.length === 0) {
+      const defaultSessionObj = { id: 'default_session', title: 'Đoạn chat mặc định', createdAt: new Date().toISOString() };
+      loadedSessions = [defaultSessionObj];
+      sessionStorage.setItem('assistant_sessions', JSON.stringify(loadedSessions));
+      sessionStorage.setItem('assistant_chats_default_session', JSON.stringify([
+        {
+          role: 'assistant',
+          content: 'Xin chào! Tôi là trợ lý AI chuyên gia soi kèo bóng đá World Cup 2026. Bạn có thể hỏi tôi về lịch thi đấu, phân tích phong độ các đội bóng hoặc dán link trận đấu vào đây để tôi phân tích nhé!'
+        }
+      ]));
+    }
+
+    setSessions(loadedSessions);
+    const lastActiveId = safeGetItem('assistant_active_session_id') || loadedSessions[0].id;
+    setActiveSessionId(lastActiveId);
+  }, []);
+
+  // Tạo một session chat mới
+  const createNewSession = async (overrideUser = null, currentSessions = null) => {
+    const activeUser = overrideUser !== null ? overrideUser : user;
+    const activeSessions = currentSessions !== null ? currentSessions : sessions;
+
+    if (activeUser) {
+      try {
+        const res = await fetch('/api/chat/assistant/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+        if (data.success && data.session) {
+          setSessions(prev => [data.session, ...prev]);
+          setActiveSessionId(data.session.id);
+        }
+      } catch (err) {
+        console.error('Lỗi tạo session mới từ DB:', err);
+      }
+    } else {
+      const newId = (typeof window !== 'undefined' && window.crypto?.randomUUID) 
+        ? window.crypto.randomUUID() 
+        : 'guest_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+
+      const newSession = {
+        id: newId,
+        title: 'Đoạn chat mới',
+        createdAt: new Date().toISOString()
+      };
+
+      const updatedSessions = [newSession, ...activeSessions];
+      setSessions(updatedSessions);
+      sessionStorage.setItem('assistant_sessions', JSON.stringify(updatedSessions));
+      sessionStorage.setItem('assistant_active_session_id', newId);
+
+      sessionStorage.setItem(`assistant_chats_${newId}`, JSON.stringify([
+        {
+          role: 'assistant',
+          content: 'Xin chào! Tôi là trợ lý AI chuyên gia soi kèo bóng đá World Cup 2026. Bạn có thể hỏi tôi về lịch thi đấu, phân tích phong độ các đội bóng hoặc dán link trận đấu vào đây để tôi phân tích nhé!'
+        }
+      ]));
+
+      setActiveSessionId(newId);
+    }
+  };
+
+  // Xóa một session chat
+  const deleteSession = async (sessionId, e) => {
+    e.stopPropagation();
+    const activeSessions = [...sessions];
+    if (activeSessions.length <= 1) {
+      Swal.fire({
+        title: 'Thông báo',
+        text: 'Sếp cần giữ lại ít nhất một cuộc trò chuyện.',
+        icon: 'info',
+        background: '#151E2E',
+        color: '#fff',
+        confirmButtonText: 'Đóng',
+        confirmButtonColor: '#3B82F6',
+        customClass: {
+          popup: 'border border-[#223147] rounded-2xl shadow-2xl'
+        },
+        didOpen: () => {
+          const container = Swal.getContainer();
+          if (container) container.style.zIndex = '999999';
+        }
+      });
+      return;
+    }
+
+    Swal.fire({
+      title: 'Xóa cuộc trò chuyện?',
+      text: 'Sếp có chắc chắn muốn xóa cuộc trò chuyện này không?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Đồng ý',
+      cancelButtonText: 'Hủy',
+      background: '#151E2E',
+      color: '#fff',
+      confirmButtonColor: '#E11D48',
+      cancelButtonColor: '#374151',
+      customClass: {
+        popup: 'border border-[#223147] rounded-2xl shadow-2xl'
+      },
+      didOpen: () => {
+        const container = Swal.getContainer();
+        if (container) container.style.zIndex = '999999';
+      }
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        if (user) {
+          try {
+            const res = await fetch(`/api/chat/assistant/sessions?sessionId=${sessionId}`, {
+              method: 'DELETE'
+            });
+            const data = await res.json();
+            if (data.success) {
+              const updatedSessions = activeSessions.filter(s => s.id !== sessionId);
+              setSessions(updatedSessions);
+              if (activeSessionId === sessionId) {
+                setActiveSessionId(updatedSessions[0].id);
+              }
+            }
+          } catch (err) {
+            console.error('Lỗi xóa session:', err);
+          }
+        } else {
+          const updatedSessions = activeSessions.filter(s => s.id !== sessionId);
+          setSessions(updatedSessions);
+          sessionStorage.setItem('assistant_sessions', JSON.stringify(updatedSessions));
+          sessionStorage.removeItem(`assistant_chats_${sessionId}`);
+          if (activeSessionId === sessionId) {
+            const nextActiveId = updatedSessions[0].id;
+            setActiveSessionId(nextActiveId);
+            sessionStorage.setItem('assistant_active_session_id', nextActiveId);
+          }
+        }
+      }
+    });
+  };
+
+  // Effect 1: Kiểm tra auth và tải danh sách session
+  useEffect(() => {
+    const initSessions = async () => {
       let currentUser = null;
       try {
         const res = await fetch('/api/auth/me');
@@ -90,16 +298,52 @@ export default function Chatbox() {
       }
 
       if (currentUser) {
-        // Đã đăng nhập: tải lịch sử từ DB
+        try {
+          const res = await fetch('/api/chat/assistant/sessions');
+          const data = await res.json();
+          if (data.success && data.sessions) {
+            setSessions(data.sessions);
+            if (data.sessions.length > 0) {
+              setActiveSessionId(data.sessions[0].id);
+            } else {
+              // Gọi API tạo mới session đầu tiên nếu chưa có
+              const createRes = await fetch('/api/chat/assistant/sessions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+              });
+              const createData = await createRes.json();
+              if (createData.success && createData.session) {
+                setSessions([createData.session]);
+                setActiveSessionId(createData.session.id);
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Lỗi tải danh sách session:', err);
+        }
+      } else {
+        loadGuestSessions();
+      }
+    };
+
+    initSessions();
+  }, [reloadTrigger, loadGuestSessions]);
+
+  // Effect 2: Tải tin nhắn của session đang hoạt động
+  useEffect(() => {
+    const loadMessagesForSession = async () => {
+      if (!activeSessionId) return;
+
+      if (user) {
         try {
           setLoadingHistory(true);
-          const res = await fetch('/api/chat/assistant/history?limit=30');
+          const res = await fetch(`/api/chat/assistant/history?sessionId=${activeSessionId}&limit=30`);
           const data = await res.json();
-          if (data.success && data.messages) {
+          
+          if (activeSessionRef.current === activeSessionId && data.success && data.messages) {
             setMessages(data.messages);
             setHasMore(data.hasMore);
-            
-            // Trích xuất followups từ tin nhắn assistant cuối cùng
+
             const lastAssistantMsg = [...data.messages].reverse().find(msg => msg.role === 'assistant');
             if (lastAssistantMsg) {
               const followups = extractFollowups(lastAssistantMsg.content);
@@ -109,28 +353,26 @@ export default function Chatbox() {
             }
           }
         } catch (err) {
-          console.error('Lỗi tải lịch sử chat từ DB:', err);
+          console.error('Lỗi tải tin nhắn từ DB:', err);
         } finally {
-          setLoadingHistory(false);
+          if (activeSessionRef.current === activeSessionId) {
+            setLoadingHistory(false);
+          }
         }
       } else {
-        // Chưa đăng nhập: tải lịch sử từ sessionStorage
-        const savedChats = sessionStorage.getItem('assistant_chats');
+        const savedChats = safeGetItem(`assistant_chats_${activeSessionId}`);
         if (savedChats) {
-          try {
-            const loadedMsgs = JSON.parse(savedChats);
-            setMessages(loadedMsgs);
-            
-            // Trích xuất followups từ tin nhắn assistant cuối cùng
-            const lastAssistantMsg = [...loadedMsgs].reverse().find(msg => msg.role === 'assistant');
+          const parsed = safeJsonParse(savedChats);
+          if (parsed) {
+            setMessages(parsed);
+
+            const lastAssistantMsg = [...parsed].reverse().find(msg => msg.role === 'assistant');
             if (lastAssistantMsg) {
               const followups = extractFollowups(lastAssistantMsg.content);
               if (followups.length > 0) {
                 setSuggestedFollowups(followups);
               }
             }
-          } catch (e) {
-            console.error('Lỗi parse sessionStorage:', e);
           }
         } else {
           setMessages([
@@ -144,8 +386,8 @@ export default function Chatbox() {
       }
     };
 
-    checkAndLoad();
-  }, [reloadTrigger]);
+    loadMessagesForSession();
+  }, [activeSessionId, user]);
 
   // Lắng nghe sự thay đổi trạng thái đăng nhập để cập nhật lịch sử chat
   useEffect(() => {
@@ -169,7 +411,7 @@ export default function Chatbox() {
   const saveGuestMessages = (newMessages) => {
     setMessages(newMessages);
     if (!user) {
-      sessionStorage.setItem('assistant_chats', JSON.stringify(newMessages));
+      sessionStorage.setItem(`assistant_chats_${activeSessionId}`, JSON.stringify(newMessages));
     }
   };
 
@@ -189,7 +431,7 @@ export default function Chatbox() {
       const oldScrollHeight = container.scrollHeight;
 
       try {
-        const res = await fetch(`/api/chat/assistant/history?beforeId=${beforeId}&limit=30`);
+        const res = await fetch(`/api/chat/assistant/history?sessionId=${activeSessionId}&beforeId=${beforeId}&limit=30`);
         const data = await res.json();
 
         if (data.success && data.messages) {
@@ -397,7 +639,8 @@ export default function Chatbox() {
             content: msg.content
           })),
           pageContext,
-          images: currentSelectedImages
+          images: currentSelectedImages,
+          sessionId: activeSessionId
         })
       });
 
@@ -432,6 +675,19 @@ export default function Chatbox() {
                     content: accumulatedText
                   };
                   saveGuestMessages([...updatedMessages]);
+                } else if (data.suggestedTitle) {
+                  const updatedTitle = data.suggestedTitle;
+                  setSessions(prev => prev.map(s => s.id === activeSessionRef.current ? { ...s, title: updatedTitle } : s));
+                  if (!user) {
+                    const savedSessions = safeGetItem('assistant_sessions');
+                    if (savedSessions) {
+                      const parsed = safeJsonParse(savedSessions);
+                      if (Array.isArray(parsed)) {
+                        const updatedGuestSessions = parsed.map(s => s.id === activeSessionRef.current ? { ...s, title: updatedTitle } : s);
+                        sessionStorage.setItem('assistant_sessions', JSON.stringify(updatedGuestSessions));
+                      }
+                    }
+                  }
                 }
               } catch (parseErr) {
                 // Chấp nhận bỏ qua nếu chunk json cắt dòng chưa hoàn thiện
@@ -457,10 +713,6 @@ export default function Chatbox() {
         }
       }
 
-      if (user) {
-        setReloadTrigger(prev => prev + 1);
-      }
-
     } catch (err) {
       console.error('Lỗi stream chat:', err);
       updatedMessages[assistantIndex] = {
@@ -483,62 +735,169 @@ export default function Chatbox() {
   };
 
   const clearHistory = async () => {
-    if (confirm('Sếp có chắc chắn muốn xóa toàn bộ lịch sử trò chuyện không?')) {
-      if (user) {
-        // Nếu đã đăng nhập, ta sẽ không xóa hẳn trên DB để giữ lưu trữ audit, nhưng tạm thời reset view bằng sessionStorage guest
-        setMessages([
-          {
-            role: 'assistant',
-            content: 'Đã ẩn lịch sử chat DB trên màn hình sếp. Tin nhắn chào mừng: Hãy đặt câu hỏi bất kỳ cho trợ lý AI World Cup 2026.'
-          }
-        ]);
-      } else {
-        sessionStorage.removeItem('assistant_chats');
-        setMessages([
-          {
-            role: 'assistant',
-            content: 'Lịch sử chat khách đã được dọn dẹp sạch sẽ.'
-          }
-        ]);
+    Swal.fire({
+      title: 'Dọn dẹp cuộc trò chuyện?',
+      text: 'Sếp có chắc chắn muốn dọn dẹp toàn bộ tin nhắn trong cuộc trò chuyện này không?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Đồng ý',
+      cancelButtonText: 'Hủy',
+      background: '#151E2E',
+      color: '#fff',
+      confirmButtonColor: '#E11D48',
+      cancelButtonColor: '#374151',
+      customClass: {
+        popup: 'border border-[#223147] rounded-2xl shadow-2xl'
+      },
+      didOpen: () => {
+        const container = Swal.getContainer();
+        if (container) container.style.zIndex = '999999';
       }
-    }
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        if (user) {
+          try {
+            // Xóa tin nhắn trong session hiện tại qua API
+            const res = await fetch(`/api/chat/assistant/sessions?sessionId=${activeSessionId}`, {
+              method: 'DELETE'
+            });
+            const data = await res.json();
+            if (data.success) {
+              // Cập nhật lại UI: reset tin nhắn
+              setMessages([
+                {
+                  role: 'assistant',
+                  content: 'Đã dọn dẹp sạch sẽ cuộc trò chuyện này. Hãy đặt câu hỏi bất kỳ cho trợ lý AI World Cup 2026.'
+                }
+              ]);
+              // Reload danh sách session
+              setReloadTrigger(prev => prev + 1);
+            }
+          } catch (err) {
+            console.error('Lỗi dọn dẹp tin nhắn:', err);
+          }
+        } else {
+          // Khách
+          sessionStorage.setItem(`assistant_chats_${activeSessionId}`, JSON.stringify([
+            {
+              role: 'assistant',
+              content: 'Đã dọn dẹp sạch sẽ cuộc trò chuyện khách.'
+            }
+          ]));
+          setMessages([
+            {
+              role: 'assistant',
+              content: 'Đã dọn dẹp sạch sẽ cuộc trò chuyện khách.'
+            }
+          ]);
+        }
+      }
+    });
   };
 
   return (
     // Di chuyển vị trí sang bên phải và căn chỉnh với tasks history
-    <div className="fixed bottom-20 right-4 sm:right-6 md:bottom-6 z-[9999] flex flex-col items-end font-sans">
+    <div className="fixed bottom-20 right-4 sm:right-6 md:bottom-6 z-[2000] flex flex-col items-end font-sans">
 
       {/* Cửa sổ chat */}
       {isOpen && (
         // Responsive Mobile: thích ứng chiều cao màn hình, PC: sm:w-[400px] sm:h-[560px]
-        <div className="w-[calc(100vw-32px)] sm:w-[400px] h-[calc(100vh-140px)] max-h-[520px] sm:h-[560px] sm:max-h-none rounded-2xl glass-panel flex flex-col mb-3 overflow-hidden border border-[#223147] shadow-2xl glow-cyan/10">
+        <div className="w-[calc(100vw-32px)] sm:w-[400px] h-[calc(100vh-140px)] max-h-[520px] sm:h-[560px] sm:max-h-none rounded-2xl glass-panel flex flex-col mb-3 overflow-hidden border border-[#223147] shadow-2xl glow-cyan/10 relative">
+
+          {/* Menu chọn session (Lịch sử trò chuyện) */}
+          {showSessionsMenu && (
+            <div className="absolute inset-y-0 left-0 bg-[#0B0F17]/98 z-[100] flex flex-col w-[260px] border-r border-[#223147] shadow-2xl animate-fade-in">
+              <div className="p-3 border-b border-[#223147] bg-[#0F172A] flex justify-between items-center">
+                <span className="text-xs font-bold text-gray-300">Lịch sử trò chuyện</span>
+                <button
+                  type="button"
+                  onClick={() => setShowSessionsMenu(false)}
+                  className="text-gray-400 hover:text-white text-xs cursor-pointer border-0 bg-transparent"
+                >
+                  Đóng
+                </button>
+              </div>
+              <div className="flex-grow overflow-y-auto p-2 space-y-1.5">
+                {sessions.map((s) => (
+                  <div
+                    key={s.id}
+                    onClick={() => {
+                      setActiveSessionId(s.id);
+                      setShowSessionsMenu(false);
+                    }}
+                    className={`group flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors text-xs ${
+                      s.id === activeSessionId
+                        ? 'bg-secondary/20 text-white border border-secondary/40'
+                        : 'text-gray-300 hover:bg-[#1E293B] hover:text-white'
+                    }`}
+                  >
+                    <span className="truncate pr-2">{s.title}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => deleteSession(s.id, e)}
+                      className="text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 border-0 bg-transparent cursor-pointer"
+                      title="Xóa đoạn chat"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Header */}
           <div className="px-3 py-2 sm:px-4 sm:py-2.5 border-b border-[#223147] bg-[#0F172A] flex items-center justify-between flex-shrink-0">
-            <div className="flex items-center space-x-2.5">
-              <div className="h-2.5 w-2.5 rounded-full bg-primary live-indicator"></div>
-              <div>
-                <h4 className="text-sm font-bold text-white tracking-wide">Trợ lý AI soi kèo</h4>
-                <p className="text-[10px] text-gray-400">
-                  {user ? `Lịch sử lưu DB: ${user.username}` : 'Chế độ khách (sessionStorage)'}
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={() => setShowSessionsMenu(!showSessionsMenu)}
+                title="Lịch sử trò chuyện"
+                className={`p-1.5 rounded text-gray-400 hover:text-white hover:bg-[#1E293B] transition-colors cursor-pointer border-0 bg-transparent ${
+                  showSessionsMenu ? 'text-white bg-[#1E293B]' : ''
+                }`}
+              >
+                <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              <div className="min-w-0">
+                <h4 className="text-xs sm:text-sm font-bold text-white tracking-wide truncate max-w-[150px] sm:max-w-[185px]">
+                  {sessions.find(s => s.id === activeSessionId)?.title || 'Đoạn chat mới'}
+                </h4>
+                <p className="text-[9px] text-gray-400 truncate">
+                  {user ? `Tài khoản: ${user.username}` : 'Chế độ khách'}
                 </p>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
+            
+            <div className="flex items-center space-x-1.5">
               <button
+                type="button"
+                onClick={() => createNewSession()}
+                title="Tạo đoạn chat mới"
+                className="p-1.5 rounded text-gray-400 hover:text-white hover:bg-[#1E293B] transition-colors cursor-pointer border-0 bg-transparent"
+              >
+                <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+              <button
+                type="button"
                 onClick={clearHistory}
                 title="Dọn dẹp lịch sử"
-                className="p-1.5 rounded text-gray-400 hover:text-red-400 hover:bg-[#1E293B] transition-colors cursor-pointer"
+                className="p-1.5 rounded text-gray-400 hover:text-red-400 hover:bg-[#1E293B] transition-colors cursor-pointer border-0 bg-transparent"
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
               </button>
               <button
+                type="button"
                 onClick={() => setIsOpen(false)}
-                className="p-1.5 rounded text-gray-400 hover:text-white hover:bg-[#1E293B] transition-colors cursor-pointer"
+                className="p-1.5 rounded text-gray-400 hover:text-white hover:bg-[#1E293B] transition-colors cursor-pointer border-0 bg-transparent"
               >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>

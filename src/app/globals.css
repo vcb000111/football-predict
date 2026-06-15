@@ -89,3 +89,8 @@ body {
 .pb-safe {
   padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
 }
+
+/* Ghi đè z-index cho SweetAlert2 để hiển thị đè lên trên Chatbox */
+.swal2-container {
+  z-index: 999999 !important;
+}

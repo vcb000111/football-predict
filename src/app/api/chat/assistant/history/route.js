@@ -27,12 +27,21 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '30', 10);
     const beforeId = searchParams.get('beforeId');
+    const sessionId = searchParams.get('sessionId') || 'default_session';
 
     const db = await getDB();
     
-    // Xây dựng câu truy vấn: Lấy limit + 1 bản ghi để check hasMore
+    // Xây dựng câu truy vấn: Lấy limit + 1 bản ghi để check hasMore và lọc theo session_id
     let query = 'SELECT id, sender, message, model_used, image_url, created_at FROM assistant_chats WHERE user_id = ?';
     const params = [userId];
+
+    if (sessionId === 'default_session') {
+      query += ' AND (session_id = ? OR session_id IS NULL)';
+      params.push('default_session');
+    } else {
+      query += ' AND session_id = ?';
+      params.push(sessionId);
+    }
 
     if (beforeId) {
       query += ' AND id < ?';

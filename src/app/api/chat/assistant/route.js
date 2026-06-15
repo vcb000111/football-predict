@@ -13,7 +13,8 @@ export async function POST(request) {
   const encoder = new TextEncoder();
 
   try {
-    const { messages, pageContext, images } = await request.json();
+    const { messages, pageContext, images, sessionId } = await request.json();
+    const activeSessionId = sessionId || 'default_session';
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json(
@@ -133,8 +134,9 @@ Hãy linh hoạt sử dụng ngữ cảnh trang trên để trả lời nếu ng
 </followups>
 Lưu ý: Không viết bất kỳ lời dẫn hay từ ngữ nào khác ngoài và sau khối XML này. Các câu gợi ý phải ngắn gọn, súc tích (dưới 10 từ) và tuân thủ viết hoa Sentence case.`;
 
-    // 7. Chuẩn bị danh sách contents cho Gemini API
-    const geminiContents = messages.map(msg => ({
+    // 7. Chuẩn bị danh sách contents cho Gemini API (tối ưu hóa token bằng cách lấy tối đa 12 tin nhắn gần nhất)
+    const messagesToProcess = messages.slice(-12);
+    const geminiContents = messagesToProcess.map(msg => ({
       role: msg.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: msg.content }]
     }));
@@ -158,8 +160,8 @@ Lưu ý: Không viết bất kỳ lời dẫn hay từ ngữ nào khác ngoài v
     // 8. Lưu tin nhắn của người dùng vào DB (nếu đã đăng nhập)
     if (userId && userText) {
       await db.run(
-        'INSERT INTO assistant_chats (user_id, sender, message, model_used, image_url) VALUES (?, ?, ?, ?, ?)',
-        [userId, 'user', userText, activeModel, imageUrls.length > 0 ? JSON.stringify(imageUrls) : null]
+        'INSERT INTO assistant_chats (user_id, sender, message, model_used, image_url, session_id) VALUES (?, ?, ?, ?, ?, ?)',
+        [userId, 'user', userText, activeModel, imageUrls.length > 0 ? JSON.stringify(imageUrls) : null, activeSessionId]
       );
     }
 
@@ -368,12 +370,52 @@ Lưu ý: Không viết bất kỳ lời dẫn hay từ ngữ nào khác ngoài v
         }
 
         if (success) {
-          // Lưu câu trả lời của AI vào DB nếu đã đăng nhập
+          // 1. Tự động sinh tiêu đề ngắn bằng AI cho cuộc trò chuyện mới
+          let suggestedTitle = null;
+          if (messages.length <= 2 && userText) {
+            try {
+              const ai = new GoogleGenAI({ apiKey: geminiKeys[0] });
+              const prompt = `Đặt tên ngắn gọn (dưới 4 từ, viết hoa chữ cái đầu tiên - Sentence case) cho cuộc trò chuyện bóng đá bắt đầu bằng câu hỏi này: "${userText}". Chỉ trả về tên đoạn chat thô, không thêm dấu ngoặc kép hay từ giải thích nào khác.`;
+              const titleRes = await ai.models.generateContent({
+                model: activeModel,
+                contents: prompt,
+                config: { temperature: 0.5 }
+              });
+              const generatedTitle = titleRes.text?.trim()?.replace(/['"“”]/g, '');
+              if (generatedTitle && generatedTitle.length < 50) {
+                suggestedTitle = generatedTitle;
+              }
+            } catch (titleErr) {
+              console.error('[AUTO RENAME ERROR] Lỗi sinh tiêu đề bằng AI:', titleErr.message);
+            }
+          }
+
+          // 2. Nếu có tiêu đề gợi ý và user đã đăng nhập, cập nhật tiêu đề vào DB
+          if (suggestedTitle && userId && activeSessionId !== 'default_session') {
+            try {
+              await db.run(
+                'UPDATE chat_sessions SET title = ? WHERE id = ? AND user_id = ? AND title = ?',
+                [suggestedTitle, activeSessionId, userId, 'Đoạn chat mới']
+              );
+              console.log(`[AUTO RENAME] Đã cập nhật tiêu đề session ${activeSessionId} thành: ${suggestedTitle}`);
+            } catch (dbRenameErr) {
+              console.error('[AUTO RENAME DB ERROR] Lỗi cập nhật tiêu đề vào DB:', dbRenameErr.message);
+            }
+          }
+
+          // 3. Nếu có tiêu đề gợi ý, gửi về client qua SSE
+          if (suggestedTitle) {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ suggestedTitle })}\n\n`)
+            );
+          }
+
+          // 4. Lưu câu trả lời của AI vào DB nếu đã đăng nhập
           if (userId && accumulatedText) {
             try {
               await db.run(
-                'INSERT INTO assistant_chats (user_id, sender, message, model_used) VALUES (?, ?, ?, ?)',
-                [userId, 'ai', accumulatedText, activeModel]
+                'INSERT INTO assistant_chats (user_id, sender, message, model_used, session_id) VALUES (?, ?, ?, ?, ?)',
+                [userId, 'ai', accumulatedText, activeModel, activeSessionId]
               );
               console.log('[CHAT ASSISTANT] Đã lưu phản hồi AI vào database thành công.');
             } catch (dbErr) {
