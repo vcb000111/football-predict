@@ -927,7 +927,7 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
                     <span className="text-xl font-bold text-card-border self-end mb-2">-</span>
                     <div className="flex flex-col items-center flex-1 max-w-[140px]">
                       <span className="text-[11px] sm:text-xs font-semibold text-gray-500 mb-1 text-center line-clamp-2 min-h-[32px] flex items-center justify-center">{match.awayTeam}</span>
-                      <span className="text-3xl sm:text-4xl font-black text-white glow-cyan">{prediction.predicted_away_score ?? prediction.predictedScore?.away}</span>
+                      <span className="text-3xl sm:text-4xl font-black text-white">{prediction.predicted_away_score ?? prediction.predictedScore?.away}</span>
                     </div>
                   </div>
 

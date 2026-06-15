@@ -11,6 +11,7 @@ Tất cả những thay đổi nổi bật đối với dự án **FIFA World Cu
 
 ### Changed (Thay đổi logic)
 * **Nâng cấp prompt nhận định bóng đá chuyên sâu**: Tinh chỉnh `systemPromptTemplate` và `criticTemplate` trong `src/app/api/predict/route.js`. Ràng buộc AI phải phân tích chiến thuật & lực lượng sâu từ 4-6 câu cho mỗi đội tuyển, đưa ra ít nhất 5 yếu tố quyết định trận đấu cốt lõi, và tự động thoát ký tự dấu nháy kép (`\"`) để đảm bảo an toàn cú pháp JSON.
+* **Chuẩn hóa cấu trúc phản biện của Consensus Engine**: Yêu cầu `criticTemplate` luôn xuất `predictionReasoning` theo hai lớp rõ ràng gồm `### Tương quan lực lượng & Phong độ` (tóm tắt cực ngắn 2-3 câu) và `### Tinh chỉnh phản biện` (phân tích sâu lý do điều chỉnh kèo/tỷ số), giúp phần nhận định sau Critic ổn định và dễ đọc hơn.
 * **Nâng cấp trải nghiệm cuộn tin nhắn và xem ảnh trong Chat**: Cải tiến logic cuộn trong `MatchClient.js` để tự động scroll tới tin nhắn gần nhất của người dùng (user) thay vì tin nhắn cuối của AI. Thay thế link mở ảnh bằng nút mở Modal xem ảnh phóng to trực tiếp (Modal Preview Overlay) ngay tại trang mà không cần mở tab mới.
 
 ### Fixed (Sửa lỗi)
