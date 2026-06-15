@@ -157,7 +157,7 @@ export default function ConfigTab({
       {/* Save Config Footer */}
       <div className="flex items-center justify-between pt-4 border-t border-white/5">
         <p className="text-[10px] text-gray-500 italic max-w-md">
-          Lưu ý: Bấm nút "Lưu cấu hình" bên phải hoặc bên trên để áp dụng chính thức toàn bộ thay đổi vào SQLite/Turso.
+          Lưu ý: Bấm nút &quot;Lưu cấu hình&quot; bên phải hoặc bên trên để áp dụng chính thức toàn bộ thay đổi vào SQLite/Turso.
         </p>
         <button
           onClick={onSaveConfig}

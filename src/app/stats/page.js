@@ -42,14 +42,6 @@ export default function StatisticsPage() {
 
   const [selectedTournament, setSelectedTournament] = useState('all');
 
-  useEffect(() => {
-    fetchStats(selectedTournament);
-  }, [selectedTournament]);
-
-  useEffect(() => {
-    fetchTeams();
-  }, []);
-
   const fetchTeams = async () => {
     try {
       const res = await fetch('/api/admin/teams');
@@ -62,6 +54,25 @@ export default function StatisticsPage() {
       }
     } catch (err) {
       console.error('Không thể tải danh sách đội bóng:', err);
+    }
+  };
+
+  const fetchStats = async (tournamentParam = selectedTournament) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/stats?tournament=${tournamentParam}&t=${Date.now()}`);
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setStats(data.stats);
+        setRecommendations(data.recommendations || []);
+      } else {
+        throw new Error(data.error || 'Không thể tải thống kê');
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -95,24 +106,19 @@ export default function StatisticsPage() {
     }
   };
 
-  const fetchStats = async (tournamentParam = selectedTournament) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/stats?tournament=${tournamentParam}&t=${Date.now()}`);
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setStats(data.stats);
-        setRecommendations(data.recommendations || []);
-      } else {
-        throw new Error(data.error || 'Không thể tải thống kê');
-      }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchStats(selectedTournament);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [selectedTournament]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchTeams();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   const getRankBadge = (pct) => {
     if (pct >= 75) return { text: 'CỰC TỐT 🔥', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' };

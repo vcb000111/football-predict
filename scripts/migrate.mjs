@@ -315,6 +315,33 @@ async function runMigration() {
     await db.exec(`UPDATE fixtures SET is_test = 1 WHERE id LIKE 't%' OR LOWER(tournament) LIKE '%friendly%'`);
   } catch (e) { }
 
+  // 11. Tạo bảng users
+  console.log('11. Khởi tạo bảng users...');
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT,
+      email TEXT UNIQUE,
+      password_hash TEXT,
+      oauth_provider TEXT DEFAULT 'local',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // 12. Tạo bảng assistant_chats
+  console.log('12. Khởi tạo bảng assistant_chats...');
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS assistant_chats (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      sender TEXT,
+      message TEXT,
+      model_used TEXT,
+      image_url TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   // --- SEEDING DỮ LIỆU MẶC ĐỊNH ---
   console.log('🌱 Bắt đầu seeding dữ liệu...');
 

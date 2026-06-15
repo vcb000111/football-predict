@@ -36,9 +36,9 @@ export default function ModelBadge({ isFloat = false }) {
   }
 
   return (
-    <div className="hidden sm:flex items-center space-x-2 bg-card-border/50 border border-card-border rounded-full py-1 px-3">
-      <span className="h-2 w-2 rounded-full bg-primary live-indicator"></span>
-      <span className="text-xs font-semibold text-gray-300 transition-all duration-300">
+    <div className="hidden sm:flex items-center space-x-2 bg-card-border/50 border border-card-border rounded-full py-1 px-3 max-w-[150px] lg:max-w-[280px] xl:max-w-xs transition-all duration-200">
+      <span className="h-2 w-2 rounded-full bg-primary live-indicator flex-shrink-0"></span>
+      <span className="text-xs font-semibold text-gray-300 transition-all duration-300 truncate" title={modelName}>
         {modelName}
       </span>
     </div>

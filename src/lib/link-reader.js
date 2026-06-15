@@ -90,7 +90,20 @@ async function getInternalMatchContext(matchId) {
       context += `- **Khuyến nghị Chấp (Handicap):** ${prediction.recommendation_handicap || 'Không có'} (Line: ${prediction.handicap_line || 0.0})\n`;
       
       if (prediction.bet_evaluation_details) {
-        context += `- **Đánh giá chuyên sâu:** ${prediction.bet_evaluation_details}\n`;
+        try {
+          const evalObj = JSON.parse(prediction.bet_evaluation_details);
+          let evalText = `- **Đánh giá chuyên sâu từ hệ thống:**\n`;
+          if (evalObj.oneXTwo) evalText += `  + Kèo 1X2: ${evalObj.oneXTwo.outcome === 'correct' ? 'Đúng' : evalObj.oneXTwo.outcome === 'incorrect' ? 'Sai' : 'Hòa'} (Lý do: ${evalObj.oneXTwo.reason})\n`;
+          if (evalObj.overUnder) evalText += `  + Kèo Tài Xỉu: ${evalObj.overUnder.outcome === 'correct' ? 'Đúng' : evalObj.overUnder.outcome === 'incorrect' ? 'Sai' : 'Hòa'} (Lý do: ${evalObj.overUnder.reason})\n`;
+          if (evalObj.handicap) evalText += `  + Kèo Chấp: ${evalObj.handicap.outcome === 'correct' ? 'Đúng' : evalObj.handicap.outcome === 'incorrect' ? 'Sai' : 'Hòa'} (Lý do: ${evalObj.handicap.reason})\n`;
+          if (evalObj.btts) evalText += `  + Kèo Hai đội ghi bàn: ${evalObj.btts.outcome === 'correct' ? 'Đúng' : evalObj.btts.outcome === 'incorrect' ? 'Sai' : 'Hòa'} (Lý do: ${evalObj.btts.reason})\n`;
+          if (evalObj.corners) evalText += `  + Kèo Phạt góc: ${evalObj.corners.outcome === 'correct' ? 'Đúng' : evalObj.corners.outcome === 'incorrect' ? 'Sai' : 'Hòa'} (Lý do: ${evalObj.corners.reason})\n`;
+          if (evalObj.cards) evalText += `  + Kèo Thẻ phạt: ${evalObj.cards.outcome === 'correct' ? 'Đúng' : evalObj.cards.outcome === 'incorrect' ? 'Sai' : 'Hòa'} (Lý do: ${evalObj.cards.reason})\n`;
+          if (evalObj.summary) evalText += `  + Tóm tắt đánh giá: ${evalObj.summary}\n`;
+          context += evalText;
+        } catch (e) {
+          context += `- **Đánh giá chuyên sâu:** ${prediction.bet_evaluation_details}\n`;
+        }
       }
     } else {
       context += `\n- **Trạng thái dự đoán:** Trận đấu này chưa được hệ thống phân tích và dự đoán.\n`;

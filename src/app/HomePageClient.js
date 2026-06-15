@@ -67,18 +67,28 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
   const [resultModalData, setResultModalData] = useState(null);
   const [syncingStats, setSyncingStats] = useState({});
   const [toastMessage, setToastMessage] = useState(null);
+  const [now, setNow] = useState(0);
 
   // Sync state with props when parent updates
   useEffect(() => {
-    setLocalHistoryCounts(historyCounts);
+    const timer = setTimeout(() => {
+      setLocalHistoryCounts(historyCounts);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [historyCounts]);
 
   useEffect(() => {
-    setLocalLatestPredictions(latestPredictions);
+    const timer = setTimeout(() => {
+      setLocalLatestPredictions(latestPredictions);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [latestPredictions]);
 
   useEffect(() => {
-    setLocalFixtures(initialData.fixtures);
+    const timer = setTimeout(() => {
+      setLocalFixtures(initialData.fixtures);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [initialData.fixtures]);
 
 
@@ -88,36 +98,34 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const persistedTab = localStorage.getItem('homepage_active_tab');
-      if (persistedTab) setActiveTab(persistedTab);
-
       const persistedLayout = localStorage.getItem('homepage_layout');
-      if (persistedLayout) setLayout(persistedLayout);
-
       const persistedSortBy = localStorage.getItem('homepage_sort_by');
-      if (persistedSortBy) setSortBy(persistedSortBy);
-
       const persistedGroupFilter = localStorage.getItem('homepage_group_filter');
-      if (persistedGroupFilter) setSelectedGroupFilter(persistedGroupFilter);
-
       const persistedTournamentFilter = localStorage.getItem('homepage_tournament_filter');
-      if (persistedTournamentFilter) setSelectedTournamentFilter(persistedTournamentFilter);
-
       const persistedSeasonFilter = localStorage.getItem('homepage_season_filter');
-      if (persistedSeasonFilter) setSelectedSeasonFilter(persistedSeasonFilter);
-
       const persistedSearch = localStorage.getItem('homepage_search_query');
-      if (persistedSearch) setSearchQuery(persistedSearch);
-
       const persistedShowPastMatches = localStorage.getItem('homepage_show_past_matches');
-      if (persistedShowPastMatches) setShowPastMatches(persistedShowPastMatches === 'true');
-
       const persistedSyncTournament = localStorage.getItem('homepage_sync_tournament');
-      if (persistedSyncTournament) setSyncTournament(persistedSyncTournament);
-
       const persistedSyncSeason = localStorage.getItem('homepage_sync_season');
-      if (persistedSyncSeason) setSyncSeason(persistedSyncSeason);
 
-      setIsRestored(true);
+      const timer = setTimeout(() => {
+        if (persistedTab) setActiveTab(persistedTab);
+        if (persistedLayout) setLayout(persistedLayout);
+        if (persistedSortBy) setSortBy(persistedSortBy);
+        if (persistedGroupFilter) setSelectedGroupFilter(persistedGroupFilter);
+        if (persistedTournamentFilter) setSelectedTournamentFilter(persistedTournamentFilter);
+        if (persistedSeasonFilter) setSelectedSeasonFilter(persistedSeasonFilter);
+        if (persistedSearch) setSearchQuery(persistedSearch);
+        if (persistedShowPastMatches) setShowPastMatches(persistedShowPastMatches === 'true');
+        if (persistedSyncTournament) setSyncTournament(persistedSyncTournament);
+        if (persistedSyncSeason) setSyncSeason(persistedSyncSeason);
+        setIsRestored(true);
+        setNow(Date.now());
+      }, 0);
+
+      return () => clearTimeout(timer);
+    } else {
+      setNow(Date.now());
     }
   }, []);
 
@@ -206,10 +214,13 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
         : localFixtures.filter(f => !f.isTest);
       const hasMatchInNewTab = currentTabFixtures.some(f => f.season === selectedSeasonFilter);
       if (!hasMatchInNewTab) {
-        setSelectedSeasonFilter('All');
+        const timer = setTimeout(() => {
+          setSelectedSeasonFilter('All');
+        }, 0);
+        return () => clearTimeout(timer);
       }
     }
-  }, [activeTab, localFixtures]);
+  }, [activeTab, localFixtures, selectedSeasonFilter]);
 
   // Đóng menu khi click bên ngoài
   useEffect(() => {
@@ -1359,7 +1370,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                   <span>⚡</span>
                   <span>Dữ liệu tải từ bộ nhớ đệm (Lưu cách đây {(() => {
                     const cachedTime = new Date(modalData.prediction.cachedAt.replace(' ', 'T') + 'Z').getTime();
-                    const diffMins = Math.round((Date.now() - cachedTime) / (1000 * 60));
+                    const diffMins = Math.round((now - cachedTime) / (1000 * 60));
                     if (diffMins < 60) return `${diffMins} phút`;
                     return `${Math.round(diffMins / 60)} giờ`;
                   })()})</span>

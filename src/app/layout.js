@@ -33,13 +33,36 @@ export default function RootLayout({ children }) {
         
 
 
+        {/* Mobile Header (Chỉ hiện trên di động) */}
+        <header className="md:hidden sticky top-0 z-50 glass-panel border-b border-card-border">
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="flex items-center justify-between h-14">
+              {/* Logo */}
+              <Link href="/" className="flex items-center space-x-2">
+                <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-primary to-secondary flex items-center justify-center glow-green">
+                  <span className="font-extrabold text-white text-sm tracking-wider">AI</span>
+                </div>
+                <span className="font-bold text-base tracking-tight text-white font-heading">
+                  WC2026<span className="text-gradient">PREDICT</span>
+                </span>
+              </Link>
+
+              {/* Badge & User Nav */}
+              <div className="flex items-center space-x-2">
+                <ModelBadge />
+                <UserNav />
+              </div>
+            </div>
+          </div>
+        </header>
+
         {/* Navigation Bar (Ẩn trên di động, chỉ hiện trên màn hình lớn) */}
         <header className="hidden md:block sticky top-0 z-50 glass-panel border-b border-card-border">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
               
               {/* Logo */}
-              <div className="flex items-center">
+              <div className="flex items-center flex-shrink-0">
                 <Link href="/" className="flex items-center space-x-2">
                   <div className="h-9 w-9 rounded-lg bg-gradient-to-tr from-primary to-secondary flex items-center justify-center glow-green">
                     <span className="font-extrabold text-white text-lg tracking-wider">AI</span>
@@ -51,33 +74,33 @@ export default function RootLayout({ children }) {
               </div>
 
               {/* Navigation Links */}
-              <nav className="hidden md:flex space-x-6">
+              <nav className="hidden md:flex space-x-4 lg:space-x-6 flex-shrink-0">
                 <Link 
                   href="/" 
-                  className="text-gray-300 hover:text-primary transition-colors duration-200 font-medium text-sm"
+                  className="text-gray-300 hover:text-primary transition-colors duration-200 font-medium text-sm whitespace-nowrap"
                   id="nav-home"
                 >
-                  Lịch Thi Đấu
+                  Lịch thi đấu
                 </Link>
                 <Link 
                   href="/custom" 
-                  className="text-gray-300 hover:text-secondary transition-colors duration-200 font-medium text-sm"
+                  className="text-gray-300 hover:text-secondary transition-colors duration-200 font-medium text-sm whitespace-nowrap"
                   id="nav-custom"
                 >
-                  Giả Lập Cặp Đấu
+                  Giả lập cặp đấu
                 </Link>
                 <Link 
                   href="/admin" 
-                  className="text-gray-300 hover:text-primary/90 hover:text-primary transition-colors duration-200 font-medium text-sm flex items-center space-x-1 border-l border-card-border/50 pl-4"
+                  className="text-gray-300 hover:text-primary/90 hover:text-primary transition-colors duration-200 font-medium text-sm flex items-center space-x-1 border-l border-card-border/50 pl-4 whitespace-nowrap"
                   id="nav-admin"
                 >
                   <span>🛠️</span>
-                  <span>Cấu Hình AI</span>
+                  <span>Cấu hình AI</span>
                 </Link>
               </nav>
 
               {/* Badge & User Nav */}
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-3 flex-shrink-0">
                 <ModelBadge />
                 <UserNav />
               </div>

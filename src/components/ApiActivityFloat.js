@@ -12,6 +12,7 @@ export default function ApiActivityFloat() {
   const [activeRequests, setActiveRequests] = useState([]);
   const [historyRequests, setHistoryRequests] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [now, setNow] = useState(0);
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -21,11 +22,25 @@ export default function ApiActivityFloat() {
       setHistoryRequests(state.history);
     });
 
-    // Đồng bộ danh sách lịch sử ban đầu sau khi client mount
-    setActiveRequests(Array.from(apiTracker.activeRequests.values()));
-    setHistoryRequests(apiTracker.historyRequests);
+    // Đồng bộ danh sách lịch sử ban đầu sau khi client mount bất đồng bộ
+    const timer = setTimeout(() => {
+      setActiveRequests(Array.from(apiTracker.activeRequests.values()));
+      setHistoryRequests(apiTracker.historyRequests);
+    }, 0);
 
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+      clearTimeout(timer);
+    };
+  }, []);
+
+  // Cập nhật thời gian hiện tại định kỳ để hiển thị giây chạy của request một cách thuần khiết
+  useEffect(() => {
+    setNow(Date.now());
+    const timer = setInterval(() => {
+      setNow(Date.now());
+    }, 200);
+    return () => clearInterval(timer);
   }, []);
 
   // Đóng popover khi nhấp chuột ra ngoài
@@ -51,7 +66,7 @@ export default function ApiActivityFloat() {
 
   // Tính khoảng cách thời gian thân thiện (ví dụ: vừa xong, 10s trước...)
   const formatTimeAgo = (timestamp) => {
-    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+    const seconds = Math.floor((now - timestamp) / 1000);
     if (seconds < 5) return 'Vừa xong';
     if (seconds < 60) return `${seconds}s trước`;
     const minutes = Math.floor(seconds / 60);
@@ -121,7 +136,7 @@ export default function ApiActivityFloat() {
                       <span className="font-mono text-[7px] sm:text-[9px] text-gray-450 truncate" title={req.url}>{req.method} {req.url.split('?')[0]}</span>
                     </div>
                     <span className="text-[8px] sm:text-[10px] text-gray-400 flex-shrink-0 bg-card-border/30 px-1 py-0.5 rounded font-mono">
-                      {Math.round((Date.now() - req.startTime) / 100) / 10}s
+                      {Math.round((now - req.startTime) / 100) / 10}s
                     </span>
                   </div>
                 ))}

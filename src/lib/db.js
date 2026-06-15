@@ -485,6 +485,18 @@ export async function getDB() {
       )
     `);
 
+    await localDb.exec(`
+      CREATE TABLE IF NOT EXISTS assistant_chats (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        sender TEXT,
+        message TEXT,
+        model_used TEXT,
+        image_url TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // Thêm hàm batch thích ứng cho SQLite cục bộ
     localDb.batch = async function(statements) {
       await this.run('BEGIN TRANSACTION');

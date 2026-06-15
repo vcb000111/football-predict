@@ -73,9 +73,11 @@ Hệ thống dự đoán kết quả bóng đá và phân tích kèo đấu thô
 * **Giao diện Glassmorphism:** Cung cấp trang Đăng nhập (`/login`) và Đăng ký (`/signup`) sang trọng đồng bộ với phong cách chung của ứng dụng.
 
 ### 11. Widget Chatbox AI & Bộ Đọc Liên Kết (Link Reader)
-* **Chatbox thông minh toàn trang:** Widget nổi (floating chatbox) góc dưới phải màn hình hỗ trợ lưu trữ lịch sử trò chuyện trong `sessionStorage`.
+* **Tinh chỉnh Vị trí hiển thị:**
+  - Đẩy widget sang góc dưới bên trái và lên trên (`bottom-24`) để tránh đè lên nút lịch sử thao tác (`ApiActivityFloat` ở `bottom-6`).
 * **Nhận diện ngữ cảnh trang tự động:** Tự động gửi kèm thông tin trang người dùng đang mở (`pageContext`) để AI giải đáp trực tiếp ("Giải thích kèo này", "Tỉ số trận này",...).
-* **Phản hồi dạng Stream (SSE):** Tích hợp luồng truyền chữ chạy mượt mà từ Server-Sent Events nhờ tắt bộ đệm của Next.js API.
+* **Phân hồi dạng Stream (SSE):** Tích hợp luồng truyền chữ chạy mượt mà từ Server-Sent Events nhờ tắt bộ đệm của Next.js API.
+* **Phân giải Markdown chuẩn:** Sử dụng module `markdown.js` dùng chung để render các định dạng chữ đậm, danh sách và bảng phân tích từ LLM đẹp mắt.
 * **Link Reader thông minh:** Tự động phân tích URL trong tin nhắn chat. Link nội bộ (trận đấu) được truy vấn dữ liệu từ DB (phản hồi cực nhanh <200ms); link ngoài được scrape thô và lọc HTML tối ưu làm tài liệu tham khảo cho LLM.
 
 ---
