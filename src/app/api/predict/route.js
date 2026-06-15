@@ -870,21 +870,22 @@ Nhiệm vụ của bạn là:
 3. Tinh chỉnh lại xác suất thắng (phải đảm bảo tổng = 100%), tỷ số dự kiến và đề xuất các kèo cược tối ưu hơn (1X2, Over/Under, Handicap, BTTS, Corners, Cards).
 4. Phần "analysis.homeTeam" và "analysis.awayTeam" phải là những phân tích chuyên sâu dài từ 4 đến 6 câu chi tiết cho mỗi đội bóng.
 5. Phần "analysis.keyFactors" BẮT BUỘC phải chứa tối thiểu 5 yếu tố quyết định trận đấu cốt lõi, được lý giải sâu sắc và dài dặn.
-6. Phần "analysis.predictionReasoning" của bạn phải cực kỳ chi tiết, nhiều thông tin và có bằng chứng thuyết phục. Bạn BẮT BUỘC phải sử dụng định dạng Markdown phong phú (Tiêu đề phụ ###, chữ đậm **, danh sách gạch đầu dòng, bảng so sánh Markdown).
+6. Phần "analysis.predictionReasoning" của bạn phải cực kỳ chi tiết, nhiều thông tin và có bằng chứng thuyết phục. Bạn BẮT BUỘC phải sử dụng định dạng Markdown phong phú (Tiêu đề phụ ###, chữ đậm **, danh sách gạch đầu dòng, bảng so sánh Markdown) và tuân thủ cấu trúc phân chia sau:
+   - Đề mục "### Tương quan lực lượng & Phong độ": BẮT BUỘC chỉ viết tóm tắt cực kỳ ngắn gọn từ 2 đến 3 câu về các số liệu cốt lõi như ELO, thứ hạng FIFA, và tỉ số Poisson cơ bản giữa hai đội tuyển để làm thông tin nền. TUYỆT ĐỐI không viết dài dòng phần này.
+   - Đề mục "### Tinh chỉnh phản biện": Bắt đầu bằng "[TINH CHỈNH PHẢN BIỆN]: <Phân tích phản biện chi tiết, chỉ rõ lý do đồng tình hoặc phản bác các model nháp ban đầu, và lý giải các điểm tối ưu hóa dựa trên chiến thuật, chấn thương, phong độ>".
 7. BẮT BUỘC tất cả dấu nháy kép bên trong nội dung phân tích (đặc biệt là trong các trường chuỗi của JSON) phải được viết dưới dạng thoát ký tự \\\" (gạch chéo nháy kép) nếu cần thiết, hoặc không dùng dấu nháy kép thô bên trong chuỗi để tránh làm hỏng cấu trúc JSON.
 
 Hãy trả về chuỗi JSON cuối cùng sau khi đã được tinh chỉnh hoàn hảo theo đúng định dạng cấu trúc cũ (winProbability, predictedScore, analysis, bets). 
-Trong phần analysis.predictionReasoning, hãy ghi rõ: "[TINH CHỈNH PHẢN BIỆN]: <Lý do phản biện và những điểm đã tối ưu hóa so với các model>". 
 LƯU Ý QUAN TRỌNG: Khi lập luận trong predictionReasoning, bạn PHẢI gọi tên cụ thể của từng model AI tham chiếu (ví dụ: 'gemini-3.1-flash-lite', 'meta-llama/llama-4-scout-17b-16e-instruct'...) thay vì sử dụng các từ chung chung như 'bản nháp 1', 'bản nháp 2', 'bản nháp trước'.
 
 Lưu ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code markdown hay ký tự thừa.`;
 
     if (db) {
       try {
-        // Tự động đồng bộ hóa prompt mới từ code vào SQLite / Turso DB Production
-        await db.run("UPDATE system_prompts SET prompt_content = ? WHERE prompt_key = ?", [systemPromptTemplate, 'predict_system']);
-        await db.run("UPDATE system_prompts SET prompt_content = ? WHERE prompt_key = ?", [criticTemplate, 'predict_critic_template']);
-        console.log("🟢 [DB Prompt Sync] Đã đồng bộ hóa thành công prompt mới vào Turso DB.");
+        // // Tự động đồng bộ hóa prompt mới từ code vào SQLite / Turso DB Production
+        // await db.run("UPDATE system_prompts SET prompt_content = ? WHERE prompt_key = ?", [systemPromptTemplate, 'predict_system']);
+        // await db.run("UPDATE system_prompts SET prompt_content = ? WHERE prompt_key = ?", [criticTemplate, 'predict_critic_template']);
+        // console.log("🟢 [DB Prompt Sync] Đã đồng bộ hóa thành công prompt mới vào Turso DB.");
 
         const rowSys = await db.get("SELECT prompt_content FROM system_prompts WHERE prompt_key = 'predict_system'");
         const rowRag = await db.get("SELECT prompt_content FROM system_prompts WHERE prompt_key = 'predict_rag_template'");
