@@ -17,6 +17,7 @@ Tất cả những thay đổi nổi bật đối với dự án **FIFA World Cu
 ### Fixed (Sửa lỗi)
 * **Khắc phục lỗi không hiển thị bảng so sánh chỉ số của AI**: Sửa đổi phần hiển thị "Lý giải chi tiết" ở cả Match chi tiết và Custom Predictor để gọi hàm parse Markdown dùng chung, khắc phục lỗi bảng bị dính liền dòng.
 * **Sửa lỗi hiển thị Responsive của thanh tiến trình Task**: Điều chỉnh CSS/padding của thanh tiến trình nhiệm vụ phù hợp và nhất quán trên cả thiết bị di động (Mobile) lẫn máy tính (PC).
+* **Đồng bộ hóa Prompt hệ thống giữa Local và Prod**: Phát hiện lệch pha nội dung prompt `predict_critic_template` (bản local chi tiết hơn chứa 4 quy tắc logic cược) và thiếu 2 prompt `match_chat_system`, `sync_fixtures_template` ở Local SQLite. Tiến hành đồng bộ và chuẩn hóa đảm bảo 6/6 prompt khớp nhau 100% trên cả Local SQLite và Turso Production DB. Cập nhật mã nguồn mặc định trong `scripts/migrate.mjs` để đồng nhất với prompt mới nhất, chống ghi đè khi chạy migration, đồng thời cấu hình lại `scratch/backup_prompts.mjs` để backup dữ liệu prompt an toàn vào thư mục dự án.
 
 ## [1.9.1] - 2026-06-14
 

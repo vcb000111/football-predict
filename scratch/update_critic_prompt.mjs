@@ -38,16 +38,21 @@ async function updateDb() {
 - Thông tin Internet RAG: {{searchContext}}
 
 Nhiệm vụ của bạn là:
-1. Rà soát kỹ lưỡng các dự đoán trên. Phát hiện và sửa đổi toàn bộ các lỗi mâu thuẫn logic suy luận (BẮT BUỘC TUÂN THỦ CÁC NGUYÊN TẮC NHẤT QUÁN LOGIC DƯỚI ĐÂY):
+1. Rà soát kỹ lượng các dự đoán trên. Phát hiện và sửa đổi toàn bộ các lỗi mâu thuẫn logic suy luận (BẮT BUỘC TUÂN THỦ CÁC NGUYÊN TẮC NHẤT QUÁN LOGIC DƯỚI ĐÂY):
    - **Quy tắc Nhất quán 1X2 và Tỉ số:** Nếu tỉ số dự đoán của bạn chỉ ra một bên thắng (ví dụ: 1-0, 2-1 nghiêng về Home), thì khuyến nghị kèo 1X2 (recommendation_1x2) BẮT BUỘC phải là "Home" hoặc "Home or Draw", tuyệt đối không được phép là "Draw" hay "Away". Ngược lại, nếu tỉ số dự đoán là hòa (1-1, 0-0), kèo 1X2 phải chọn "Draw".
    - **Quy tắc Nhất quán kèo Tài Xỉu (Over/Under):** Nếu tổng số bàn thắng dự đoán nhỏ hơn mốc chấp (ví dụ: tỉ số 1-0, tổng = 1 bàn, mốc Over/Under là 2.25 hoặc 2.5), thì khuyến nghị kèo Tài Xỉu (recommendation_ou) BẮT BUỘC phải là "Under". Không bao giờ khuyên chọn "Over" khi tổng số bàn thắng thấp hơn mốc chấp.
    - **Quy tắc Nhất quán kèo chấp châu Á (Handicap):** Hãy so sánh tỉ số dự đoán của bạn với mốc chấp của nhà cái để xác định bên thắng kèo. Ví dụ: Nếu Mexico chấp 0.75 bàn (Mexico -0.75), và bạn dự đoán tỉ số là Mexico thắng 1-0 (chênh lệch 1 bàn, lớn hơn mức chấp 0.75), thì Mexico thắng kèo (ăn nửa tiền). Khuyến nghị cược Handicap phải khuyên chọn "Home" (hoặc "Mexico -0.75"), tuyệt đối không được khuyên chọn "Away" (South Africa +0.75).
    - **Quy tắc Phạt góc và Thẻ phạt:** Nhận định phạt góc và thẻ phạt phải nhất quán với lối chơi (ví dụ: đội hình 4-1-4-1 đánh trung lộ và lối chơi thận trọng của trận khai mạc thì nên ưu tiên Under phạt góc).
 2. Đối chiếu với thông tin chấn thương, phong độ và lịch sử đối đầu để kiểm chứng xem các model trên có bỏ sót yếu tố quan trọng nào không.
 3. Tinh chỉnh lại xác suất thắng (phải đảm bảo tổng = 100%), tỷ số dự kiến và đề xuất các kèo cược tối ưu hơn (1X2, Over/Under, Handicap, BTTS, Corners, Cards) dựa trên thực tế.
+4. Phần "analysis.homeTeam" và "analysis.awayTeam" phải là những phân tích chuyên sâu dài từ 4 đến 6 câu chi tiết cho mỗi đội bóng.
+5. Phần "analysis.keyFactors" BẮT BUỘC phải chứa tối thiểu 5 yếu tố quyết định trận đấu cốt lõi, được lý giải sâu sắc và dài dặn.
+6. Phần "analysis.predictionReasoning" của bạn phải cực kỳ chi tiết, nhiều thông tin và có bằng chứng thuyết phục. Bạn BẮT BUỘC phải sử dụng định dạng Markdown phong phú (Tiêu đề phụ ###, chữ đậm **, danh sách gạch đầu dòng, bảng so sánh Markdown) và tuân thủ cấu trúc phân chia sau:
+   - Đề mục "### Tương quan lực lượng & Phong độ": BẮT BUỘC chỉ viết tóm tắt cực kỳ ngắn gọn từ 2 đến 3 câu về các số liệu cốt lõi như ELO, thứ hạng FIFA, và tỉ số Poisson cơ bản giữa hai đội tuyển để làm thông tin nền. TUYỆT ĐỐI không viết dài dòng phần này.
+   - Đề mục "### Tinh chỉnh phản biện": Bắt đầu bằng "[TINH CHỈNH PHẢN BIỆN]: <Phân tích phản biện chi tiết, chỉ rõ lý do đồng tình hoặc phản bác các model nháp ban đầu, và lý giải các điểm tối ưu hóa dựa trên chiến thuật, chấn thương, phong độ>".
+7. BẮT BUỘC tất cả dấu nháy kép bên trong nội dung phân tích (đặc biệt là trong các trường chuỗi của JSON) phải được viết dưới dạng thoát ký tự \\\" (gạch chéo nháy kép) nếu cần thiết, hoặc không dùng dấu nháy kép thô bên trong chuỗi để tránh làm hỏng cấu trúc JSON.
 
 Hãy trả về chuỗi JSON cuối cùng sau khi đã được tinh chỉnh hoàn hảo theo đúng định dạng cấu trúc cũ (winProbability, predictedScore, analysis, bets). 
-Trong phần analysis.predictionReasoning, hãy ghi rõ: "[TINH CHỈNH PHẢN BIỆN]: <Lý do phản biện và những điểm đã tối ưu hóa so với các model>". 
 LƯU Ý QUAN TRỌNG: Khi lập luận trong predictionReasoning, bạn PHẢI gọi tên cụ thể của từng model AI tham chiếu (ví dụ: 'gemini-3.1-flash-lite', 'meta-llama/llama-4-scout-17b-16e-instruct'...) thay vì sử dụng các từ chung chung như 'bản nháp 1', 'bản nháp 2', 'bản nháp trước'.
 
 Lưu ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code markdown hay ký tự thừa.`;

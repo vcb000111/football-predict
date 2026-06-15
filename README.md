@@ -107,6 +107,7 @@ npm run dev
 * **Nâng cấp prompt phân tích và an toàn JSON**: Ràng buộc AI phân tích sâu 4-6 câu cho mỗi đội, tối thiểu 5 yếu tố quyết định trận đấu, và bắt buộc escape dấu nháy kép `\"` để bảo vệ tính hợp lệ của JSON.
 * **Chuẩn hóa phản biện hai lớp của Consensus Engine**: Bổ sung cấu trúc nhận định sau Critic gồm phần lực lượng/phong độ ngắn gọn và phần phản biện sâu, giúp nội dung sau đồng thuận ổn định và đáng tin cậy hơn.
 * **Bộ script kiểm tra Rate Limit và phản hồi model**: Bổ sung các công cụ test model trong `scratch/` tự động bypass SSL/Proxy và lưu báo cáo hiệu năng.
+* **Đồng bộ hóa Prompt hệ thống giữa Local và Prod**: Kiểm tra chênh lệch dữ liệu giữa Local SQLite và Turso DB Production. Thực hiện đồng bộ 2 chiều: cập nhật `predict_critic_template` mới nhất lên Prod, đồng bộ các prompt `match_chat_system` và `sync_fixtures_template` từ Prod về Local. Đảm bảo 6/6 prompt khớp nhau 100% trên cả 2 môi trường. Cập nhật file cấu trúc `scripts/migrate.mjs` để đồng bộ prompt mặc định mới nhất tránh bị ghi đè, đồng thời thiết lập `scratch/backup_prompts.mjs` sao lưu dữ liệu prompt về thư mục dự án cục bộ an toàn.
 
 ### [2026-06-14] - Tải lên nhiều hình ảnh (1-10 ảnh) trong Chat AI, nén Canvas và Tối ưu SSR (v1.9.1)
 * **Tải lên nhiều hình ảnh (1-10 ảnh) trong Chat AI:** Cho phép đính kèm cùng lúc tối đa 10 ảnh trong ô chat AI trợ lý.

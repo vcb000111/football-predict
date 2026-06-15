@@ -33,7 +33,7 @@ async function main() {
     console.log(`📥 Đã tải ${rows.length} bản ghi cấu hình prompts.`);
     
     // Đường dẫn backup
-    const backupDir = 'C:\\Users\\mes\\.gemini\\antigravity-ide\\brain\\4f56bafa-2e20-4e02-a2c4-3b844b4ac65b';
+    const backupDir = path.join(process.cwd(), 'scratch');
     const backupPath = path.join(backupDir, 'system_prompts_backup.json');
     
     fs.mkdirSync(backupDir, { recursive: true });
