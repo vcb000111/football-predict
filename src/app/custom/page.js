@@ -6,6 +6,7 @@ import { getTeamFlag, getTeamFlagEmoji } from '@/lib/flags';
 import data from '@/data/fixtures.json';
 import { saveLastUsedModel, formatModelName } from '@/lib/models-client';
 
+import { renderMessageContent } from '@/lib/markdown';
 
 export default function CustomPredictor() {
   // Trích xuất danh sách đội bóng
@@ -680,9 +681,9 @@ export default function CustomPredictor() {
 
                 <div className="space-y-1.5 pt-1.5">
                   <h4 className="font-extrabold text-xs text-white">Nhận định chi tiết từ chuyên gia AI:</h4>
-                  <p className="text-xs text-gray-300 leading-relaxed bg-card-border/10 border border-card-border/40 p-3 rounded-lg font-medium">
-                    {prediction.analysis?.predictionReasoning || prediction.prediction_reasoning || 'Nhận định trận đấu chặt chẽ có tỷ số sát nút.'}
-                  </p>
+                  <div className="bg-card-border/10 border border-card-border/40 p-3.5 rounded-lg font-medium">
+                    {renderMessageContent(prediction.analysis?.predictionReasoning || prediction.prediction_reasoning || 'Nhận định trận đấu chặt chẽ có tỷ số sát nút.')}
+                  </div>
                 </div>
               </div>
 
