@@ -223,6 +223,43 @@ function formatModelName(model) {
   return formatted;
 }
 
+function normalizeChatImages(imageSource) {
+  if (!imageSource) return [];
+
+  if (Array.isArray(imageSource)) {
+    return imageSource.filter(Boolean);
+  }
+
+  if (typeof imageSource !== 'string') return [];
+
+  const trimmed = imageSource.trim();
+  if (!trimmed) return [];
+
+  if (trimmed.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+    } catch (error) {
+      console.error('Lỗi parse danh sách ảnh chat:', error);
+      return [];
+    }
+  }
+
+  return [trimmed];
+}
+
+function normalizeChatMessage(message) {
+  const imageSource = message.imageUrls ?? message.imageUrl ?? message.image_url ?? message.image ?? null;
+
+  return {
+    sender: message.sender,
+    message: message.message || '',
+    modelUsed: message.modelUsed || message.model_used || null,
+    imageUrls: normalizeChatImages(imageSource),
+    createdAt: message.createdAt || message.created_at || null
+  };
+}
+
 export default function MatchClient({ match, activeModelSupportsImage }) {
   const [localMatch, setLocalMatch] = useState(match);
   const [loading, setLoading] = useState(true);
@@ -245,6 +282,7 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
 
   // States hỗ trợ đính kèm hình ảnh đa phương thức (Hỗ trợ 1-10 ảnh, tự động nén canvas để tối ưu payload)
   const [imagePreviews, setImagePreviews] = useState([]);
+  const [previewImageUrl, setPreviewImageUrl] = useState(null);
   const fileInputRef = useRef(null);
 
   const resizeAndCompressImage = (file) => {
@@ -414,13 +452,38 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
     setLocalMatch(match);
   }, [match]);
 
+  const scrollChatToLatestUserMessage = (behavior = 'auto', delay = 0) => {
+    if (activeTab !== 'chat') return undefined;
+    if (!chatContainerRef.current) return undefined;
+
+    const runScroll = () => {
+      const container = chatContainerRef.current;
+      if (!container) return;
+      const userMessages = container.querySelectorAll('[data-sender="user"]');
+      if (userMessages.length > 0) {
+        const lastUserMessage = userMessages[userMessages.length - 1];
+        lastUserMessage.scrollIntoView({ behavior, block: 'end' });
+      } else {
+        container.scrollTo({ top: container.scrollHeight, behavior });
+      }
+    };
+
+    if (delay > 0) {
+      const timer = setTimeout(runScroll, delay);
+      return () => clearTimeout(timer);
+    }
+
+    const frame = requestAnimationFrame(runScroll);
+    return () => cancelAnimationFrame(frame);
+  };
+
   const fetchChatHistory = async () => {
     setLoadingChat(true);
     try {
       const res = await fetch(`/api/match/chat?matchId=${match.id}`);
       if (res.ok) {
         const data = await res.json();
-        setChatMessages(data.messages || []);
+        setChatMessages((data.messages || []).map(normalizeChatMessage));
       }
     } catch (err) {
       console.error('Lỗi tải lịch sử chat:', err);
@@ -429,19 +492,42 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
     }
   };
 
-  // Chỉ tự động cuộn xuống dưới cùng khi tải lịch sử lần đầu tiên
+  // Chỉ tự động cuộn xuống dưới cùng khi tab chat đã visible và dữ liệu đã sẵn sàng
   useEffect(() => {
-    if (chatMessages.length > 0 && !loadingChat && !hasInitialScrolled.current) {
-      if (chatContainerRef.current) {
-        const container = chatContainerRef.current;
-        const timer = setTimeout(() => {
-          container.scrollTop = container.scrollHeight;
-          hasInitialScrolled.current = true;
-        }, 200);
-        return () => clearTimeout(timer);
-      }
+    if (activeTab !== 'chat') return undefined;
+    if (chatMessages.length === 0 || loadingChat || hasInitialScrolled.current) return undefined;
+
+    const cleanupFrame = scrollChatToLatestUserMessage('auto', 0);
+    const cleanupDelay = scrollChatToLatestUserMessage('auto', 180);
+    const markTimer = setTimeout(() => {
+      hasInitialScrolled.current = true;
+    }, 220);
+
+    return () => {
+      if (typeof cleanupFrame === 'function') cleanupFrame();
+      if (typeof cleanupDelay === 'function') cleanupDelay();
+      clearTimeout(markTimer);
+    };
+  }, [activeTab, chatMessages, loadingChat]);
+
+  useEffect(() => {
+    if (activeTab !== 'chat' || chatMessages.length === 0 || loadingChat) return undefined;
+
+    const cleanup = scrollChatToLatestUserMessage('auto', 120);
+    return () => {
+      if (typeof cleanup === 'function') cleanup();
+    };
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (sendingChat && activeTab === 'chat') {
+      const cleanup = scrollChatToLatestUserMessage('smooth', 80);
+      return () => {
+        if (typeof cleanup === 'function') cleanup();
+      };
     }
-  }, [chatMessages, loadingChat]);
+    return undefined;
+  }, [sendingChat, activeTab, chatMessages.length]);
 
   // Load history when match changes or on mount
   useEffect(() => {
@@ -454,7 +540,8 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
       setPrediction(null);
       setHistoryList([]);
       setResMessage(null);
-      fetchChatHistory();
+      setChatMessages([]);
+      await fetchChatHistory();
 
       try {
         const res = await fetch(`/api/history?matchId=${match.id}`);
@@ -490,12 +577,12 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
     if (!messageText.trim() && (!base64Images || base64Images.length === 0)) return;
     if (sendingChat) return;
 
-    const tempUserMsg = {
+    const tempUserMsg = normalizeChatMessage({
       sender: 'user',
       message: messageText,
-      image: base64Images.length > 0 ? JSON.stringify(base64Images) : null,
-      created_at: new Date().toISOString()
-    };
+      imageUrls: base64Images,
+      createdAt: new Date().toISOString()
+    });
     setChatMessages(prev => [...prev, tempUserMsg]);
     setSendingChat(true);
 
@@ -514,25 +601,19 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
         const historyRes = await fetch(`/api/match/chat?matchId=${match.id}`);
         if (historyRes.ok) {
           const histData = await historyRes.json();
-          // Bảo lưu hình ảnh tạm thời để hiển thị trên UI phiên chat hiện tại
-          const updatedMsgs = (histData.messages || []).map((msg, mIdx) => {
-            if (mIdx === histData.messages.length - 2 && msg.sender === 'user') {
-              return { ...msg, image: base64Images.length > 0 ? JSON.stringify(base64Images) : null };
-            }
-            return msg;
-          });
-          setChatMessages(updatedMsgs.length > 0 ? updatedMsgs : histData.messages);
+          setChatMessages((histData.messages || []).map(normalizeChatMessage));
         }
       } else {
         throw new Error(data.error || 'Gửi tin nhắn thất bại');
       }
     } catch (err) {
       console.error(err);
-      setChatMessages(prev => [...prev, { sender: 'ai', message: `❌ Lỗi: ${err.message || 'Không thể kết nối đến máy chủ AI.'}`, created_at: new Date().toISOString() }]);
+      setChatMessages(prev => [...prev, normalizeChatMessage({ sender: 'ai', message: `❌ Lỗi: ${err.message || 'Không thể kết nối đến máy chủ AI.'}`, createdAt: new Date().toISOString() })]);
     } finally {
       setSendingChat(false);
     }
   };
+
 
   const handleSendChat = async (e) => {
     e.preventDefault();
@@ -1374,10 +1455,11 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
                       return (
                         <div
                           key={idx}
+                          data-sender={msg.sender}
                           className={`flex flex-col space-y-1 max-w-[85%] ${isUser ? 'self-end items-end' : 'self-start items-start'
                             }`}
                         >
-                          <span className="text-[9px] text-gray-500 font-semibold px-1">
+                          <span className="text-[9px] text-gray-555 font-semibold px-1">
                             {isUser ? 'Bạn' : `Chuyên gia ${formatModelName(msg.model_used || msg.modelUsed)}`}
                           </span>
                           <div
@@ -1386,33 +1468,29 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
                                 : 'bg-[#151E2E] text-gray-200 border border-card-border rounded-tl-none'
                               }`}
                           >
-                            {(() => {
-                              const imgSource = msg.imageUrl || msg.image;
-                              if (!imgSource) return null;
-                              try {
-                                if (imgSource.startsWith('[')) {
-                                  const urls = JSON.parse(imgSource);
-                                  if (Array.isArray(urls)) {
-                                    return (
-                                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 mb-1.5 max-w-[380px]">
-                                        {urls.map((url, uIdx) => (
-                                          <a key={uIdx} href={url} target="_blank" rel="noopener noreferrer" className="block relative aspect-square w-[80px] h-[80px] sm:w-[100px] sm:h-[100px] md:w-[120px] md:h-[120px] rounded-lg overflow-hidden border border-card-border shadow-sm hover:opacity-90 transition-opacity">
-                                            <img src={url} alt={`Đính kèm ${uIdx + 1}`} className="w-full h-full object-cover" />
-                                          </a>
-                                        ))}
-                                      </div>
-                                    );
-                                  }
-                                }
-                              } catch (e) {
-                                console.error("Error parsing message images:", e);
-                              }
-                              return (
-                                <a href={imgSource} target="_blank" rel="noopener noreferrer" className="block mb-1.5">
-                                  <img src={imgSource} alt="Đính kèm" className="max-w-[180px] sm:max-w-[240px] rounded-xl border border-card-border shadow-md object-cover animate-fade-in hover:opacity-95" />
-                                </a>
-                              );
-                            })()}
+                            {msg.imageUrls.length > 0 && (
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 mb-1.5 max-w-[380px]">
+                                {msg.imageUrls.map((url, uIdx) => (
+                                  <button
+                                    key={uIdx}
+                                    type="button"
+                                    onClick={() => setPreviewImageUrl(url)}
+                                    className="block relative aspect-square w-[80px] h-[80px] sm:w-[100px] sm:h-[100px] md:w-[120px] md:h-[120px] rounded-lg overflow-hidden border border-card-border shadow-sm hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
+                                  >
+                                    <img
+                                      src={url}
+                                      alt={`Đính kèm ${uIdx + 1}`}
+                                      className="w-full h-full object-cover"
+                                      onLoad={() => {
+                                        if (activeTab === 'chat') {
+                                          scrollChatToLatestUserMessage('auto', 60);
+                                        }
+                                      }}
+                                    />
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                             {isUser ? (
                               <p className="whitespace-pre-line">{msg.message}</p>
                             ) : (
@@ -1528,6 +1606,30 @@ export default function MatchClient({ match, activeModelSupportsImage }) {
                   </button>
                 </form>
               </div>
+
+              {/* Modal preview ảnh */}
+              {previewImageUrl && (
+                <div
+                  className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-fade-in"
+                  onClick={() => setPreviewImageUrl(null)}
+                >
+                  <div className="relative max-w-4xl max-h-[90vh] flex flex-col items-center justify-center">
+                    <button
+                      type="button"
+                      className="absolute -top-12 right-0 bg-card-border/60 hover:bg-card-border hover:text-white text-gray-300 w-10 h-10 rounded-full flex items-center justify-center text-sm transition-all cursor-pointer shadow-lg"
+                      onClick={() => setPreviewImageUrl(null)}
+                    >
+                      ✕
+                    </button>
+                    <img
+                      src={previewImageUrl}
+                      alt="Xem chi tiết ảnh"
+                      className="max-w-full max-h-[80vh] object-contain rounded-xl border border-card-border/40 shadow-2xl"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                </div>
+              )}
 
             </div>
 
