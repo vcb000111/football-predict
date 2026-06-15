@@ -789,12 +789,14 @@ Lưu ý: Bạn cần dùng trí tuệ AI phân tích thêm các tin tức địn
 {{feedbackSection}}
 
 --- YÊU CẦU QUAN TRỌNG VỀ NHẬN ĐỊNH CHI TIẾT (MARKDOWN & BẢNG SO SÁNH) ---
-Phần "analysis.predictionReasoning" của bạn phải cực kỳ chi tiết, nhiều thông tin và có bằng chứng thuyết phục.
-Bạn BẮT BUỘC phải sử dụng định dạng Markdown phong phú để cấu trúc bài viết của mình, bao gồm:
-- Tiêu đề phụ dạng "### <Tiêu đề>" để phân chia các phần (ví dụ: ### Tương quan lực lượng, ### Phân tích chiến thuật, ### Dự đoán diễn biến).
-- Chữ đậm "**" để làm nổi bật các con số, tên cầu thủ hoặc các luận điểm quan trọng.
-- Danh sách gạch đầu dòng "-" hoặc "•".
-- Tạo một bảng so sánh H2H hoặc đội hình dự kiến dạng bảng Markdown chi tiết để tăng độ thuyết phục (ví dụ: | Chỉ số | Đội nhà | Đội khách |).
+1. Phần "analysis.homeTeam" và "analysis.awayTeam" của bạn phải là những phân tích chuyên sâu dài từ 4 đến 6 câu chi tiết, nêu rõ sơ đồ chiến thuật dự kiến, phong độ nhân sự chủ chốt, cách vận hành lối chơi và tác động định tính (chấn thương, thẻ phạt từ internet). KHÔNG ĐƯỢC viết chung chung hoặc quá ngắn.
+2. Phần "analysis.keyFactors" BẮT BUỘC phải chứa tối thiểu 5 yếu tố quyết định trận đấu cốt lõi. Mỗi yếu tố phải đi kèm phân tích hoặc lý giải ngắn gọn lý do tại sao nó ảnh hưởng trực tiếp đến trận đấu, không ghi các dòng ngắn cũn cỡn.
+3. Phần "analysis.predictionReasoning" của bạn phải cực kỳ chi tiết, nhiều thông tin và có bằng chứng thuyết phục. Bạn BẮT BUỘC phải sử dụng định dạng Markdown phong phú để cấu trúc bài viết của mình, bao gồm:
+   - Tiêu đề phụ dạng "### <Tiêu đề>" để phân chia các phần (ví dụ: ### Tương quan lực lượng, ### Phân tích chiến thuật, ### Dự đoán diễn biến).
+   - Chữ đậm "**" để làm nổi bật các con số, tên cầu thủ hoặc các luận điểm quan trọng.
+   - Danh sách gạch đầu dòng "-" hoặc "•".
+   - Tạo một bảng so sánh H2H hoặc đội hình dự kiến dạng bảng Markdown chi tiết để tăng độ thuyết phục (ví dụ: | Chỉ số | Đội nhà | Đội khách |).
+4. BẮT BUỘC tất cả dấu nháy kép bên trong nội dung phân tích (đặc biệt là trong các trường chuỗi của JSON) phải được viết dưới dạng thoát ký tự \\\" (gạch chéo nháy kép) nếu cần thiết, hoặc không dùng dấu nháy kép thô bên trong chuỗi để tránh làm hỏng cấu trúc JSON.
 
 --- CÁCH THỨC SUY LUẬN & ĐỊNH DẠNG JSON MẪU (FEW-SHOT EXAMPLES & CHAIN OF THOUGHT) ---
 Để nâng cao độ chính xác, bạn BẮT BUỘC phải thực hiện suy luận từng bước (Chain of Thought) trong phân tích trước khi đưa ra kết quả kèo cược. Hãy phân tích kỹ lưỡng các khía cạnh: tương quan lực lượng, chiến thuật và động lực thi đấu.
@@ -810,12 +812,14 @@ Dưới đây là một ví dụ mẫu về cấu trúc phân tích và định 
     "away": 1
   },
   "analysis": {
-    "homeTeam": "Đội nhà có đội hình mạnh mẽ với các ngôi sao tấn công đang đạt điểm rơi phong độ cao. Hàng công sắc bén vượt trội.",
-    "awayTeam": "Đội khách thi đấu kỷ luật, chơi phòng ngự lùi sâu tốt. Tận dụng phản công biên làm vũ khí chủ lực.",
+    "homeTeam": "Đội nhà đang vận hành cực kỳ ổn định dưới sơ đồ 4-3-3 tấn công áp đảo với Rodri giữ nhịp ở tuyến giữa và Lamine Yamal bùng nổ bên cánh phải. Sự vắng mặt của hậu vệ trái chính do chấn thương cơ đùi có thể là mắt xích yếu bị khai thác, tuy nhiên chiều sâu đội hình vượt trội giúp họ duy trì được tỷ lệ kiểm soát bóng trên 60% ở 5 trận sân nhà gần nhất, mang về 4 chiến thắng thuyết phục.",
+    "awayTeam": "Đội khách trung thành với lối đá thực dụng 4-5-1 lùi sâu và chuyển trạng thái chớp nhoáng dựa trên tốc độ của tiền đạo cánh. Tinh thần kỷ luật phòng ngự và đẳng cấp ELO tiệm cận (1780) giúp họ duy trì chuỗi 4 trận giữ sạch lưới liên tiếp gần đây. Điểm hạn chế lớn nhất là khả năng áp đặt thế trận yếu và phụ thuộc quá nhiều vào các tình huống cố định hoặc phản công đơn điệu.",
     "keyFactors": [
-      "Khả năng áp đặt thế trận của hàng tiền vệ đội nhà.",
-      "Sự thiếu vắng trung vệ cốt cán của đội nhà có bị khai thác?",
-      "Độ hiệu quả trong các pha phản công nhanh của đội khách."
+      "Khả năng kiểm soát nhịp độ của Rodri trước tuyến tiền vệ dày đặc 5 người của đội khách.",
+      "Cuộc đối đầu tay đôi ở hành lang biên giữa tốc độ của Lamine Yamal và hậu vệ cánh giàu kinh nghiệm của đội khách.",
+      "Mắt xích yếu ở vị trí hậu vệ trái đóng thế của đội nhà có bị đòn phản công nhanh của đội khách khai thác triệt để?",
+      "Hiệu suất tận dụng các cơ hội cố định (phạt góc, đá phạt trực tiếp) của đội khách trong thế trận bị dồn ép.",
+      "Động lực bảng đấu thúc đẩy đội nhà buộc phải giành trọn vẹn 3 điểm để sớm giành vé đi tiếp."
     ],
     "predictionReasoning": "### Tương quan lực lượng & Phong độ\\nPhân tích chỉ số **ELO** cho thấy đội nhà (**1820**) vượt trội đội khách (**1650**). Đội nhà có tỷ lệ thắng sân nhà đạt **70%** trong khi đội khách chỉ thắng **30%** khi đá sân khách gần đây.\\n\\n### Bảng so sánh chỉ số chính\\n| Chỉ số | Đội nhà | Đội khách |\\n| :--- | :---: | :---: |\\n| ELO Rating | **1820** | 1650 |\\n| FIFA Rank | **#12** | #35 |\\n| Bàn thắng TB/trận | **2.10** | 1.10 |\\n| Bàn thua TB/trận | **0.80** | 1.50 |\\n\\n### Phân tích chiến thuật\\n- **Đội nhà**: Lối chơi kiểm soát bóng ngắn, áp đảo trung lộ. Thiếu vắng trung vệ trụ cột do chấn thương.\\n- **Đội khách**: Chơi phòng ngự lùi sâu phản công biên. Tiền đạo cánh đang đạt phong độ cực cao.\\n\\n### Nhận định trận đấu\\nMô hình Poisson dự báo tỉ số lý thuyết là **2-0**. Tuy nhiên, do đội nhà khuyết trung vệ chủ chốt, đội khách có khả năng ghi được **1 bàn** từ đòn phản công sắc bén. Do đó, kết quả dự đoán được tinh chỉnh thành **2-1** nghiêng về đội nhà."
   },
@@ -847,7 +851,7 @@ Dưới đây là một ví dụ mẫu về cấu trúc phân tích và định 
   }
 }
 
-Chú ý: Tổng phần trăm trong \"winProbability\" (home + draw + away) phải bằng chính xác 100. Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code markdown hay ký tự thừa.`;
+Chú ý: Tổng phần trăm trong "winProbability" (home + draw + away) phải bằng chính xác 100. Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code markdown hay ký tự thừa.`;
 
     let ragTemplate = `--- THÔNG TIN TRA CỨU TỪ INTERNET (TIN TỨC & THỐNG KÊ THỰC TẾ) ---\n{{searchContext}}`;
     let feedbackTemplate = `--- LỊCH SỬ DỰ ĐOÁN & SAI SỐ TRƯỚC ĐÂY CỦA BẠN (HỌC MÁY NGỮ CẢNH) ---\nHệ thống đã lưu lại các dự đoán trước đây của bạn đối với 2 đội bóng này. Hãy phân tích kỹ các lỗi dự đoán trước đây để tránh lặp lại sai lầm và tăng độ chính xác lần này:\n{{historyTexts}}\nTỷ lệ dự đoán đúng kết quả chung cuộc (1X2) gần đây của bạn với 2 đội này là: {{rate}}% ({{correct}}/{{total}} trận đúng).`;
@@ -864,7 +868,10 @@ Nhiệm vụ của bạn là:
 1. Rà soát kỹ lưỡng các dự đoán trên. Tìm ra các lỗi logic suy luận (ví dụ: dự đoán đội nhà thắng ELO cao hơn nhưng lại đưa ra kèo Draw hoặc Away có tỷ lệ thắng cao hơn phi lý, hoặc dự kiến ít bàn thắng nhưng kèo Tài Xỉu khuyến nghị Over...).
 2. Đối chiếu với thông tin chấn thương, phong độ và lịch sử đối đầu để kiểm chứng xem các model trên có bỏ sót yếu tố quan trọng nào không.
 3. Tinh chỉnh lại xác suất thắng (phải đảm bảo tổng = 100%), tỷ số dự kiến và đề xuất các kèo cược tối ưu hơn (1X2, Over/Under, Handicap, BTTS, Corners, Cards).
-4. Phần "analysis.predictionReasoning" của bạn phải cực kỳ chi tiết, nhiều thông tin và có bằng chứng thuyết phục. Bạn BẮT BUỘC phải sử dụng định dạng Markdown phong phú (Tiêu đề phụ ###, chữ đậm **, danh sách gạch đầu dòng, bảng so sánh Markdown).
+4. Phần "analysis.homeTeam" và "analysis.awayTeam" phải là những phân tích chuyên sâu dài từ 4 đến 6 câu chi tiết cho mỗi đội bóng.
+5. Phần "analysis.keyFactors" BẮT BUỘC phải chứa tối thiểu 5 yếu tố quyết định trận đấu cốt lõi, được lý giải sâu sắc và dài dặn.
+6. Phần "analysis.predictionReasoning" của bạn phải cực kỳ chi tiết, nhiều thông tin và có bằng chứng thuyết phục. Bạn BẮT BUỘC phải sử dụng định dạng Markdown phong phú (Tiêu đề phụ ###, chữ đậm **, danh sách gạch đầu dòng, bảng so sánh Markdown).
+7. BẮT BUỘC tất cả dấu nháy kép bên trong nội dung phân tích (đặc biệt là trong các trường chuỗi của JSON) phải được viết dưới dạng thoát ký tự \\\" (gạch chéo nháy kép) nếu cần thiết, hoặc không dùng dấu nháy kép thô bên trong chuỗi để tránh làm hỏng cấu trúc JSON.
 
 Hãy trả về chuỗi JSON cuối cùng sau khi đã được tinh chỉnh hoàn hảo theo đúng định dạng cấu trúc cũ (winProbability, predictedScore, analysis, bets). 
 Trong phần analysis.predictionReasoning, hãy ghi rõ: "[TINH CHỈNH PHẢN BIỆN]: <Lý do phản biện và những điểm đã tối ưu hóa so với các model>". 
