@@ -102,6 +102,11 @@ npm run dev
 
 ## 🛠️ Nhật Ký Thay Đổi (Changelog)
 
+### [2026-06-15] - Tích hợp bộ phân giải Markdown & Bảng biểu dùng chung, nâng cấp prompt nhận định chuyên sâu và kịch bản test model (v1.9.2)
+* **Tích hợp bộ phân giải Markdown & Bảng biểu**: Xây dựng module dùng chung `src/lib/markdown.js` để xử lý ký tự `\\n` thô và render bảng biểu Markdown của AI thành bảng HTML Premium trên UI ở cả trang Match và Custom Predictor.
+* **Nâng cấp prompt phân tích và an toàn JSON**: Ràng buộc AI phân tích sâu 4-6 câu cho mỗi đội, tối thiểu 5 yếu tố quyết định trận đấu, và bắt buộc escape dấu nháy kép `\"` để bảo vệ tính hợp lệ của JSON.
+* **Bộ script kiểm tra Rate Limit và phản hồi model**: Bổ sung các công cụ test model trong `scratch/` tự động bypass SSL/Proxy và lưu báo cáo hiệu năng.
+
 ### [2026-06-14] - Tải lên nhiều hình ảnh (1-10 ảnh) trong Chat AI, nén Canvas và Tối ưu SSR (v1.9.1)
 * **Tải lên nhiều hình ảnh (1-10 ảnh) trong Chat AI:** Cho phép đính kèm cùng lúc tối đa 10 ảnh trong ô chat AI trợ lý.
 * **Đính kèm ảnh khi gửi câu hỏi gợi ý nhanh:** Tự động thu thập và gửi kèm mảng ảnh đính kèm hiện tại khi sếp click vào câu hỏi gợi ý nhanh, đồng thời xóa xem trước ảnh.

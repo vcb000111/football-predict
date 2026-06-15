@@ -2,6 +2,21 @@
 
 Tất cả những thay đổi nổi bật đối với dự án **FIFA World Cup 2026 AI Predictor** sẽ được tài liệu hóa trong file này.
 
+## [1.9.2] - 2026-06-15
+
+### Added (Thêm mới)
+* **Tích hợp bộ phân giải Markdown & Bảng biểu dùng chung**: Xây dựng module [markdown.js](file:///d:/1_Project/40_Football_Predict/src/lib/markdown.js) chứa hàm [renderMessageContent](file:///d:/1_Project/40_Football_Predict/src/lib/markdown.js#L3) hỗ trợ chuyển đổi ký tự xuống dòng thô (`\\n`) thành ký tự newline thực tế (`\n`), đồng thời tự động parse định dạng Markdown (tiêu đề phụ, danh sách, chữ đậm và bảng biểu HTML) hiển thị nhất quán.
+* **Bộ kịch bản kiểm thử và đo lường API models**: Phát triển các script test trong thư mục `scratch/` để kiểm tra kết nối, đo thời gian phản hồi thực tế và kiểm chứng lỗi Rate Limit (429) của 26 model miễn phí trên OpenRouter, tự động tạo báo cáo markdown.
+* **Quy trình sao lưu prompt hệ thống an toàn**: Tạo script `scratch/backup_prompts.mjs` cho phép tự động sao lưu cấu hình prompt trong bảng `system_prompts` của Turso DB Production sang file JSON cục bộ trước khi chỉnh sửa.
+
+### Changed (Thay đổi logic)
+* **Nâng cấp prompt nhận định bóng đá chuyên sâu**: Tinh chỉnh `systemPromptTemplate` và `criticTemplate` trong `src/app/api/predict/route.js`. Ràng buộc AI phải phân tích chiến thuật & lực lượng sâu từ 4-6 câu cho mỗi đội tuyển, đưa ra ít nhất 5 yếu tố quyết định trận đấu cốt lõi, và tự động thoát ký tự dấu nháy kép (`\"`) để đảm bảo an toàn cú pháp JSON.
+* **Nâng cấp trải nghiệm cuộn tin nhắn và xem ảnh trong Chat**: Cải tiến logic cuộn trong `MatchClient.js` để tự động scroll tới tin nhắn gần nhất của người dùng (user) thay vì tin nhắn cuối của AI. Thay thế link mở ảnh bằng nút mở Modal xem ảnh phóng to trực tiếp (Modal Preview Overlay) ngay tại trang mà không cần mở tab mới.
+
+### Fixed (Sửa lỗi)
+* **Khắc phục lỗi không hiển thị bảng so sánh chỉ số của AI**: Sửa đổi phần hiển thị "Lý giải chi tiết" ở cả Match chi tiết và Custom Predictor để gọi hàm parse Markdown dùng chung, khắc phục lỗi bảng bị dính liền dòng.
+* **Sửa lỗi hiển thị Responsive của thanh tiến trình Task**: Điều chỉnh CSS/padding của thanh tiến trình nhiệm vụ phù hợp và nhất quán trên cả thiết bị di động (Mobile) lẫn máy tính (PC).
+
 ## [1.9.1] - 2026-06-14
 
 ### Added (Thêm mới)
