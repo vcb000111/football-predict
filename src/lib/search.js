@@ -1,4 +1,4 @@
-import { getDB } from './db';
+import { getDB } from './db.js';
 
 // Bộ lọc kiểm tra domain uy tín và loại bỏ rác/mạng xã hội
 function isReputableDomain(url) {

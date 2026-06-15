@@ -4,6 +4,7 @@ import { v2 as cloudinary } from 'cloudinary';
 import { getDB } from '@/lib/db';
 import { readLinkContent } from '@/lib/link-reader';
 import { verifyToken } from '@/lib/auth-helper';
+import { chatboxToolsDeclarations, executeChatboxTool } from '@/lib/chat-tools';
 
 // Tắt hoàn toàn buffering của Next.js để stream hoạt động trơn tru
 export const dynamic = 'force-dynamic';
@@ -123,7 +124,14 @@ Hãy linh hoạt sử dụng ngữ cảnh trang trên để trả lời nếu ng
 3. Nếu người dùng hỏi ngoài phạm vi bóng đá và giải đấu, lịch sự từ chối và hướng họ quay lại phân tích thể thao.
 4. Trình bày bằng tiếng Việt tự nhiên, sử dụng định dạng Markdown rõ ràng.
 5. **Chain of Thought (Tư duy từng bước):** Phân tích kỹ lưỡng, đối chiếu dữ liệu trong đầu trước khi viết câu trả lời. Đặc biệt, hãy kiểm tra và xác nhận tính chính xác của tất cả các con số (tỷ số, tỷ lệ, ngày giờ).
-6. **Độ chính xác dữ liệu trận đấu:** Khi phân tích trận đấu có chứa cả "Kết quả thực tế" và "Dự đoán tỉ số", phải đối chiếu cẩn thận và viết chính xác. Tuyệt đối không được hoán đổi hoặc nhầm lẫn giữa kết quả thực tế và dự đoán của AI.`;
+6. **Độ chính xác dữ liệu trận đấu:** Khi phân tích trận đấu có chứa cả "Kết quả thực tế" và "Dự đoán tỉ số", phải đối chiếu cẩn thận và viết chính xác. Tuyệt đối không được hoán đổi hoặc nhầm lẫn giữa kết quả thực tế và dự đoán của AI.
+7. **Gợi ý câu hỏi tiếp theo (Dynamic Followups):** Ở cuối câu trả lời cuối cùng, bạn BẮT BUỘC phải gợi ý 3 câu hỏi tiếp theo cực kỳ thông minh liên quan trực tiếp đến nội dung cuộc trò chuyện vừa diễn ra, bọc chúng trong thẻ XML sau:
+<followups>
+  <item>Câu gợi ý 1 (dạng Sentence case)</item>
+  <item>Câu gợi ý 2 (dạng Sentence case)</item>
+  <item>Câu gợi ý 3 (dạng Sentence case)</item>
+</followups>
+Lưu ý: Không viết bất kỳ lời dẫn hay từ ngữ nào khác ngoài và sau khối XML này. Các câu gợi ý phải ngắn gọn, súc tích (dưới 10 từ) và tuân thủ viết hoa Sentence case.`;
 
     // 7. Chuẩn bị danh sách contents cho Gemini API
     const geminiContents = messages.map(msg => ({
@@ -165,25 +173,195 @@ Hãy linh hoạt sử dụng ngữ cảnh trang trên để trả lời nếu ng
         for (let i = 0; i < geminiKeys.length; i++) {
           const currentKey = geminiKeys[i];
           try {
+            console.log(`[CHAT ASSISTANT] Đang xử lý hội thoại với Key #${i + 1} (Prefix: ${currentKey ? currentKey.substring(0, 8) : 'null'}..., Length: ${currentKey ? currentKey.length : 0})`);
             const ai = new GoogleGenAI({ apiKey: currentKey });
-            const responseStream = await ai.models.generateContentStream({
-              model: activeModel,
-              contents: geminiContents,
-              config: {
-                systemInstruction: systemInstruction,
-                temperature: 0.7
-              }
-            });
+            
+            let currentContents = [...geminiContents];
+            const MAX_TOOL_CALL_ITERATIONS = 3;
+            let iterations = 0;
+            let currentSuccess = false;
 
-            for await (const chunk of responseStream) {
-              const chunkText = chunk.text;
-              if (chunkText) {
-                accumulatedText += chunkText;
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: chunkText })}\n\n`));
+            const geminiConfig = {
+              systemInstruction: systemInstruction,
+              temperature: 0.7,
+              tools: chatboxToolsDeclarations
+            };
+
+            while (iterations < MAX_TOOL_CALL_ITERATIONS) {
+              console.log(`[CHAT ASSISTANT] Gửi request tới Gemini (Vòng lặp tool: ${iterations}/${MAX_TOOL_CALL_ITERATIONS})...`);
+              
+              let responseStream;
+              let isStream = true;
+
+              try {
+                responseStream = await ai.models.generateContentStream({
+                  model: activeModel,
+                  contents: currentContents,
+                  config: geminiConfig
+                });
+              } catch (streamInitErr) {
+                if (streamInitErr.message.includes('authentication') || streamInitErr.message.includes('401') || streamInitErr.message.includes('credentials')) {
+                  console.log(`[CHAT ASSISTANT] Key #${i + 1} không hỗ trợ stream. Thử dùng non-stream...`);
+                  isStream = false;
+                  responseStream = await ai.models.generateContent({
+                    model: activeModel,
+                    contents: currentContents,
+                    config: geminiConfig
+                  });
+                } else {
+                  throw streamInitErr;
+                }
+              }
+
+              let functionCalls = [];
+              let isHandlingTool = false;
+              let textInThisStream = '';
+              let modelParts = [];
+
+              if (isStream) {
+                try {
+                  for await (const chunk of responseStream) {
+                    const parts = chunk.candidates?.[0]?.content?.parts;
+                    if (parts && parts.length > 0) {
+                      for (const part of parts) {
+                        modelParts.push(part);
+                      }
+                    }
+
+                    if (chunk.functionCalls && chunk.functionCalls.length > 0) {
+                      functionCalls.push(...chunk.functionCalls);
+                      isHandlingTool = true;
+                    }
+
+                    if (!isHandlingTool) {
+                      const chunkText = chunk.text;
+                      if (chunkText) {
+                        accumulatedText += chunkText;
+                        textInThisStream += chunkText;
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: chunkText })}\n\n`));
+                      }
+                    }
+                  }
+                } catch (streamLoopErr) {
+                  if (streamLoopErr.message.includes('authentication') || streamLoopErr.message.includes('401') || streamLoopErr.message.includes('credentials')) {
+                    console.log(`[CHAT ASSISTANT] Lỗi stream giữa chừng với Key #${i + 1}. Fallback sang non-stream...`);
+                    isStream = false;
+                    const response = await ai.models.generateContent({
+                      model: activeModel,
+                      contents: currentContents,
+                      config: geminiConfig
+                    });
+                    
+                    const parts = response.candidates?.[0]?.content?.parts;
+                    if (parts && parts.length > 0) {
+                      for (const part of parts) {
+                        modelParts.push(part);
+                      }
+                    }
+                    if (response.functionCalls && response.functionCalls.length > 0) {
+                      functionCalls.push(...response.functionCalls);
+                      isHandlingTool = true;
+                    }
+                    if (!isHandlingTool) {
+                      const chunkText = response.text;
+                      if (chunkText) {
+                        accumulatedText += chunkText;
+                        textInThisStream += chunkText;
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: chunkText })}\n\n`));
+                      }
+                    }
+                  } else {
+                    throw streamLoopErr;
+                  }
+                }
+              } else {
+                // Xử lý kết quả non-stream
+                const response = responseStream; // Thực chất là kết quả của generateContent
+                const parts = response.candidates?.[0]?.content?.parts;
+                if (parts && parts.length > 0) {
+                  for (const part of parts) {
+                    modelParts.push(part);
+                  }
+                }
+                if (response.functionCalls && response.functionCalls.length > 0) {
+                  functionCalls.push(...response.functionCalls);
+                  isHandlingTool = true;
+                }
+                if (!isHandlingTool) {
+                  const chunkText = response.text;
+                  if (chunkText) {
+                    accumulatedText += chunkText;
+                    textInThisStream += chunkText;
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: chunkText })}\n\n`));
+                  }
+                }
+              }
+
+              if (isHandlingTool && functionCalls.length > 0) {
+                console.log(`[CHAT ASSISTANT] Phát hiện ${functionCalls.length} tool calls từ Gemini. Đang thực thi...`);
+                
+                // Thực thi các hàm local
+                const toolResponses = [];
+                for (const call of functionCalls) {
+                  try {
+                    const result = await executeChatboxTool(call.name, call.args);
+                    toolResponses.push({
+                      id: call.id,
+                      name: call.name,
+                      response: { result }
+                    });
+                  } catch (err) {
+                    console.error(`[CHAT TOOL ERROR] Lỗi chạy tool ${call.name}:`, err);
+                    toolResponses.push({
+                      id: call.id,
+                      name: call.name,
+                      response: { error: err.message }
+                    });
+                  }
+                }
+
+                // Cập nhật currentContents với modelParts thô (chứa thoughtSignature)
+                let partsToUse = modelParts;
+                if (partsToUse.length === 0) {
+                  partsToUse = functionCalls.map(call => ({
+                    functionCall: call
+                  }));
+                }
+
+                currentContents.push({
+                  role: 'model',
+                  parts: partsToUse
+                });
+
+                currentContents.push({
+                  role: 'tool',
+                  parts: toolResponses.map(res => {
+                    const part = {
+                      name: res.name,
+                      response: res.response
+                    };
+                    if (res.id) {
+                      part.id = res.id;
+                    }
+                    return {
+                      functionResponse: part
+                    };
+                  })
+                });
+
+                iterations++;
+                // Lặp lại để gọi lại Gemini với kết quả của tool
+              } else {
+                // Đã stream xong văn bản cuối cùng, thoát khỏi vòng lặp
+                currentSuccess = true;
+                break;
               }
             }
-            success = true;
-            break; // Đã chạy thành công, thoát khỏi vòng lặp xoay key
+
+            if (currentSuccess) {
+              success = true;
+              break; // Đã chạy thành công, thoát khỏi vòng lặp xoay key
+            }
           } catch (streamError) {
             console.warn(`⚠️ [CHAT ASSISTANT] Model ${activeModel} thất bại với Key #${i + 1}: ${streamError.message}`);
           }

@@ -4,6 +4,33 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { renderMessageContent } from '@/lib/markdown';
 
+// Hàm loại bỏ thẻ XML <followups>...</followups> khi hiển thị nội dung chat
+const cleanMessageContent = (content) => {
+  if (!content) return '';
+  return content.replace(/<followups>[\s\S]*?<\/followups>/g, '').trim();
+};
+
+// Hàm trích xuất các câu gợi ý tiếp theo từ thẻ XML <followups>
+const extractFollowups = (content) => {
+  if (!content) return [];
+  const followupRegex = /<followups>([\s\S]*?)<\/followups>/;
+  const match = content.match(followupRegex);
+  if (match) {
+    const rawFollowups = match[1];
+    const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+    let itemMatch;
+    const followups = [];
+    while ((itemMatch = itemRegex.exec(rawFollowups)) !== null) {
+      const cleanItem = itemMatch[1].trim();
+      if (cleanItem) {
+        followups.push(cleanItem);
+      }
+    }
+    return followups;
+  }
+  return [];
+};
+
 export default function Chatbox() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
@@ -11,6 +38,28 @@ export default function Chatbox() {
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState(null);
+  const [suggestedFollowups, setSuggestedFollowups] = useState([
+    "Xem lịch thi đấu hôm nay",
+    "Tối nay có trận nào hot không?",
+    "Tỷ lệ dự đoán đúng của AI là bao nhiêu?"
+  ]);
+  const [showFollowupsDropdown, setShowFollowupsDropdown] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Đóng dropdown khi click ra ngoài vùng dropdown
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowFollowupsDropdown(false);
+      }
+    };
+    if (showFollowupsDropdown) {
+      document.addEventListener('mousedown', handleOutsideClick);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [showFollowupsDropdown]);
 
   // Các state hỗ trợ phân trang lịch sử chat (Infinite Scroll)
   const [hasMore, setHasMore] = useState(false);
@@ -49,6 +98,15 @@ export default function Chatbox() {
           if (data.success && data.messages) {
             setMessages(data.messages);
             setHasMore(data.hasMore);
+            
+            // Trích xuất followups từ tin nhắn assistant cuối cùng
+            const lastAssistantMsg = [...data.messages].reverse().find(msg => msg.role === 'assistant');
+            if (lastAssistantMsg) {
+              const followups = extractFollowups(lastAssistantMsg.content);
+              if (followups.length > 0) {
+                setSuggestedFollowups(followups);
+              }
+            }
           }
         } catch (err) {
           console.error('Lỗi tải lịch sử chat từ DB:', err);
@@ -60,7 +118,17 @@ export default function Chatbox() {
         const savedChats = sessionStorage.getItem('assistant_chats');
         if (savedChats) {
           try {
-            setMessages(JSON.parse(savedChats));
+            const loadedMsgs = JSON.parse(savedChats);
+            setMessages(loadedMsgs);
+            
+            // Trích xuất followups từ tin nhắn assistant cuối cùng
+            const lastAssistantMsg = [...loadedMsgs].reverse().find(msg => msg.role === 'assistant');
+            if (lastAssistantMsg) {
+              const followups = extractFollowups(lastAssistantMsg.content);
+              if (followups.length > 0) {
+                setSuggestedFollowups(followups);
+              }
+            }
           } catch (e) {
             console.error('Lỗi parse sessionStorage:', e);
           }
@@ -146,12 +214,9 @@ export default function Chatbox() {
     }
   };
 
-  // 3. Xử lý hình ảnh và nén Canvas phía Client
-  const handleImageChange = (e) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-
-    files.forEach(file => {
+  // 3. Xử lý hình ảnh và nén Canvas phía Client dùng chung
+  const resizeAndCompressImage = (file) => {
+    return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (event) => {
         const img = new Image();
@@ -159,29 +224,107 @@ export default function Chatbox() {
           const canvas = document.createElement('canvas');
           let width = img.width;
           let height = img.height;
-          const MAX_WIDTH = 800; // Giới hạn chiều rộng tối đa 800px
+          const max_size = 800; // Giới hạn kích thước tối đa 800px
 
-          if (width > MAX_WIDTH) {
-            height = Math.round((height * MAX_WIDTH) / width);
-            width = MAX_WIDTH;
+          if (width > height) {
+            if (width > max_size) {
+              height *= max_size / width;
+              width = max_size;
+            }
+          } else {
+            if (height > max_size) {
+              width *= max_size / height;
+              height = max_size;
+            }
           }
 
           canvas.width = width;
           canvas.height = height;
-
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
 
-          // Nén ảnh JPEG chất lượng 0.7 để tối ưu payload dung lượng truyền qua API
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
-          setSelectedImages(prev => [...prev, compressedBase64]);
+          // Nén chất lượng JPEG 0.7
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          resolve(dataUrl);
         };
         img.src = event.target.result;
       };
       reader.readAsDataURL(file);
     });
+  };
 
+  const handleImageChange = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const currentCount = selectedImages.length;
+    if (currentCount >= 10) {
+      alert('Chỉ cho phép tải lên tối đa 10 ảnh');
+      return;
+    }
+
+    let filesToAdd = files;
+    if (currentCount + files.length > 10) {
+      alert('Hệ thống giới hạn tối đa 10 ảnh đính kèm. Chỉ nạp 10 ảnh đầu tiên.');
+      filesToAdd = files.slice(0, 10 - currentCount);
+    }
+
+    const compressedResults = [];
+    for (const file of filesToAdd) {
+      try {
+        const compressedBase64 = await resizeAndCompressImage(file);
+        compressedResults.push(compressedBase64);
+      } catch (err) {
+        console.error('Lỗi khi nén ảnh:', err);
+      }
+    }
+
+    setSelectedImages(prev => [...prev, ...compressedResults]);
     e.target.value = ''; // Reset file input
+  };
+
+  // Hỗ trợ Ctrl+V paste ảnh từ Clipboard
+  const handleInputPaste = async (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    const imageItems = [];
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (file) {
+          imageItems.push(file);
+        }
+      }
+    }
+
+    if (imageItems.length === 0) return;
+
+    const currentCount = selectedImages.length;
+    if (currentCount >= 10) {
+      alert('Chỉ cho phép tải lên tối đa 10 ảnh');
+      e.preventDefault();
+      return;
+    }
+
+    let filesToAdd = imageItems;
+    if (currentCount + imageItems.length > 10) {
+      alert('Hệ thống giới hạn tối đa 10 ảnh đính kèm. Chỉ nạp 10 ảnh đầu tiên.');
+      filesToAdd = imageItems.slice(0, 10 - currentCount);
+    }
+
+    const compressedResults = [];
+    for (const file of filesToAdd) {
+      try {
+        const compressedBase64 = await resizeAndCompressImage(file);
+        compressedResults.push(compressedBase64);
+      } catch (err) {
+        console.error('Lỗi khi nén ảnh paste:', err);
+      }
+    }
+
+    setSelectedImages(prev => [...prev, ...compressedResults]);
+    e.preventDefault();
   };
 
   const removeSelectedImage = (indexToRemove) => {
@@ -207,20 +350,21 @@ export default function Chatbox() {
     };
   };
 
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
-    if ((!inputValue.trim() && selectedImages.length === 0) || loading) return;
-
-    const userText = inputValue;
+  const sendMessage = async (directText = null) => {
+    const textToSend = directText !== null ? directText : inputValue;
     const currentSelectedImages = [...selectedImages];
+
+    if ((!textToSend.trim() && currentSelectedImages.length === 0) || loading) return;
 
     setInputValue('');
     setSelectedImages([]);
+    setSuggestedFollowups([]); // Reset gợi ý cũ ngay khi gửi
+    setShowFollowupsDropdown(false); // Ẩn dropdown
 
     // Định dạng tin nhắn của User hiển thị trực tiếp trên UI
     const userMessageObj = {
       role: 'user',
-      content: userText || '[Hình ảnh]',
+      content: textToSend || '[Hình ảnh]',
       imageUrls: currentSelectedImages
     };
 
@@ -235,6 +379,14 @@ export default function Chatbox() {
 
     try {
       const pageContext = getPageContext();
+      // Bổ sung matchId vào context nếu đang ở trang chi tiết trận đấu
+      if (pageContext && pathname.startsWith('/match/')) {
+        const pathParts = pathname.split('/');
+        const activeMatchId = pathParts[pathParts.length - 1];
+        if (activeMatchId) {
+          pageContext.matchId = activeMatchId;
+        }
+      }
 
       const response = await fetch('/api/chat/assistant', {
         method: 'POST',
@@ -289,6 +441,22 @@ export default function Chatbox() {
         }
       }
 
+      // Xử lý trích xuất câu hỏi gợi ý tiếp theo (Dynamic Followups) ở cuối stream
+      if (accumulatedText) {
+        const followups = extractFollowups(accumulatedText);
+        const cleanedText = cleanMessageContent(accumulatedText);
+        
+        updatedMessages[assistantIndex] = {
+          role: 'assistant',
+          content: cleanedText
+        };
+        saveGuestMessages([...updatedMessages]);
+
+        if (followups.length > 0) {
+          setSuggestedFollowups(followups);
+        }
+      }
+
       if (user) {
         setReloadTrigger(prev => prev + 1);
       }
@@ -303,6 +471,15 @@ export default function Chatbox() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSendMessage = (e) => {
+    e.preventDefault();
+    sendMessage();
+  };
+
+  const handleFollowupClick = (item) => {
+    sendMessage(item);
   };
 
   const clearHistory = async () => {
@@ -328,16 +505,16 @@ export default function Chatbox() {
   };
 
   return (
-    // Di chuyển vị trí sang bên trái theo yêu cầu của sếp
-    <div className="fixed bottom-20 left-4 sm:left-6 z-[9999] flex flex-col items-start font-sans">
+    // Di chuyển vị trí sang bên phải và căn chỉnh với tasks history
+    <div className="fixed bottom-20 right-4 sm:right-6 md:bottom-6 z-[9999] flex flex-col items-end font-sans">
 
       {/* Cửa sổ chat */}
       {isOpen && (
-        // Responsive Mobile: w-[calc(100vw-32px)] và PC: sm:w-[400px]
-        <div className="w-[calc(100vw-32px)] sm:w-[400px] h-[520px] rounded-2xl glass-panel flex flex-col mb-4 overflow-hidden border border-[#223147] shadow-2xl glow-cyan/10">
+        // Responsive Mobile: thích ứng chiều cao màn hình, PC: sm:w-[400px] sm:h-[560px]
+        <div className="w-[calc(100vw-32px)] sm:w-[400px] h-[calc(100vh-140px)] max-h-[520px] sm:h-[560px] sm:max-h-none rounded-2xl glass-panel flex flex-col mb-3 overflow-hidden border border-[#223147] shadow-2xl glow-cyan/10">
 
           {/* Header */}
-          <div className="px-4 py-3 border-b border-[#223147] bg-[#0F172A] flex items-center justify-between">
+          <div className="px-3 py-2 sm:px-4 sm:py-2.5 border-b border-[#223147] bg-[#0F172A] flex items-center justify-between flex-shrink-0">
             <div className="flex items-center space-x-2.5">
               <div className="h-2.5 w-2.5 rounded-full bg-primary live-indicator"></div>
               <div>
@@ -372,7 +549,7 @@ export default function Chatbox() {
           <div
             ref={chatContainerRef}
             onScroll={handleScroll}
-            className="flex-grow p-4 overflow-y-auto space-y-4 bg-[#0B0F17]/95"
+            className="flex-grow p-2.5 sm:p-3 overflow-y-auto space-y-2.5 bg-[#0B0F17]/95"
           >
             {loadingHistory && (
               <div className="text-center text-xs text-secondary animate-pulse py-1">
@@ -380,34 +557,39 @@ export default function Chatbox() {
               </div>
             )}
 
-            {messages.map((msg, index) => (
-              <div
-                key={index}
-                className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
-              >
-                <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm ${msg.role === 'user'
-                      ? 'bg-secondary text-white rounded-br-none'
-                      : 'bg-[#151E2E] text-gray-200 border border-[#223147] rounded-bl-none'
-                    }`}
-                >
-                  <div className="whitespace-pre-wrap select-text">
-                    {msg.role === 'assistant' ? renderMessageContent(msg.content) : msg.content}
-                  </div>
+            {messages.map((msg, index) => {
+              // Bỏ qua tin nhắn assistant rỗng (chưa bắt đầu stream) để không hiện khung nhỏ rỗng
+              if (msg.role === 'assistant' && !msg.content) return null;
 
-                  {/* Hiển thị mảng ảnh đính kèm của tin nhắn */}
-                  {msg.imageUrls && msg.imageUrls.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {msg.imageUrls.map((url, idx) => (
-                        <a href={url} target="_blank" rel="noreferrer" key={idx} className="block w-16 h-16 rounded overflow-hidden border border-white/10 hover:border-white/30 transition-colors">
-                          <img src={url} className="w-full h-full object-cover" alt="attachment" />
-                        </a>
-                      ))}
+              return (
+                <div
+                  key={index}
+                  className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
+                >
+                  <div
+                    className={`max-w-[85%] rounded-2xl px-3 py-1.5 text-sm leading-relaxed shadow-sm ${msg.role === 'user'
+                        ? 'bg-secondary text-white rounded-br-none'
+                        : 'bg-[#151E2E] text-gray-200 border border-[#223147] rounded-bl-none'
+                      }`}
+                  >
+                    <div className="whitespace-pre-wrap select-text">
+                      {msg.role === 'assistant' ? renderMessageContent(cleanMessageContent(msg.content)) : msg.content}
                     </div>
-                  )}
+
+                    {/* Hiển thị mảng ảnh đính kèm của tin nhắn */}
+                    {msg.imageUrls && msg.imageUrls.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {msg.imageUrls.map((url, idx) => (
+                          <a href={url} target="_blank" rel="noreferrer" key={idx} className="block w-16 h-16 rounded overflow-hidden border border-white/10 hover:border-white/30 transition-colors">
+                            <img src={url} className="w-full h-full object-cover" alt="attachment" />
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             {loading && !messages[messages.length - 1]?.content && (
               <div className="flex justify-start">
@@ -423,7 +605,7 @@ export default function Chatbox() {
 
           {/* Lưới xem trước hình ảnh đính kèm */}
           {selectedImages.length > 0 && (
-            <div className="flex flex-wrap gap-2 p-2 bg-[#0F172A] border-t border-[#223147]">
+            <div className="flex flex-wrap gap-2 p-2 bg-[#0F172A] border-t border-[#223147] flex-shrink-0">
               {selectedImages.map((img, idx) => (
                 <div key={idx} className="relative w-14 h-14 rounded-lg overflow-hidden border border-[#223147]">
                   <img src={img} className="w-full h-full object-cover" alt="preview" />
@@ -442,7 +624,7 @@ export default function Chatbox() {
           {/* Form nhập liệu */}
           <form
             onSubmit={handleSendMessage}
-            className="p-3 border-t border-[#223147] bg-[#0F172A] flex items-center space-x-2"
+            className="p-2 sm:p-2.5 border-t border-[#223147] bg-[#0F172A] flex items-center space-x-2 flex-shrink-0"
           >
             {/* Input chọn nhiều ảnh ẩn */}
             <input
@@ -457,7 +639,7 @@ export default function Chatbox() {
             {/* Nút bấm chọn ảnh */}
             <label
               htmlFor="assistant-image-input"
-              className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-[#1E293B] cursor-pointer flex items-center justify-center"
+              className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-[#1E293B] cursor-pointer flex items-center justify-center flex-shrink-0"
               title="Đính kèm hình ảnh bảng kèo"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -466,10 +648,57 @@ export default function Chatbox() {
               </svg>
             </label>
 
+            {/* Nút gợi ý câu hỏi (Popover/Dropdown) */}
+            {!loading && suggestedFollowups.length > 0 && (
+              <div className="relative flex-shrink-0" ref={dropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowFollowupsDropdown(!showFollowupsDropdown)}
+                  className={`p-2 rounded-lg transition-colors cursor-pointer flex items-center justify-center ${
+                    showFollowupsDropdown ? 'text-primary bg-[#1E293B]' : 'text-gray-400 hover:text-white hover:bg-[#1E293B]'
+                  }`}
+                  title="Câu hỏi gợi ý"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </button>
+
+                {showFollowupsDropdown && (
+                  <div className="absolute bottom-full left-0 mb-2 w-72 max-w-[calc(100vw-80px)] rounded-xl border border-[#223147] bg-[#151E2E] p-2 shadow-2xl z-[99999] flex flex-col space-y-1.5 max-h-[240px] overflow-y-auto">
+                    <div className="text-[10px] font-bold text-gray-400 px-2 py-0.5 border-b border-[#223147]/50 pb-1 flex justify-between items-center flex-shrink-0">
+                      <span>💡 GỢI Ý CÂU HỎI</span>
+                      <button 
+                        type="button" 
+                        onClick={() => setShowFollowupsDropdown(false)}
+                        className="text-gray-500 hover:text-gray-300 cursor-pointer"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    {suggestedFollowups.map((item, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          handleFollowupClick(item);
+                          setShowFollowupsDropdown(false);
+                        }}
+                        className="text-left text-[11px] text-gray-300 hover:text-white hover:bg-[#1E293B] px-2.5 py-1.5 rounded-lg border border-[#223147]/30 bg-[#0B0F17]/40 transition-colors cursor-pointer w-full whitespace-normal break-words"
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             <input
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
+              onPaste={handleInputPaste}
               placeholder="Nhập tin nhắn phân tích kèo..."
               disabled={loading}
               className="flex-grow px-3 py-2 rounded-lg bg-[#0B0F17] border border-[#223147] text-white placeholder-gray-500 text-sm focus:outline-none focus:border-secondary transition-colors"
@@ -478,7 +707,7 @@ export default function Chatbox() {
             <button
               type="submit"
               disabled={loading || (!inputValue.trim() && selectedImages.length === 0)}
-              className="p-2 rounded-lg bg-secondary hover:bg-secondary/90 text-white disabled:opacity-50 transition-colors cursor-pointer flex items-center justify-center"
+              className="p-2 rounded-lg bg-secondary hover:bg-secondary/90 text-white disabled:opacity-50 transition-colors cursor-pointer flex items-center justify-center flex-shrink-0"
             >
               <svg className="h-4 w-4 transform rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />

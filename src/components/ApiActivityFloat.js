@@ -80,7 +80,7 @@ export default function ApiActivityFloat() {
   };
 
   return (
-    <div ref={containerRef} className="fixed bottom-20 right-4 z-50 md:bottom-6">
+    <div ref={containerRef} className="fixed bottom-20 right-16 z-50 md:bottom-6 md:right-24">
       {/* Nút tròn Float */}
       <button
         onClick={() => setIsOpen(!isOpen)}
