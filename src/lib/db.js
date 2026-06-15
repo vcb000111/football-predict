@@ -474,6 +474,17 @@ export async function getDB() {
       await localDb.exec(`ALTER TABLE fixtures ADD COLUMN match_timeline TEXT DEFAULT NULL`);
     } catch (e) {}
 
+    await localDb.exec(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT,
+        email TEXT UNIQUE,
+        password_hash TEXT,
+        oauth_provider TEXT DEFAULT 'local',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // Thêm hàm batch thích ứng cho SQLite cục bộ
     localDb.batch = async function(statements) {
       await this.run('BEGIN TRANSACTION');

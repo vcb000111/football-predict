@@ -2,8 +2,10 @@ import { Outfit, Inter } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import ModelBadge from "@/components/ModelBadge";
+import UserNav from "@/components/UserNav";
 import BottomNavigation from "@/components/BottomNavigation";
 import ApiActivityFloat from "@/components/ApiActivityFloat";
+import Chatbox from "@/components/chat/Chatbox";
 
 
 const outfit = Outfit({
@@ -74,8 +76,11 @@ export default function RootLayout({ children }) {
                 </Link>
               </nav>
 
-              {/* Badge */}
-              <ModelBadge />
+              {/* Badge & User Nav */}
+              <div className="flex items-center space-x-3">
+                <ModelBadge />
+                <UserNav />
+              </div>
 
 
             </div>
@@ -103,6 +108,7 @@ export default function RootLayout({ children }) {
 
         <BottomNavigation />
         <ApiActivityFloat />
+        <Chatbox />
 
       </body>
     </html>

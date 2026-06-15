@@ -561,11 +561,11 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
             ⚽ FIFA WORLD CUP 2026 PREDICTOR
           </span>
 
-          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white mb-4">
+          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white mb-3">
             Dự Đoán Kết Quả Bằng <span className="text-gradient">AI Thế Hệ Mới</span>
           </h1>
 
-          <p className="max-w-xl mx-auto text-xs sm:text-sm text-gray-400 mb-6 leading-relaxed">
+          <p className="max-w-xl mx-auto text-xs sm:text-sm text-gray-400 mb-3 leading-relaxed">
             Phân tích chuyên sâu các loại kèo dựa trên dữ liệu tìm kiếm thời gian thực Google Search Grounding từ AI Gemini. Tự động lưu và học hỏi từ lịch sử SQLite.
           </p>
 

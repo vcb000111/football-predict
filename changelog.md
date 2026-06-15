@@ -5,11 +5,19 @@ Tất cả những thay đổi nổi bật đối với dự án **FIFA World Cu
 ## [1.9.2] - 2026-06-15
 
 ### Added (Thêm mới)
+* **Hệ thống xác thực người dùng và Google OAuth2**: Thiết lập bảng `users` cho cơ sở dữ liệu (SQLite local & Turso DB), xây dựng helper xác thực không cần thư viện ngoài (băm PBKDF2 và JWT qua module `crypto`), cùng các API route đăng ký, đăng nhập và tích hợp Google Login thô (hỗ trợ tự động mock bypass ở môi trường phát triển).
+* **Giao diện Đăng ký / Đăng nhập Glassmorphism**: Thiết kế hai trang giao diện đăng ký tài khoản (`/signup`) và đăng nhập (`/login`) với phong cách sang trọng, tương thích dark mode và tuân thủ viết hoa Sentence case.
+* **Thành phần điều hướng người dùng UserNav**: Tích hợp nút Đăng ký, Đăng nhập và Đăng xuất (kèm thông tin tài khoản) vào thanh điều hướng chính của trang.
+* **Widget Chatbox AI nổi đa ngữ cảnh**: Phát triển widget Chatbox nổi (`/components/chat/Chatbox`) toàn trang, có khả năng tự động gửi kèm ngữ cảnh trang người dùng đang mở (`pageContext`) và lưu trữ lịch sử chat tạm thời qua `sessionStorage`.
+* **Bộ đọc liên kết thông minh Link Reader**: Xây dựng module tự động phát hiện URL trong tin nhắn chat, truy vấn trực tiếp DB nội bộ cho link trận đấu hoặc cào và trích xuất nội dung văn bản từ link ngoài làm tài liệu tham khảo cho AI.
+* **API Assistant Stream (SSE)**: Triển khai stream phản hồi từ Gemini qua Server-Sent Events, tự động tích hợp thông tin trang hiện tại và nội dung đọc link.
 * **Tích hợp bộ phân giải Markdown & Bảng biểu dùng chung**: Xây dựng module [markdown.js](file:///d:/1_Project/40_Football_Predict/src/lib/markdown.js) chứa hàm [renderMessageContent](file:///d:/1_Project/40_Football_Predict/src/lib/markdown.js#L3) hỗ trợ chuyển đổi ký tự xuống dòng thô (`\\n`) thành ký tự newline thực tế (`\n`), đồng thời tự động parse định dạng Markdown (tiêu đề phụ, danh sách, chữ đậm và bảng biểu HTML) hiển thị nhất quán.
 * **Bộ kịch bản kiểm thử và đo lường API models**: Phát triển các script test trong thư mục `scratch/` để kiểm tra kết nối, đo thời gian phản hồi thực tế và kiểm chứng lỗi Rate Limit (429) của 26 model miễn phí trên OpenRouter, tự động tạo báo cáo markdown.
 * **Quy trình sao lưu prompt hệ thống an toàn**: Tạo script `scratch/backup_prompts.mjs` cho phép tự động sao lưu cấu hình prompt trong bảng `system_prompts` của Turso DB Production sang file JSON cục bộ trước khi chỉnh sửa.
 
 ### Changed (Thay đổi logic)
+* **Đồng bộ hóa Layout chính**: Cập nhật `layout.js` toàn trang để chèn các module Chatbox nổi và thanh điều hướng tài khoản `UserNav`.
+* **Hỗ trợ tự động tạo bảng local**: Tích hợp lệnh tự tạo bảng `users` vào module kết nối DB chính khi khởi chạy SQLite local.
 * **Nâng cấp prompt nhận định bóng đá chuyên sâu**: Tinh chỉnh `systemPromptTemplate` và `criticTemplate` trong `src/app/api/predict/route.js`. Ràng buộc AI phải phân tích chiến thuật & lực lượng sâu từ 4-6 câu cho mỗi đội tuyển, đưa ra ít nhất 5 yếu tố quyết định trận đấu cốt lõi, và tự động thoát ký tự dấu nháy kép (`\"`) để đảm bảo an toàn cú pháp JSON.
 * **Chuẩn hóa cấu trúc phản biện của Consensus Engine**: Yêu cầu `criticTemplate` luôn xuất `predictionReasoning` theo hai lớp rõ ràng gồm `### Tương quan lực lượng & Phong độ` (tóm tắt cực ngắn 2-3 câu) và `### Tinh chỉnh phản biện` (phân tích sâu lý do điều chỉnh kèo/tỷ số), giúp phần nhận định sau Critic ổn định và dễ đọc hơn.
 * **Nâng cấp trải nghiệm cuộn tin nhắn và xem ảnh trong Chat**: Cải tiến logic cuộn trong `MatchClient.js` để tự động scroll tới tin nhắn gần nhất của người dùng (user) thay vì tin nhắn cuối của AI. Thay thế link mở ảnh bằng nút mở Modal xem ảnh phóng to trực tiếp (Modal Preview Overlay) ngay tại trang mà không cần mở tab mới.

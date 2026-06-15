@@ -66,6 +66,18 @@ Hệ thống dự đoán kết quả bóng đá và phân tích kèo đấu thô
 * Mô phỏng Monte Carlo Hiệp 2 tự động tích lũy và cộng dồn tỷ số Hiệp 1 thực tế để đảm bảo kết quả giả lập cả trận đồng bộ.
 * Chấm điểm cược động và phân tách biểu đồ thống kê hiệu suất (đúng tỷ số & đúng kết quả 1X2) của AI độc lập theo loại dự đoán.
 
+### 10. Xác Thực Người Dùng & Đăng Nhập Google (OAuth2)
+* **JWT Cookie Security:** Sử dụng Session Token JWT lưu trữ trong Cookie HttpOnly để đảm bảo an toàn tối đa trước các lỗ hổng XSS/CSRF.
+* **Đăng nhập Google thô:** Thiết kế luồng tích hợp Google Login qua endpoint API Redirect thô tối giản mà không cần cài thêm thư viện cồng kềnh.
+* **Dev Mode Bypass:** Hỗ trợ cơ chế giả lập OAuth token giúp quá trình kiểm thử tại máy cục bộ (Dev environment) không bị gián đoạn khi thiếu cấu hình Client ID/Secret thực tế.
+* **Giao diện Glassmorphism:** Cung cấp trang Đăng nhập (`/login`) và Đăng ký (`/signup`) sang trọng đồng bộ với phong cách chung của ứng dụng.
+
+### 11. Widget Chatbox AI & Bộ Đọc Liên Kết (Link Reader)
+* **Chatbox thông minh toàn trang:** Widget nổi (floating chatbox) góc dưới phải màn hình hỗ trợ lưu trữ lịch sử trò chuyện trong `sessionStorage`.
+* **Nhận diện ngữ cảnh trang tự động:** Tự động gửi kèm thông tin trang người dùng đang mở (`pageContext`) để AI giải đáp trực tiếp ("Giải thích kèo này", "Tỉ số trận này",...).
+* **Phản hồi dạng Stream (SSE):** Tích hợp luồng truyền chữ chạy mượt mà từ Server-Sent Events nhờ tắt bộ đệm của Next.js API.
+* **Link Reader thông minh:** Tự động phân tích URL trong tin nhắn chat. Link nội bộ (trận đấu) được truy vấn dữ liệu từ DB (phản hồi cực nhanh <200ms); link ngoài được scrape thô và lọc HTML tối ưu làm tài liệu tham khảo cho LLM.
+
 ---
 
 ## 💻 Công Nghệ Sử Dụng
