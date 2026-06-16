@@ -2,6 +2,20 @@
 
 Tất cả những thay đổi nổi bật đối với dự án **FIFA World Cup 2026 AI Predictor** sẽ được ghi nhận tại đây.
 
+## [1.9.3] - 2026-06-16
+
+### Added (Thêm mới)
+* **Trang quản lý cá nhân Tài khoản (/account)**: Phát triển trang cá nhân cao cấp (`/account`) hiển thị thông tin chi tiết (tên đăng nhập, email, loại tài khoản, ngày tham gia) và cung cấp form đổi mật khẩu cho người dùng (tích hợp mã hóa mật khẩu PBKDF2/JWT và hiển thị thông báo với SweetAlert2).
+* **API đổi mật khẩu cho người dùng cục bộ**: Tạo API POST `/api/auth/change-password` cho phép thay đổi mật khẩu người dùng local an toàn và chặn đổi mật khẩu đối với tài khoản liên kết Google OAuth.
+* **Đồng bộ điều hướng header và footer**: Tích hợp liên kết trang cá nhân vào tên người dùng hiển thị trên PC (`UserNav.js`) và bổ sung thêm tab Tài Khoản trên thanh chân trang di động (`BottomNavigation.js`).
+
+### Changed (Thay đổi logic)
+* **Cải tiến API thông tin người dùng /api/auth/me**: Nâng cấp API để truy vấn trực tiếp từ cơ sở dữ liệu lấy các trường `oauthProvider`, `createdAt` dạng camelCase, đảm bảo dữ liệu luôn cập nhật.
+
+### Fixed (Sửa lỗi)
+* **Ẩn hoàn toàn header di động**: Gỡ bỏ thành phần header thừa trên di động trong `layout.js` theo yêu cầu giao diện tối giản.
+* **Sửa lỗi lệch khung chatbox khi hiện bàn phím ảo**: Đổi kích cỡ chữ của ô nhập liệu tin nhắn từ `text-sm` sang `text-base sm:text-sm` để ngăn trình duyệt di động tự động phóng to (auto-zoom) khi gõ phím, khắc phục triệt để lỗi khung chat bị lệch sang phải che khuất nút gửi.
+
 ## [1.9.2] - 2026-06-15
 
 ### Added (Thêm mới)

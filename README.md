@@ -70,6 +70,7 @@ Hệ thống dự đoán kết quả bóng đá và phân tích kèo đấu thô
 * **Đăng nhập Google thô:** Thiết kế luồng tích hợp Google Login qua endpoint API Redirect thô tối giản mà không cần cài thêm thư viện cồng kềnh.
 * **Dev Mode Bypass:** Hỗ trợ cơ chế giả lập OAuth token giúp quá trình kiểm thử tại máy cục bộ (Dev environment) không bị gián đoạn khi thiếu cấu hình Client ID/Secret thực tế.
 * **Giao diện Glassmorphism:** Cung cấp trang Đăng nhập (`/login`) và Đăng ký (`/signup`) sang trọng đồng bộ với phong cách chung của ứng dụng.
+* **Trang cá nhân & Bảo mật (/account):** Trang quản lý tài khoản hiển thị thông tin chi tiết (tên đăng nhập, email, loại tài khoản, ngày đăng ký) và hỗ trợ đổi mật khẩu cho người dùng cục bộ (local) với cơ chế bảo mật xác nhận mật khẩu cũ và băm hash PBKDF2 an toàn.
 
 ### 11. Trợ Lý AI Chatbox Nổi, Link Reader & Đa Đoạn Chat (Multi-Session)
 * **Vị trí hiển thị tinh chỉnh:** Đẩy widget chatbox nổi sang góc dưới bên trái màn hình (`bottom-24`) để tránh đè lên nút điều hành API Activity Float.
@@ -117,6 +118,13 @@ npm run dev
 ---
 
 ## 🛠️ Nhật Ký Thay Đổi (Changelog)
+
+### [2026-06-16] - Tích hợp trang cá nhân Tài khoản, đổi mật khẩu và sửa lỗi di động (v1.9.3)
+* **Tích hợp trang cá nhân /account**: Phát triển trang cá nhân hiển thị chi tiết (username, email, loại tài khoản, ngày tham gia) và form đổi mật khẩu cho người dùng cục bộ.
+* **API đổi mật khẩu**: Viết API POST `/api/auth/change-password` băm mật khẩu PBKDF2 và chặn đổi mật khẩu với tài khoản Google.
+* **Đồng bộ điều hướng**: Cập nhật header PC (`UserNav.js`) và footer mobile (`BottomNavigation.js`) để kết nối trang cá nhân.
+* **Ẩn header di động**: Ẩn hoàn toàn header thừa trên điện thoại để tối ưu không gian hiển thị.
+* **Sửa lỗi lệch chatbox**: Sửa lỗi lệch khung chat sang phải bằng cách đổi cỡ chữ input từ `text-sm` sang `text-base` trên di động để ngăn auto-zoom.
 
 ### [2026-06-15] - Tích hợp bộ phân giải Markdown & Bảng biểu dùng chung, nâng cấp prompt nhận định chuyên sâu và kịch bản test model (v1.9.2)
 * **Tích hợp bộ phân giải Markdown & Bảng biểu**: Xây dựng module dùng chung `src/lib/markdown.js` để xử lý ký tự `\\n` thô và render bảng biểu Markdown của AI thành bảng HTML Premium trên UI ở cả trang Match và Custom Predictor.
