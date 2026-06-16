@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth-helper';
+import { getDB } from '@/lib/db';
 
 export async function GET(request) {
   try {
@@ -19,12 +20,24 @@ export async function GET(request) {
       return NextResponse.json({ success: false, user: null });
     }
 
+    const db = await getDB();
+    const user = await db.get(
+      'SELECT id, username, email, oauth_provider, created_at FROM users WHERE id = ?',
+      [decoded.userId]
+    );
+
+    if (!user) {
+      return NextResponse.json({ success: false, user: null });
+    }
+
     return NextResponse.json({
       success: true,
       user: {
-        userId: decoded.userId,
-        username: decoded.username,
-        email: decoded.email
+        userId: user.id,
+        username: user.username,
+        email: user.email,
+        oauthProvider: user.oauth_provider,
+        createdAt: user.created_at
       }
     });
   } catch (err) {
@@ -32,3 +45,4 @@ export async function GET(request) {
     return NextResponse.json({ success: false, user: null });
   }
 }
+

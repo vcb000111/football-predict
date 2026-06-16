@@ -33,28 +33,7 @@ export default function RootLayout({ children }) {
         
 
 
-        {/* Mobile Header (Chỉ hiện trên di động) */}
-        <header className="md:hidden sticky top-0 z-50 glass-panel border-b border-card-border">
-          <div className="max-w-7xl mx-auto px-4">
-            <div className="flex items-center justify-between h-14">
-              {/* Logo */}
-              <Link href="/" className="flex items-center space-x-2">
-                <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-primary to-secondary flex items-center justify-center glow-green">
-                  <span className="font-extrabold text-white text-sm tracking-wider">AI</span>
-                </div>
-                <span className="font-bold text-base tracking-tight text-white font-heading">
-                  WC2026<span className="text-gradient">PREDICT</span>
-                </span>
-              </Link>
 
-              {/* Badge & User Nav */}
-              <div className="flex items-center space-x-2">
-                <ModelBadge />
-                <UserNav />
-              </div>
-            </div>
-          </div>
-        </header>
 
         {/* Navigation Bar (Ẩn trên di động, chỉ hiện trên màn hình lớn) */}
         <header className="hidden md:block sticky top-0 z-50 glass-panel border-b border-card-border">

@@ -797,12 +797,12 @@ export default function Chatbox() {
 
   return (
     // Di chuyển vị trí sang bên phải và căn chỉnh với tasks history
-    <div className="fixed bottom-20 right-4 sm:right-6 md:bottom-6 z-[2000] flex flex-col items-end font-sans">
+    <div className="fixed bottom-16 right-4 sm:right-6 md:bottom-6 z-[2000] flex flex-col items-end font-sans">
 
       {/* Cửa sổ chat */}
       {isOpen && (
         // Responsive Mobile: thích ứng chiều cao màn hình, PC: sm:w-[400px] sm:h-[560px]
-        <div className="w-[calc(100vw-32px)] sm:w-[400px] h-[calc(100vh-140px)] max-h-[520px] sm:h-[560px] sm:max-h-none rounded-2xl glass-panel flex flex-col mb-3 overflow-hidden border border-[#223147] shadow-2xl glow-cyan/10 relative">
+        <div className="w-[calc(100vw-32px)] sm:w-[400px] h-[calc(100vh-140px)] max-h-[520px] sm:h-[560px] sm:max-h-none rounded-2xl glass-panel flex flex-col mb-1 overflow-hidden border border-[#223147] shadow-2xl glow-cyan/10 relative">
 
           {/* Menu chọn session (Lịch sử trò chuyện) */}
           {showSessionsMenu && (
@@ -1060,7 +1060,7 @@ export default function Chatbox() {
               onPaste={handleInputPaste}
               placeholder="Nhập tin nhắn phân tích kèo..."
               disabled={loading}
-              className="flex-grow px-3 py-2 rounded-lg bg-[#0B0F17] border border-[#223147] text-white placeholder-gray-500 text-sm focus:outline-none focus:border-secondary transition-colors"
+              className="flex-grow px-3 py-2 rounded-lg bg-[#0B0F17] border border-[#223147] text-white placeholder-gray-500 text-base sm:text-sm focus:outline-none focus:border-secondary transition-colors"
             />
 
             <button

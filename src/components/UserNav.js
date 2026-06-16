@@ -54,9 +54,9 @@ export default function UserNav() {
   if (user) {
     return (
       <div className="flex items-center space-x-4">
-        <span className="text-gray-300 text-sm font-medium">
+        <Link href="/account" className="text-gray-300 text-sm font-medium hover:underline cursor-pointer">
           Chào, <span className="text-primary font-bold">{user.username}</span>
-        </span>
+        </Link>
         <button
           onClick={handleLogout}
           className="text-xs font-semibold text-gray-400 hover:text-white px-3 py-1.5 rounded-lg border border-card-border hover:bg-[#1E293B] transition-colors duration-200 cursor-pointer"
