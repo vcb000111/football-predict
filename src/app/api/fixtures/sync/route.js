@@ -7,11 +7,20 @@ import { searchInternet } from '@/lib/search';
 import { getDB } from '@/lib/db';
 import { callOpenRouterModel } from '@/lib/openrouter';
 import {
-  getMissingWorldCup2026Fixtures,
-  getWorldCup2026OfficialFixtures,
-  isWorldCup2026Request,
-  WORLD_CUP_2026_SOURCE
+  isWorldCup2026Request
 } from '@/lib/world-cup-schedule';
+import { fetchFifaSchedule } from '@/lib/schedule/sources/fifa';
+import { fetchRoadtripsSchedule } from '@/lib/schedule/sources/roadtrips';
+import {
+  createSyncRun,
+  ensureScheduleSchema,
+  finishSyncRun,
+  getCanonicalFixtures,
+  saveCandidate,
+  saveSourceSnapshot,
+  upsertScheduleSource
+} from '@/lib/schedule/repository';
+import { candidateToPreview, validateFixtureCandidate } from '@/lib/schedule/validator';
 
 function normalizeTeamName(name) {
   if (!name) return '';
@@ -244,43 +253,104 @@ export async function POST(request) {
     }
 
     if (isWorldCup2026Request(tournament, season)) {
-      let existingFixtures = [];
+      if (!db) db = await getDB();
+      await ensureScheduleSchema(db);
+
+      const syncRunId = await createSyncRun(db, { tournament, season });
+      let savedCandidates = [];
+
       try {
-        if (!db) db = await getDB();
-        existingFixtures = await db.all("SELECT * FROM fixtures WHERE tournament = 'World Cup 2026' AND season = '2026' AND is_test = 0");
-      } catch (dbErr) {
-        console.warn('⚠️ Lỗi lấy fixtures World Cup 2026 từ DB, dùng local fallback:', dbErr.message);
-        existingFixtures = currentData.fixtures
-          .filter((fixture) => fixture.tournament === 'World Cup 2026' && fixture.season === '2026' && !fixture.isTest)
-          .map((fixture) => ({
-            id: fixture.id,
-            home_team: fixture.homeTeam,
-            away_team: fixture.awayTeam,
-            match_date: fixture.date,
-            match_time: fixture.time,
-            group_name: fixture.group,
-            venue: fixture.venue,
-            tournament: fixture.tournament,
-            season: fixture.season,
-            is_test: fixture.isTest ? 1 : 0
-          }));
+        const sourceResults = await Promise.all([
+          fetchFifaSchedule({ tournament, season }),
+          fetchRoadtripsSchedule({ tournament, season })
+        ]);
+
+        const canonicalRows = await getCanonicalFixtures(db, { tournament, season });
+        const byMatchNumber = new Map();
+
+        for (const result of sourceResults) {
+          await upsertScheduleSource(db, result.source);
+          const sourceHash = await saveSourceSnapshot(db, {
+            source: result.source,
+            tournament,
+            season,
+            rawExcerpt: result.rawExcerpt,
+            fixtures: result.fixtures
+          });
+
+          for (const fixture of result.fixtures) {
+            const current = byMatchNumber.get(fixture.matchNumber);
+            const enrichedFixture = {
+              ...fixture,
+              sourceHash,
+              confidence: Math.max(fixture.confidence || 0, result.source.confidence || 0)
+            };
+
+            if (!current || (result.source.priority || 100) < (current.sourcePriority || 100)) {
+              byMatchNumber.set(fixture.matchNumber, {
+                ...enrichedFixture,
+                sourcePriority: result.source.priority || 100
+              });
+            }
+          }
+        }
+
+        for (const fixture of Array.from(byMatchNumber.values()).sort((a, b) => a.matchNumber - b.matchNumber)) {
+          const validation = validateFixtureCandidate(fixture, canonicalRows);
+          const candidate = await saveCandidate(db, syncRunId, {
+            payload: fixture,
+            validationStatus: validation.validationStatus,
+            validationReason: validation.validationReason,
+            diffType: validation.diffType,
+            confidence: fixture.confidence,
+            sourceKey: fixture.sourceKey
+          });
+          savedCandidates.push(candidate);
+        }
+
+        const counts = savedCandidates.reduce((acc, candidate) => {
+          if (candidate.diffType === 'added') acc.addedCount++;
+          else if (candidate.diffType === 'updated') acc.updatedCount++;
+          else if (candidate.diffType === 'rejected') acc.rejectedCount++;
+          else acc.unchangedCount++;
+          return acc;
+        }, { addedCount: 0, updatedCount: 0, rejectedCount: 0, unchangedCount: 0 });
+
+        await finishSyncRun(db, syncRunId, {
+          status: 'completed',
+          ...counts
+        });
+
+        const previewCandidates = savedCandidates
+          .map(candidateToPreview)
+          .filter((candidate) => candidate.diffType !== 'unchanged');
+
+        return NextResponse.json({
+          success: true,
+          isMock: false,
+          isDeterministic: true,
+          syncRunId,
+          candidates: previewCandidates,
+          newFixtures: previewCandidates,
+          totalCandidates: savedCandidates.length,
+          addedCount: counts.addedCount,
+          updatedCount: counts.updatedCount,
+          rejectedCount: counts.rejectedCount,
+          unchangedCount: counts.unchangedCount,
+          modelUsed: 'Canonical schedule engine',
+          message: `Đồng bộ canonical schedule hoàn tất: ${counts.addedCount} mới, ${counts.updatedCount} cập nhật, ${counts.rejectedCount} bị chặn.`
+        });
+      } catch (syncError) {
+        await finishSyncRun(db, syncRunId, {
+          status: 'failed',
+          addedCount: 0,
+          updatedCount: 0,
+          rejectedCount: 0,
+          unchangedCount: 0,
+          errorMessage: syncError.message
+        });
+        throw syncError;
       }
-
-      const officialFixtures = getWorldCup2026OfficialFixtures();
-      const newFixtures = getMissingWorldCup2026Fixtures(existingFixtures);
-
-      return NextResponse.json({
-        success: true,
-        isMock: false,
-        isDeterministic: true,
-        sourceName: WORLD_CUP_2026_SOURCE.name,
-        sourceUrl: WORLD_CUP_2026_SOURCE.url,
-        totalOfficialFixtures: officialFixtures.length,
-        currentOfficialFixtures: existingFixtures.length,
-        newFixtures,
-        modelUsed: 'Deterministic schedule parser',
-        message: `Quét lịch chuẩn World Cup 2026 thành công. Còn thiếu ${newFixtures.length}/${officialFixtures.length} trận vòng bảng.`
-      });
     }
 
     // 3. Chế độ Giả lập (Mock Mode) khi không có API Key nào khả dụng

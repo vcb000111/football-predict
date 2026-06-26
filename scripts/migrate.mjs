@@ -1,6 +1,7 @@
 import pkg from '@next/env';
 const { loadEnvConfig } = pkg;
 import { createClient } from '@libsql/client';
+import { ensureScheduleSchema } from '../src/lib/schedule/repository.js';
 
 // Load biến môi trường từ các tệp tin .env (như .env.local)
 loadEnvConfig(process.cwd());
@@ -71,6 +72,9 @@ async function runMigration() {
       }
     };
   }
+
+  console.log('0. Khởi tạo schema canonical schedule...');
+  await ensureScheduleSchema(db);
 
   // 1. Tạo bảng predictions
   console.log('1. Khởi tạo bảng predictions...');

@@ -413,12 +413,13 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Lỗi đồng bộ lịch thi đấu');
 
-      if (data.newFixtures && data.newFixtures.length > 0) {
-        setSyncPreviewMatches(data.newFixtures);
+      const previewMatches = data.candidates || data.newFixtures || [];
+      if (previewMatches.length > 0) {
+        setSyncPreviewMatches(previewMatches);
         setShowSyncConfigModal(false);
-        showToast(`Quét thành công! Tìm thấy ${data.newFixtures.length} trận đấu mới.`, true);
+        showToast(data.message || `Quét thành công! Tìm thấy ${previewMatches.length} thay đổi lịch đấu.`, true);
       } else {
-        showToast('Không có trận đấu mới nào được tìm thấy.', true);
+        showToast(data.message || 'Không có thay đổi lịch đấu mới nào được tìm thấy.', true);
       }
     } catch (err) {
       showToast(`Đồng bộ thất bại: ${err.message}`, false);
@@ -431,6 +432,31 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
     if (isImporting) return;
     setIsImporting(true);
     try {
+      const canonicalCandidates = fixturesToImport.filter((fixture) => fixture.candidateId && fixture.syncRunId);
+      if (canonicalCandidates.length > 0) {
+        if (canonicalCandidates.length !== fixturesToImport.length) {
+          throw new Error('Danh sách apply không hợp lệ: không được trộn candidate canonical với fixture import thô.');
+        }
+
+        const res = await fetch('/api/fixtures/sync/apply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            syncRunId: canonicalCandidates[0].syncRunId,
+            candidateIds: canonicalCandidates.map((fixture) => fixture.candidateId)
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Lỗi khi apply lịch đấu');
+
+        showToast(data.message || 'Đã apply lịch đấu thành công!', true);
+        setSyncPreviewMatches(null);
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+        return;
+      }
+
       const res = await fetch('/api/fixtures/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1867,8 +1893,8 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
           <div className="glass-panel border border-card-border/80 rounded-2xl w-full max-w-3xl p-5 relative z-10 shadow-2xl animate-scale-in max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-start border-b border-card-border pb-3 mb-4">
               <div className="text-left">
-                <h2 className="text-sm font-extrabold text-white">📋 Xem trước trận đấu mới quét được ({syncPreviewMatches.length} trận)</h2>
-                <p className="text-[10px] text-gray-400 mt-1">Vui lòng rà soát lại thông tin trước khi import vào hệ thống.</p>
+                <h2 className="text-sm font-extrabold text-white">📋 Xem trước thay đổi lịch đấu ({syncPreviewMatches.length} mục)</h2>
+                <p className="text-[10px] text-gray-400 mt-1">Vui lòng rà soát nguồn, confidence và validator trước khi apply vào hệ thống.</p>
               </div>
               <button
                 onClick={() => !isImporting && setSyncPreviewMatches(null)}
@@ -1902,6 +1928,11 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                               M{match.matchNumber}
                             </span>
                           )}
+                          {match.diffType && (
+                            <span className="bg-accent/10 border border-accent/20 text-accent font-bold text-[9px] px-2 py-0.5 rounded-full uppercase">
+                              {match.diffType}
+                            </span>
+                          )}
                         </div>
 
                         <div className="flex items-center space-x-3 mt-1.5">
@@ -1913,7 +1944,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                         <p className="text-[10px] text-gray-500 mt-1">📍 {match.venue}</p>
                         {match.sourceName && (
                           <p className="text-[9px] text-emerald-400/80 mt-1">
-                            Nguồn: {match.sourceName}
+                            Nguồn: {match.sourceName}{match.confidence !== undefined ? ` · Confidence: ${Math.round(match.confidence * 100)}%` : ''}
                           </p>
                         )}
                         {match.validationReason && (
@@ -1929,7 +1960,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                           disabled={isImporting || match.isValidated === false}
                           className="bg-card-border hover:bg-primary/25 border border-card-border hover:border-primary/45 text-gray-200 hover:text-white font-bold py-1 px-3.5 rounded-lg text-[10.5px] transition-all cursor-pointer disabled:opacity-50"
                         >
-                          Thêm
+                          {match.candidateId ? 'Apply' : 'Thêm'}
                         </button>
                       </div>
                     </div>
@@ -1962,7 +1993,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                   disabled={isImporting || hasInvalidPreviewMatches}
                   className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary hover:to-primary text-white font-bold py-2 px-5 rounded-xl text-xs transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 flex items-center space-x-1.5"
                 >
-                  {isImporting ? '⌛ Đang thêm...' : 'Thêm tất cả'}
+                  {isImporting ? '⌛ Đang apply...' : (syncPreviewMatches.some((match) => match.candidateId) ? 'Apply validated changes' : 'Thêm tất cả')}
                 </button>
               )}
             </div>

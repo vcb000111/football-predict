@@ -66,6 +66,19 @@ export async function POST(request) {
       });
     }
 
+    const hasCanonicalManagedFixture = fixturesToImport.some((fixture) =>
+      isWorldCup2026Request(fixture.tournament || 'World Cup 2026', fixture.season || '2026')
+    );
+
+    if (hasCanonicalManagedFixture) {
+      return NextResponse.json(
+        {
+          error: 'World Cup 2026 đang được quản lý bằng canonical schedule engine. Vui lòng dùng luồng sync/apply thay vì import payload tự do.'
+        },
+        { status: 400 }
+      );
+    }
+
     const normalizedResults = fixturesToImport.map(normalizeImportFixture);
     const rejectedFixtures = normalizedResults
       .filter((result) => result.rejected)
