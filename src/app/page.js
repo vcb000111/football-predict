@@ -93,7 +93,8 @@ export default async function Page() {
       actualFirstHalfScore: f.actual_first_half_home_score !== null && f.actual_first_half_away_score !== null ? {
         home: f.actual_first_half_home_score,
         away: f.actual_first_half_away_score
-      } : null
+      } : null,
+      isTest: f.is_test === 1
     }));
 
   } catch (err) {

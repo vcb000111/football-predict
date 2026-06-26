@@ -908,23 +908,65 @@ Chỉ trả về JSON thô. Do NOT include markdown blocks.
   }
 }
 
+function getDbChangeCount(result) {
+  if (!result) return 0;
+  return result.changes ?? result.rowsAffected ?? result.meta?.changes ?? 0;
+}
+
+async function updateFixtureResultInDb(db, matchId, homeTeam, awayTeam, aHome, aAway, aFirstHalfHome, aFirstHalfAway, matchTimeline) {
+  const result = await db.run(
+    `UPDATE fixtures 
+     SET actual_home_score = ?, 
+         actual_away_score = ?, 
+         actual_first_half_home_score = ?, 
+         actual_first_half_away_score = ?,
+         match_timeline = ?
+     WHERE id = ? OR (home_team = ? AND away_team = ?)`,
+    [aHome, aAway, aFirstHalfHome, aFirstHalfAway, matchTimeline, matchId, homeTeam, awayTeam]
+  );
+
+  if (getDbChangeCount(result) > 0) {
+    return true;
+  }
+
+  const fixtures = await db.all("SELECT id, home_team, away_team FROM fixtures");
+  const normalizedHome = normalizeTeamName(homeTeam);
+  const normalizedAway = normalizeTeamName(awayTeam);
+  const matchedFixture = fixtures.find((fixture) =>
+    normalizeTeamName(fixture.home_team) === normalizedHome &&
+    normalizeTeamName(fixture.away_team) === normalizedAway
+  );
+
+  if (!matchedFixture) {
+    return false;
+  }
+
+  const fallbackResult = await db.run(
+    `UPDATE fixtures 
+     SET actual_home_score = ?, 
+         actual_away_score = ?, 
+         actual_first_half_home_score = ?, 
+         actual_first_half_away_score = ?,
+         match_timeline = ?
+     WHERE id = ?`,
+    [aHome, aAway, aFirstHalfHome, aFirstHalfAway, matchTimeline, matchedFixture.id]
+  );
+
+  return getDbChangeCount(fallbackResult) > 0;
+}
+
 // Helper để cập nhật cả database và file fixtures.json local
 async function updateFixturesDbAndFile(db, matchId, homeTeam, awayTeam, aHome, aAway, aFirstHalfHome = null, aFirstHalfAway = null, matchTimeline = null) {
   try {
     // 1. Cập nhật database
     if (db) {
       try {
-        await db.run(
-          `UPDATE fixtures 
-           SET actual_home_score = ?, 
-               actual_away_score = ?, 
-               actual_first_half_home_score = ?, 
-               actual_first_half_away_score = ?,
-               match_timeline = ?
-           WHERE id = ? OR (home_team = ? AND away_team = ?)`,
-          [aHome, aAway, aFirstHalfHome, aFirstHalfAway, matchTimeline, matchId, homeTeam, awayTeam]
-        );
-        console.log(`🟢 [DB fixtures] Đã cập nhật tỉ số và diễn biến cho trận ${homeTeam} vs ${awayTeam}: ${aHome}-${aAway}`);
+        const didUpdate = await updateFixtureResultInDb(db, matchId, homeTeam, awayTeam, aHome, aAway, aFirstHalfHome, aFirstHalfAway, matchTimeline);
+        if (didUpdate) {
+          console.log(`🟢 [DB fixtures] Đã cập nhật tỉ số và diễn biến cho trận ${homeTeam} vs ${awayTeam}: ${aHome}-${aAway}`);
+        } else {
+          console.warn(`⚠️ [DB fixtures] Không tìm thấy fixture để cập nhật cho trận ${homeTeam} vs ${awayTeam} (matchId: ${matchId || 'N/A'}).`);
+        }
       } catch (dbErr) {
         // Tự động khôi phục nếu cột match_timeline chưa tồn tại (Self-healing)
         if (dbErr.message && (dbErr.message.includes('no such column') || dbErr.message.includes('match_timeline'))) {
@@ -932,17 +974,12 @@ async function updateFixturesDbAndFile(db, matchId, homeTeam, awayTeam, aHome, a
           try {
             await db.exec(`ALTER TABLE fixtures ADD COLUMN match_timeline TEXT DEFAULT NULL`);
             // Chạy lại câu lệnh UPDATE
-            await db.run(
-              `UPDATE fixtures 
-               SET actual_home_score = ?, 
-                   actual_away_score = ?, 
-                   actual_first_half_home_score = ?, 
-                   actual_first_half_away_score = ?,
-                   match_timeline = ?
-               WHERE id = ? OR (home_team = ? AND away_team = ?)`,
-              [aHome, aAway, aFirstHalfHome, aFirstHalfAway, matchTimeline, matchId, homeTeam, awayTeam]
-            );
-            console.log(`🟢 [DB fixtures - Self-healed] Đã cập nhật tỉ số và diễn biến thành công.`);
+            const didUpdate = await updateFixtureResultInDb(db, matchId, homeTeam, awayTeam, aHome, aAway, aFirstHalfHome, aFirstHalfAway, matchTimeline);
+            if (didUpdate) {
+              console.log(`🟢 [DB fixtures - Self-healed] Đã cập nhật tỉ số và diễn biến thành công.`);
+            } else {
+              console.warn(`⚠️ [DB fixtures - Self-healed] Không tìm thấy fixture để cập nhật cho trận ${homeTeam} vs ${awayTeam}.`);
+            }
           } catch (alterErr) {
             console.error('❌ Không thể chạy ALTER TABLE tự phục hồi:', alterErr);
           }

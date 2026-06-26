@@ -6,6 +6,12 @@ import currentData from '@/data/fixtures.json';
 import { searchInternet } from '@/lib/search';
 import { getDB } from '@/lib/db';
 import { callOpenRouterModel } from '@/lib/openrouter';
+import {
+  getMissingWorldCup2026Fixtures,
+  getWorldCup2026OfficialFixtures,
+  isWorldCup2026Request,
+  WORLD_CUP_2026_SOURCE
+} from '@/lib/world-cup-schedule';
 
 function normalizeTeamName(name) {
   if (!name) return '';
@@ -19,6 +25,107 @@ function normalizeTeamName(name) {
     'republic of korea': 'south korea'
   };
   return aliases[lower] || lower;
+}
+
+function getFirstValue(source, keys) {
+  for (const key of keys) {
+    const value = source?.[key];
+    if (value !== undefined && value !== null && String(value).trim() !== '') {
+      return value;
+    }
+  }
+  return '';
+}
+
+function cleanText(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function normalizeDateValue(value) {
+  const raw = cleanText(value);
+  if (!raw) return '';
+
+  const isoMatch = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (isoMatch) {
+    const [, year, month, day] = isoMatch;
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+
+  const slashMatch = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  if (slashMatch) {
+    const [, day, month, year] = slashMatch;
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+
+  return '';
+}
+
+function normalizeTimeValue(value) {
+  const raw = cleanText(value).toLowerCase().replace('h', ':');
+  if (!raw) return '';
+
+  const timeMatch = raw.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/);
+  if (!timeMatch) return '';
+
+  let hour = Number(timeMatch[1]);
+  const minute = Number(timeMatch[2] || 0);
+  const period = timeMatch[3];
+
+  if (period === 'pm' && hour < 12) hour += 12;
+  if (period === 'am' && hour === 12) hour = 0;
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return '';
+
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+}
+
+function normalizeSyncedFixture(rawFixture, defaults) {
+  const homeTeam = cleanText(getFirstValue(rawFixture, ['homeTeam', 'home_team', 'home', 'teamHome']));
+  const awayTeam = cleanText(getFirstValue(rawFixture, ['awayTeam', 'away_team', 'away', 'teamAway']));
+  const date = normalizeDateValue(getFirstValue(rawFixture, ['date', 'matchDate', 'match_date']));
+
+  if (!homeTeam || !awayTeam || normalizeTeamName(homeTeam) === normalizeTeamName(awayTeam) || !date) {
+    return null;
+  }
+
+  return {
+    id: cleanText(getFirstValue(rawFixture, ['id', 'matchId', 'match_id'])),
+    homeTeam,
+    awayTeam,
+    date,
+    time: normalizeTimeValue(getFirstValue(rawFixture, ['time', 'matchTime', 'match_time', 'kickoff'])) || '20:00',
+    group: cleanText(getFirstValue(rawFixture, ['group', 'groupName', 'group_name', 'round', 'stage'])) || 'Group stage',
+    venue: cleanText(getFirstValue(rawFixture, ['venue', 'stadium', 'location'])) || 'TBA',
+    tournament: cleanText(getFirstValue(rawFixture, ['tournament', 'competition', 'league'])) || defaults.tournament,
+    season: cleanText(getFirstValue(rawFixture, ['season', 'year'])) || defaults.season,
+    sourceName: defaults.sourceName || 'AI/RAG field validator',
+    isValidated: true
+  };
+}
+
+function getFixtureIdentity(fixture) {
+  const homeTeam = fixture.homeTeam ?? fixture.home_team;
+  const awayTeam = fixture.awayTeam ?? fixture.away_team;
+  const date = fixture.date ?? fixture.match_date;
+  const teams = [normalizeTeamName(homeTeam), normalizeTeamName(awayTeam)].sort().join('|');
+  return `${teams}|${date || ''}`;
+}
+
+function normalizeSyncedFixtures(rawFixtures, defaults, existingFixtures = []) {
+  const existingKeys = new Set(existingFixtures.map(getFixtureIdentity));
+  const seenKeys = new Set();
+
+  return rawFixtures
+    .map((fixture) => normalizeSyncedFixture(fixture, defaults))
+    .filter(Boolean)
+    .filter((fixture) => {
+      const key = getFixtureIdentity(fixture);
+      if (existingKeys.has(key) || seenKeys.has(key)) {
+        return false;
+      }
+      seenKeys.add(key);
+      return true;
+    })
+    .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
 }
 
 const FIXTURES_FILE_PATH = path.join(process.cwd(), 'src', 'data', 'fixtures.json');
@@ -134,6 +241,46 @@ export async function POST(request) {
           { name: 'gemini-1.5-flash', provider: 'gemini' }
         ];
       }
+    }
+
+    if (isWorldCup2026Request(tournament, season)) {
+      let existingFixtures = [];
+      try {
+        if (!db) db = await getDB();
+        existingFixtures = await db.all("SELECT * FROM fixtures WHERE tournament = 'World Cup 2026' AND season = '2026' AND is_test = 0");
+      } catch (dbErr) {
+        console.warn('⚠️ Lỗi lấy fixtures World Cup 2026 từ DB, dùng local fallback:', dbErr.message);
+        existingFixtures = currentData.fixtures
+          .filter((fixture) => fixture.tournament === 'World Cup 2026' && fixture.season === '2026' && !fixture.isTest)
+          .map((fixture) => ({
+            id: fixture.id,
+            home_team: fixture.homeTeam,
+            away_team: fixture.awayTeam,
+            match_date: fixture.date,
+            match_time: fixture.time,
+            group_name: fixture.group,
+            venue: fixture.venue,
+            tournament: fixture.tournament,
+            season: fixture.season,
+            is_test: fixture.isTest ? 1 : 0
+          }));
+      }
+
+      const officialFixtures = getWorldCup2026OfficialFixtures();
+      const newFixtures = getMissingWorldCup2026Fixtures(existingFixtures);
+
+      return NextResponse.json({
+        success: true,
+        isMock: false,
+        isDeterministic: true,
+        sourceName: WORLD_CUP_2026_SOURCE.name,
+        sourceUrl: WORLD_CUP_2026_SOURCE.url,
+        totalOfficialFixtures: officialFixtures.length,
+        currentOfficialFixtures: existingFixtures.length,
+        newFixtures,
+        modelUsed: 'Deterministic schedule parser',
+        message: `Quét lịch chuẩn World Cup 2026 thành công. Còn thiếu ${newFixtures.length}/${officialFixtures.length} trận vòng bảng.`
+      });
     }
 
     // 3. Chế độ Giả lập (Mock Mode) khi không có API Key nào khả dụng
@@ -272,15 +419,7 @@ export async function POST(request) {
         }));
       }
 
-      // Lọc các trận chưa tồn tại trong DB
-      const newFixtures = processedMock.filter((newF) => {
-        return !existingFixtures.some(
-          (f) =>
-            normalizeTeamName(f.home_team) === normalizeTeamName(newF.homeTeam) &&
-            normalizeTeamName(f.away_team) === normalizeTeamName(newF.awayTeam) &&
-            f.match_date === newF.date
-        );
-      });
+      const newFixtures = normalizeSyncedFixtures(processedMock, { tournament, season }, existingFixtures);
 
       return NextResponse.json({
         success: true,
@@ -440,13 +579,6 @@ ${searchResults.slice(0, 6).map((s, idx) => `[${idx + 1}] ${s}`).join('\n')}
       });
     }
 
-    // Gán giải đấu, mùa giải động cho dữ liệu trả về từ AI
-    const processedFixtures = aiFixtures.map(f => ({
-      ...f,
-      tournament,
-      season
-    }));
-
     // Lấy danh sách trận đấu hiện tại từ database để lọc trùng
     let existingFixtures = [];
     try {
@@ -461,15 +593,8 @@ ${searchResults.slice(0, 6).map((s, idx) => `[${idx + 1}] ${s}`).join('\n')}
       }));
     }
 
-    // Lọc ra danh sách các trận đấu thực sự mới chưa tồn tại trong DB
-    const newFixtures = processedFixtures.filter((newF) => {
-      return !existingFixtures.some(
-        (f) =>
-          normalizeTeamName(f.home_team) === normalizeTeamName(newF.homeTeam) &&
-          normalizeTeamName(f.away_team) === normalizeTeamName(newF.awayTeam) &&
-          f.match_date === newF.date
-      );
-    });
+    // Chuẩn hóa, loại bản ghi thiếu dữ liệu và lọc trùng trước khi preview/import.
+    const newFixtures = normalizeSyncedFixtures(aiFixtures, { tournament, season }, existingFixtures);
 
     return NextResponse.json({
       success: true,

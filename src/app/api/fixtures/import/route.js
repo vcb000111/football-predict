@@ -3,19 +3,46 @@ import fs from 'fs';
 import path from 'path';
 import currentData from '@/data/fixtures.json';
 import { getDB } from '@/lib/db';
+import {
+  fixtureIdentity,
+  isWorldCup2026Request,
+  validateWorldCup2026Fixture
+} from '@/lib/world-cup-schedule';
 
-function normalizeTeamName(name) {
-  if (!name) return '';
-  const lower = name.trim().toLowerCase();
-  const aliases = {
-    'usa': 'united states',
-    'türkiye': 'turkey',
-    'côte d\'ivoire': 'ivory coast',
-    'cote d\'ivoire': 'ivory coast',
-    'korea republic': 'south korea',
-    'republic of korea': 'south korea'
+function parseOptionalScore(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+function normalizeImportFixture(fixture) {
+  const tournament = fixture.tournament || 'World Cup 2026';
+  const season = fixture.season || '2026';
+
+  if (!isWorldCup2026Request(tournament, season)) {
+    return { fixture: { ...fixture, tournament, season }, rejected: null };
+  }
+
+  const validation = validateWorldCup2026Fixture({ ...fixture, tournament, season });
+  if (!validation.valid) {
+    return {
+      fixture: null,
+      rejected: {
+        fixture,
+        reason: validation.reason
+      }
+    };
+  }
+
+  return {
+    fixture: {
+      ...validation.official,
+      actualHomeScore: parseOptionalScore(fixture.actualHomeScore ?? fixture.actualScore?.home),
+      actualAwayScore: parseOptionalScore(fixture.actualAwayScore ?? fixture.actualScore?.away),
+      isTest: false
+    },
+    rejected: null
   };
-  return aliases[lower] || lower;
 }
 
 const FIXTURES_FILE_PATH = path.join(process.cwd(), 'src', 'data', 'fixtures.json');
@@ -39,6 +66,23 @@ export async function POST(request) {
       });
     }
 
+    const normalizedResults = fixturesToImport.map(normalizeImportFixture);
+    const rejectedFixtures = normalizedResults
+      .filter((result) => result.rejected)
+      .map((result) => result.rejected);
+
+    if (rejectedFixtures.length > 0) {
+      return NextResponse.json(
+        {
+          error: 'Danh sách import có trận đấu chưa khớp lịch chuẩn.',
+          rejectedFixtures
+        },
+        { status: 400 }
+      );
+    }
+
+    const cleanFixturesToImport = normalizedResults.map((result) => result.fixture);
+
     const db = await getDB();
     const existingFixtures = await db.all("SELECT * FROM fixtures");
     const mergedFixtures = existingFixtures.map(f => ({
@@ -50,19 +94,23 @@ export async function POST(request) {
       group: f.group_name,
       venue: f.venue,
       tournament: f.tournament,
-      season: f.season
+      season: f.season,
+      actualHomeScore: f.actual_home_score,
+      actualAwayScore: f.actual_away_score,
+      actualFirstHalfScore: f.actual_first_half_home_score !== null && f.actual_first_half_away_score !== null ? {
+        home: f.actual_first_half_home_score,
+        away: f.actual_first_half_away_score
+      } : null,
+      isTest: f.is_test === 1
     }));
 
     let addedCount = 0;
     const statements = [];
 
-    fixturesToImport.forEach((newF) => {
+    cleanFixturesToImport.forEach((newF) => {
       // Kiểm tra trùng lặp
       const exists = mergedFixtures.some(
-        (f) =>
-          normalizeTeamName(f.homeTeam) === normalizeTeamName(newF.homeTeam) &&
-          normalizeTeamName(f.awayTeam) === normalizeTeamName(newF.awayTeam) &&
-          f.date === newF.date
+        (f) => fixtureIdentity(f) === fixtureIdentity(newF)
       );
 
       if (!exists) {
@@ -84,14 +132,10 @@ export async function POST(request) {
         const isFriendly = newF.tournament && newF.tournament.toLowerCase().includes('friendly');
         const isTest = !!(newF.isTest || isFriendly);
         
-        if (isTest) {
-          newF.id = `t${maxTestNum + 1}`;
-        } else {
-          newF.id = `m${maxMatchNum + 1}`;
-        }
+        const nextId = isTest ? `t${maxTestNum + 1}` : (newF.id || `m${maxMatchNum + 1}`);
 
         const fixtureRecord = {
-          id: newF.id,
+          id: nextId,
           homeTeam: newF.homeTeam,
           awayTeam: newF.awayTeam,
           date: newF.date,
@@ -99,15 +143,17 @@ export async function POST(request) {
           group: newF.group || 'Group Stage',
           venue: newF.venue || 'TBA',
           tournament: newF.tournament || 'World Cup 2026',
-          season: newF.season || '2026'
+          season: newF.season || '2026',
+          actualHomeScore: parseOptionalScore(newF.actualHomeScore ?? newF.actualScore?.home),
+          actualAwayScore: parseOptionalScore(newF.actualAwayScore ?? newF.actualScore?.away),
+          isTest
         };
 
-        if (isTest) {
-          fixtureRecord.isTest = true;
-        }
-
         statements.push({
-          sql: `INSERT INTO fixtures (id, home_team, away_team, match_date, match_time, group_name, venue, tournament, season) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          sql: `INSERT INTO fixtures (
+            id, home_team, away_team, match_date, match_time, group_name, venue, tournament, season,
+            actual_home_score, actual_away_score, is_test
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           args: [
             fixtureRecord.id,
             fixtureRecord.homeTeam,
@@ -117,7 +163,10 @@ export async function POST(request) {
             fixtureRecord.group,
             fixtureRecord.venue,
             fixtureRecord.tournament,
-            fixtureRecord.season
+            fixtureRecord.season,
+            fixtureRecord.actualHomeScore,
+            fixtureRecord.actualAwayScore,
+            fixtureRecord.isTest ? 1 : 0
           ]
         });
 

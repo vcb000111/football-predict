@@ -125,7 +125,10 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
 
       return () => clearTimeout(timer);
     } else {
-      setNow(Date.now());
+      const timer = setTimeout(() => {
+        setNow(Date.now());
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, []);
 
@@ -1876,6 +1879,10 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
               </button>
             </div>
 
+            {(() => {
+              const hasInvalidPreviewMatches = syncPreviewMatches.some((match) => match.isValidated === false);
+              return (
+                <>
             {/* Matches list */}
             <div className="space-y-2.5 max-h-[50vh] overflow-y-auto pr-1 text-xs">
               {syncPreviewMatches.length > 0 ? (
@@ -1890,6 +1897,11 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                           <span className="text-[10.5px] text-gray-400 font-bold">
                             📅 {match.date} {match.time}
                           </span>
+                          {match.matchNumber && (
+                            <span className="bg-secondary/10 border border-secondary/20 text-secondary font-bold text-[9px] px-2 py-0.5 rounded-full">
+                              M{match.matchNumber}
+                            </span>
+                          )}
                         </div>
 
                         <div className="flex items-center space-x-3 mt-1.5">
@@ -1899,12 +1911,22 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                         </div>
 
                         <p className="text-[10px] text-gray-500 mt-1">📍 {match.venue}</p>
+                        {match.sourceName && (
+                          <p className="text-[9px] text-emerald-400/80 mt-1">
+                            Nguồn: {match.sourceName}
+                          </p>
+                        )}
+                        {match.validationReason && (
+                          <p className="text-[9px] text-red-400 mt-1">
+                            {match.validationReason}
+                          </p>
+                        )}
                       </div>
 
                       <div className="sm:ml-4 flex items-center justify-end">
                         <button
                           onClick={() => handleImportMatches([match])}
-                          disabled={isImporting}
+                          disabled={isImporting || match.isValidated === false}
                           className="bg-card-border hover:bg-primary/25 border border-card-border hover:border-primary/45 text-gray-200 hover:text-white font-bold py-1 px-3.5 rounded-lg text-[10.5px] transition-all cursor-pointer disabled:opacity-50"
                         >
                           Thêm
@@ -1920,6 +1942,12 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
               )}
             </div>
 
+            {hasInvalidPreviewMatches && (
+              <div className="mt-3 rounded-lg border border-red-500/30 bg-red-950/10 p-2 text-[10px] text-red-300">
+                Có trận chưa qua validator. Vui lòng quét lại hoặc kiểm tra nguồn trước khi import.
+              </div>
+            )}
+
             <div className="flex space-x-3 pt-3 border-t border-card-border justify-end mt-4">
               <button
                 onClick={() => setSyncPreviewMatches(null)}
@@ -1931,13 +1959,16 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
               {syncPreviewMatches.length > 0 && (
                 <button
                   onClick={() => handleImportMatches(syncPreviewMatches)}
-                  disabled={isImporting}
+                  disabled={isImporting || hasInvalidPreviewMatches}
                   className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary hover:to-primary text-white font-bold py-2 px-5 rounded-xl text-xs transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 flex items-center space-x-1.5"
                 >
                   {isImporting ? '⌛ Đang thêm...' : 'Thêm tất cả'}
                 </button>
               )}
             </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       )}
