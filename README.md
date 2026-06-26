@@ -1,20 +1,25 @@
-# 🏆 FIFA World Cup 2026 AI Predictor & Sports Analytics
+# ⚽ FIFA World Cup 2026 AI Predictor
 
-Hệ thống dự đoán kết quả bóng đá và phân tích kèo đấu thông minh dành cho FIFA World Cup 2026. Ứng dụng kết hợp sức mạnh của các mô hình ngôn ngữ lớn (LLM - Google Gemini) và kỹ thuật RAG (Retrieval-Augmented Generation) đa nguồn để cập nhật thông tin thời gian thực và chấm điểm tự động.
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-38BDF8?logo=tailwindcss)](https://tailwindcss.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
+
+An AI-powered football match prediction engine that combines **Poisson modeling**, **Monte Carlo simulations (10,000 iterations)**, and **multi-model LLM consensus** to deliver professional-grade match analysis and betting insights.
+
+> 🇻🇳 [Phiên bản Tiếng Việt](./README.vi.md)
+
+**🔗 [Live Demo](https://football-predict-iota.vercel.app/)**
 
 ---
 
-## 🌟 Tính Năng Nổi Bật
+## Screenshots
 
-### 1. Phân Tích & Dự Đoán Kèo Đấu Chuyên Sâu
-* Hỗ trợ dự đoán **6 loại kèo phổ biến**:
-  * Kèo châu Âu (1X2)
-  * Kèo Tài Xỉu bàn thắng (Over/Under 2.5)
-  * Kèo Chấp châu Á (Asian Handicap)
-  * Cả hai đội ghi bàn (BTTS)
-  * Kèo Phạt góc (Over/Under)
-  * Kèo Thẻ phạt (Over/Under)
-* Cung cấp phân tích chi tiết của AI Pundit (Chuyên gia nhận định ảo) dựa trên phong độ, lịch sử đối đầu và chấn thương.
+<p align="center">
+  <img src="./docs/homepage_grid.png" alt="Homepage Grid View" width="800" />
+  <br/>
+  <em>Match cards with live scores, AI prediction badges, and quick-actions</em>
+</p>
 
 ### 2. Hệ Thống RAG Search Đa Nguồn Động
 * Tích hợp 3 dịch vụ API tìm kiếm thời gian thực tốt nhất hiện nay:
@@ -85,39 +90,80 @@ Hệ thống dự đoán kết quả bóng đá và phân tích kèo đấu thô
 
 ---
 
-## 💻 Công Nghệ Sử Dụng
+## Key Features
 
-* **Frontend/Backend:** Next.js (App Router), React, TailwindCSS.
-* **Database:** SQLite (sqlite3 & open) lưu trữ cấu hình hệ thống, thông tin đội tuyển và lịch sử dự đoán.
-* **AI Model:** Google Gemini API (hỗ trợ xoay vòng và đồng thuận gemini-3.5-flash, gemini-3-flash-preview, ...).
-* **RAG Search APIs:** Tavily API, Brave Search API, Serper API, DuckDuckGo Web Scraper.
-* **Image Cloud Storage:** Cloudinary (lưu trữ lâu dài hình ảnh chat cược, hỗ trợ tối ưu qua URL).
+### 🧠 Hybrid AI Prediction Engine
+Combines a **Poisson Expected Goals (xG) baseline** with **multi-model consensus** (running 2 AI models in parallel + a Critic referee) to predict outcomes across 6 betting markets: 1X2, Over/Under, Asian Handicap, BTTS, Corners, and Cards.
+
+### 🔍 Multi-Source RAG Search with Failover
+Integrates **Tavily**, **Brave Search**, and **Serper APIs** with automatic key rotation, provider failover, and DuckDuckGo scraping as the final fallback — ensuring real-time data always reaches the AI.
+
+### 🎰 Monte Carlo Supercomputer
+Runs **10,000 Poisson simulations** per match to compute win/draw/loss probabilities, BTTS odds, Over/Under 2.5, and the top 5 most likely scorelines. Results are fed directly into the AI prompt as quantitative context.
+
+### 📊 Auto Scoring & Self-Retrospective
+After matches conclude, the system automatically fetches real scores from the web, scores all prior predictions, and triggers an AI **Self-Retrospective** to learn from mistakes — storing lessons in the database for future in-context learning.
+
+### 🤖 AI Chat Assistant (10 Backend Tools)
+A floating chatbot with **10 function-calling tools** (live odds scraping, internet search, real-time predictions, ELO lookup, team stats, result updates, and more), multi-session history, image upload (1–10 images via Cloudinary), and an intelligent link reader.
+
+### ⚙️ Admin Dashboard
+Full control panel for managing AI models (priority ordering, enable/disable), search engine keys, team stats (48 World Cup 2026 teams with manual edit), and a backtesting console with configurable model rotation and cool-down.
 
 ---
 
-## 🚀 Hướng Dẫn Khởi Chạy
+## Tech Stack
 
-### 1. Cài đặt các gói phụ thuộc:
+| Layer | Technology |
+|-------|-----------|
+| **Framework** | Next.js 16 (App Router) |
+| **UI** | React 19, Tailwind CSS 4, Glassmorphism design |
+| **Database** | SQLite / Turso DB (libSQL over HTTP) |
+| **AI Models** | Google Gemini API (multi-model rotation & consensus) |
+| **RAG Search** | Tavily, Brave Search, Serper + DuckDuckGo fallback |
+| **Image Storage** | Cloudinary (parallel upload, client-side canvas compression) |
+| **Auth** | Google OAuth2, JWT HttpOnly cookies, PBKDF2 |
+
+---
+
+## Getting Started
+
+### Prerequisites
+- Node.js 18+
+- npm or yarn
+
+### Installation
+
 ```bash
+# 1. Clone the repository
+git clone https://github.com/your-username/football-predict.git
+cd football-predict
+
+# 2. Install dependencies
 npm install
-```
 
-### 2. Thiết lập cơ sở dữ liệu và seed dữ liệu ban đầu:
-Hệ thống sẽ tự động khởi tạo file database `worldcup_predictions.db`, chạy các migrations và nhập (seeding) dữ liệu cấu hình và 48 đội tuyển mặc định trong lần khởi chạy đầu tiên.
+# 3. Set up environment variables
+cp .env.example .env.local
+# Edit .env.local with your API keys (Gemini, Tavily, Brave, Serper, Cloudinary)
 
-### 3. Chạy môi trường phát triển:
-```bash
+# 4. Run the development server
 npm run dev
 ```
 
-### 4. Truy cập giao diện:
-* Trang chủ: [http://localhost:3000](http://localhost:3000)
-* Trang thống kê & gợi ý kèo (BA): [http://localhost:3000/stats](http://localhost:3000/stats)
-* Trang quản trị & cấu hình: [http://localhost:3000/admin](http://localhost:3000/admin)
+The database (`worldcup_predictions.db`) and 48 team records are auto-created and seeded on first run.
+
+### Available Pages
+
+| Route | Description |
+|-------|------------|
+| `/` | Match schedule with live scores & AI prediction cards |
+| `/stats` | Performance analytics & team stats sync |
+| `/admin` | System configuration, model management & backtesting |
+| `/login` / `/signup` | Authentication (Google OAuth2 + email) |
 
 ---
 
-## 🛠️ Nhật Ký Thay Đổi (Changelog)
+## Project Structure
 
 ### [2026-06-16] - Tích hợp trang cá nhân Tài khoản, đổi mật khẩu và sửa lỗi di động (v1.9.3)
 * **Tích hợp trang cá nhân /account**: Phát triển trang cá nhân hiển thị chi tiết (username, email, loại tài khoản, ngày tham gia) và form đổi mật khẩu cho người dùng cục bộ.
@@ -133,78 +179,52 @@ npm run dev
 * **Bộ script kiểm tra Rate Limit và phản hồi model**: Bổ sung các công cụ test model trong `scratch/` tự động bypass SSL/Proxy và lưu báo cáo hiệu năng.
 * **Đồng bộ hóa Prompt hệ thống giữa Local và Prod**: Kiểm tra chênh lệch dữ liệu giữa Local SQLite và Turso DB Production. Thực hiện đồng bộ 2 chiều: cập nhật `predict_critic_template` mới nhất lên Prod, đồng bộ các prompt `match_chat_system` và `sync_fixtures_template` từ Prod về Local. Đảm bảo 6/6 prompt khớp nhau 100% trên cả 2 môi trường. Cập nhật file cấu trúc `scripts/migrate.mjs` để đồng bộ prompt mặc định mới nhất tránh bị ghi đè, đồng thời thiết lập `scratch/backup_prompts.mjs` sao lưu dữ liệu prompt về thư mục dự án cục bộ an toàn.
 
-### [2026-06-14] - Tải lên nhiều hình ảnh (1-10 ảnh) trong Chat AI, nén Canvas và Tối ưu SSR (v1.9.1)
-* **Tải lên nhiều hình ảnh (1-10 ảnh) trong Chat AI:** Cho phép đính kèm cùng lúc tối đa 10 ảnh trong ô chat AI trợ lý.
-* **Đính kèm ảnh khi gửi câu hỏi gợi ý nhanh:** Tự động thu thập và gửi kèm mảng ảnh đính kèm hiện tại khi sếp click vào câu hỏi gợi ý nhanh, đồng thời xóa xem trước ảnh.
-* **Tự động nén ảnh bằng Canvas ở Client-side:** Nén chất lượng hình ảnh về JPEG 0.7 và giảm chiều dài tối đa còn 800px trước khi tải lên, giữ dung lượng payload API luôn dưới 4MB.
-* **Hiển thị lưới ảnh đính kèm và phóng to:** Render lưới ảnh đính kèm trong tin nhắn (120x120px) và hỗ trợ click xem ảnh lớn trong tab mới, tương thích ngược với tin nhắn cũ.
-* **Xử lý upload ảnh Cloudinary song song:** Sử dụng `Promise.all` để tải nhiều ảnh lên Cloudinary đồng thời, loại bỏ nguy cơ nghẽn thời gian chờ (Timeout) và lưu dạng chuỗi JSON stringified vào cơ sở dữ liệu.
-* **Chuyển đổi sang Dynamic Rendering (SSR) cho Trang chủ và Chi tiết:** Thiết lập `export const dynamic = 'force-dynamic'` để Next.js luôn render động trên mỗi request, loại bỏ lỗi lưu cache trang tĩnh.
-* **Tối ưu hóa Bottom Navigation và SQL Query:** Thu gọn kích thước thanh nav chân trang và tối ưu hóa truy vấn Database song song trên trang chủ bằng `Promise.all`.
+---
 
-### [2026-06-13] - Dự đoán Hiệp 1 & Hiệp 2, tích hợp Cloudinary và Cấu hình động AI Model (v1.9.0)
-* **Hiển thị bảng phân tích trực quan:** Tự động định dạng lại các bảng phân tích dữ liệu, xác suất tỉ số hoặc kèo phụ của AI thành bảng HTML gọn gàng, đẹp mắt.
-* **Dán hình ảnh từ khay nhớ tạm (Ctrl+V):** Hỗ trợ dán trực tiếp hình ảnh từ khay nhớ tạm (clipboard) vào ô nhập liệu chat để gửi phân tích nhanh.
-* **Lưu trữ hình ảnh hội thoại vĩnh viễn:** Tích hợp Cloudinary lưu trữ lâu dài hình ảnh bảng cược hoặc ảnh do người dùng gửi trong chat, hiển thị lại đầy đủ khi xem lịch sử.
-* **Cấu hình động tính năng xử lý ảnh:** Bổ sung switch bật/tắt khả năng phân tích ảnh của từng mô hình AI trong trang quản trị.
-* **Tối ưu hóa trải nghiệm cuộn khung chat:** Sửa lỗi màn hình tự động giật cuộn xuống dưới cùng khi đang chat. Hệ thống chỉ tự động cuộn xuống dưới cùng một lần duy nhất khi lần đầu mở trang để giúp người dùng đọc lịch sử hội thoại ổn định hơn.
-* **Tự động phục hồi khi lỗi máy chủ ảnh:** Thiết lập bẫy lỗi try-catch cho luồng upload, nếu Cloudinary lỗi, hệ thống tự động fallback tiếp tục chat text bình thường.
-* **Tính năng dự đoán Hiệp 1 và Hiệp 2:** Dự đoán, lưu trữ và thống kê hiệu suất riêng biệt.
-* **Cập nhật tỷ lệ Poisson:** Hiệp 1 (góc * 0.47, thẻ * 0.35, lambda * 0.45); Hiệp 2 (góc * 0.53, thẻ * 0.65, lambda * 0.55 + cộng dồn tỷ số H1 thực tế).
-* **Tích hợp form cập nhật thủ công:** Cho phép admin nhập tỷ số cả trận và tỷ số hiệp 1 thực tế trên trang chi tiết trận đấu để chấm cược.
-* **Sửa lỗi lệch tham số INSERT SQLite:** Xóa bỏ 1 dấu hỏi chấm `?` bị thừa trong câu lệnh `INSERT INTO predictions` của API Predict, giúp lưu trữ dự đoán thành công vào database mà không bị crash.
+## How It Works
 
-### [2026-06-12] - Gỡ bỏ xác thực Admin trên Production & Tự động chấm cược (v1.8.0)
-* **Gỡ bỏ xác thực Admin:** Loại bỏ hoàn toàn password gate trên môi trường production.
-* **Tự động chấm cược:** AI tự động đọc tỷ số thực tế từ fixtures.json để chấm điểm cược khi dự đoán trận đấu quá khứ.
+```mermaid
+sequenceDiagram
+    participant User as Browser
+    participant API as Next.js API
+    participant Math as Poisson + Monte Carlo
+    participant RAG as Search APIs
+    participant LLM as Gemini AI
 
-### [2026-06-11] - Tính năng đồng bộ cấu hình nhanh và sửa lỗi dự đoán (v1.7.1)
-* **Tính năng đồng bộ cấu hình nhanh:** Bổ sung tùy chọn đồng bộ nhanh các cài đặt và khóa chức năng từ hệ thống máy chủ vào ứng dụng thông qua giao diện quản trị, tự động loại bỏ các cài đặt trùng lặp để tối ưu hóa hiệu năng.
-* **Khắc phục lỗi dự đoán:** Sửa lỗi phân tích trận đấu bị gián đoạn và không hiển thị kết quả khi chạy thực tế.
+    User->>API: POST /api/predict (matchId)
+    API->>API: Check SQLite cache (<50ms if fresh)
+    alt Cache miss or expired
+        API->>Math: Run 10K Monte Carlo simulations
+        Math-->>API: Probabilities, scorelines, BTTS, O/U
+        API->>RAG: Fetch ELO, injuries, form (Tavily/Brave/Serper)
+        RAG-->>API: Real-time context
+        API->>LLM: Prompt (math baseline + RAG context + lessons)
+        LLM-->>API: Structured prediction JSON
+        API->>API: Save to SQLite cache
+    end
+    API-->>User: Full analysis + Monte Carlo panel
+```
 
-### [2026-06-07] - Nạp 50 trận đấu CLB mới, bộ lọc Mùa giải, Cải tiến Logic Handicap & Phạt góc & Chống Look-ahead Bias (v1.7.0)
-* **Tích hợp 50 trận đấu thực tế mới**: Thêm 30 trận EPL và 20 trận La Liga mùa giải 2024-2025 vào dữ liệu. Bổ sung thuộc tính `season` cho toàn bộ 187 trận đấu trong `fixtures.json`.
-* **Bộ lọc mùa giải trên Trang chủ**: Thiết kế bộ lọc Mùa giải (Season Filter) cạnh dropdown Giải đấu, hỗ trợ khôi phục/lưu `localStorage` (`homepage_season_filter`) và UX Gating tự động reset tránh màn hình trống.
-* **Cải tiến logic cược Handicap & Phạt góc**: Lưu mốc chấp nhà cái `handicap_line` vào SQLite, bắt buộc AI đối chiếu tỉ số dự đoán để khuyên dùng kèo Handicap chuẩn xác; tích hợp kịch bản phạt góc (wing-play/tiki-taka) và thẻ phạt (knock-out/derby) vào prompt.
-* **Mốc neo Poisson cứng**: Ép AI bắt buộc phải lấy tỷ số Poisson thô làm điểm tựa thực lực, mọi điều chỉnh tỷ số sau đó chỉ được phép dao động tối đa **±1 bàn**.
-* **Chống rò rỉ dữ liệu tương lai (Look-ahead Bias)**: Phát triển cơ chế tự động tái dựng chỉ số lịch sử (`recent_form`, `asian_handicap_form`, bàn thắng trung bình) của hai đội tại thời điểm trước ngày diễn ra trận đấu dựa trên dữ liệu các trận đã đấu trước đó trong `fixtures.json` khi chạy Backtest các trận đấu quá khứ.
-* **Quản lý ELO an toàn & Phân biệt CLB/ĐTQG**: Phân biệt query search internet cho CLB (`club`) và ĐTQG (`national team`). Tích hợp logic validate ELO trong khoảng `1000 - 2500` để tránh việc AI cào nhầm thứ hạng thế giới thành điểm ELO.
-* **Cập nhật UI Stats hiển thị 4 trường mới**: Panel kết quả cập nhật AI tại trang Thống kê hiển thị phạt góc trung bình, lối chơi dịch nghĩa và phong độ handicap dạng vòng tròn màu (W/D/L) có cơ chế optional chaining chống crash giao diện.
-* **Sửa lỗi Quota Exceeded (429) ở kết quả tự động**: Tái sử dụng API Key/Model đã chạy thành công trước đó trong tiến trình Self-Retrospective, và bỏ qua việc gọi AI tạo bài học mới nếu đã tồn tại `match_id` trong DB.
-* **Logo và cờ Câu lạc bộ**: Tự động render logo tròn từ CDN cho các câu lạc bộ (EPL & La Liga) thay vì cờ quốc gia.
+---
 
-### [2026-06-07] - Tăng cỡ mẫu qua dữ liệu Euro 2024 & Bộ lọc giải đấu (v1.6.0)
-* **Dữ liệu thực tế Euro 2024:** Nhập 51 trận đấu có sẵn tỉ số thực tế của Euro 2024 dưới dạng trận test (`isTest: true`).
-* **Bộ lọc giải đấu trang chủ & thống kê:** Thêm bộ lọc dropdown chọn giải đấu (World Cup 2026 / Euro 2024) ở cả trang chủ và thống kê giúp dễ dàng phân loại, theo dõi hiệu suất.
-* **Bảng điều khiển Backtesting:** Xây dựng Tab Backtest trong `/admin` với cơ chế Client-Driven Loop gọi API tuần tự (delay 2s), tắt RAG Search chống rò rỉ kết quả và chạy Fast Mode (Gemini Flash) tiết kiệm chi phí.
-* **Tài liệu hóa:** Cập nhật CHANGELOG.md và README.md lên phiên bản v1.6.0.
-* **Sửa lỗi chấm điểm Backtest:** Sửa lỗi logic hiển thị Đúng/Sai ở Client-side admin page và chuẩn hóa cấu trúc kết quả tự động.
+## Contributing
 
-### [2026-06-06] - Tích hợp 4 Option nâng cấp độ tin cậy AI & Cơ chế Model Rotation (v1.5.0)
-* **Consensus đa tác nhân & Groq API:** Tích hợp Groq REST API, chạy song song Gemini + Groq tạo bản nháp và dùng Gemini làm trọng tài phản biện Critic.
-* **Model Rotation (Xoay vòng AI Models):** Tự động chuyển đổi sang mô hình có độ ưu tiên thấp hơn tiếp theo nếu mô hình ưu tiên trước gặp lỗi (413, 429, 503), đi kèm Cool Down thông minh 5 phút.
-* **Tự động rút kinh nghiệm (Self-Retrospective):** Tự động phân tích lý do đoán sai kèo và ghi nhận bài học kinh nghiệm vào database để phục vụ In-Context Learning.
-* **ELO Scraper thời gian thực:** Quét internet cập nhật ELO và FIFA Rank của đội tuyển trước khi dự đoán.
-* **Hybrid ML Model:** Viết thuật toán Logistic Regression & Naive Bayes bằng JS thuần tính toán xác suất baseline định lượng.
-* **Sửa lỗi Admin panel:** Sửa lỗi sập trang Admin (ReferenceError) liên quan đến `newKeyProvider` và `newModelProvider`.
-* **Đồng bộ nhãn header:** Format trực quan thông tin mô hình đồng thuận (`Đa tác nhân: Gemini... + Groq...`) và hiển thị động trên Header của trang chi tiết.
+Contributions are welcome! Please open an issue first to discuss what you'd like to change.
 
-### [2026-06-06] - Cập nhật Cache dự đoán & Mô phỏng Monte Carlo 10,000 lần (v1.4.0)
-* **Cơ chế Caching thông minh (SQLite):** Lưu trữ kết quả dự đoán trận đấu, tự động bypass cache nếu quá 24h hoặc nếu chỉ số của 2 đội bóng thay đổi trong database.
-* **Mô phỏng Monte Carlo:** Triển khai thuật toán Knuth ngẫu nhiên Poisson chạy 10,000 lần để tính toán xác suất 1X2 động, BTTS, Tài Xỉu, và top 5 tỉ số khả thi nhất. Tích hợp dữ liệu mô phỏng này vào Prompt AI làm thông tin định lượng đầu vào.
-* **Giao diện Modal Dự Đoán Nâng Cao:** Thiết kế Panel Monte Carlo trực quan cao cấp, hiển thị nhãn cache rõ ràng và thêm nút bấm **"🔄 Phân tích lại"** để người dùng làm mới dự đoán AI bất cứ lúc nào.
-* **Tài liệu hóa:** Cập nhật CHANGELOG.md và README.md lên phiên bản 1.4.0.
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-### [2026-06-06] - Cập nhật đồng bộ Stats AI/Search & Thống kê
-* **Tính năng mới:** Phát triển API `/api/admin/teams/ai-update` cho phép cập nhật chỉ số đội tuyển từ Internet (FIFA Rank, ELO, Goals, Form, Stars, Tactics) bằng AI Gemini kết hợp Search RAG.
-* **Giao diện trang Stats:** Bổ sung Panel "Đồng bộ Stats bằng AI & Search" cho phép chọn nhanh đội tuyển từ danh sách để chạy đồng bộ.
-* **Giao diện Trang chủ:** Bổ sung nút **"⚡ Stats AI"** (Grid view) và **📊** (List view) trên mỗi Card trận đấu giúp cập nhật stats nhanh của 2 đội bóng song song, đi kèm Toast thông báo glassmorphism cao cấp.
-* **Tài liệu:** Khởi tạo tài liệu [walkthrough.md](file:///C:/Users/Admin/.gemini/antigravity-ide/brain/057d7df7-a0a7-45e4-aee3-bf2a9fdf7082/walkthrough.md) và [task.md](file:///C:/Users/Admin/.gemini/antigravity-ide/brain/057d7df7-a0a7-45e4-aee3-bf2a9fdf7082/task.md) để theo dõi tiến độ và nghiệm thu.
+---
 
-### [2026-06-05] - Cập nhật Hybrid AI Predictor & Quản lý đội tuyển SQLite
-* **SQLite teams Schema & Seeding:** Khởi tạo bảng `teams` trong SQLite và seed dữ liệu chi tiết cho 48 đội tuyển World Cup 2026.
-* **Poisson Model:** Xây dựng thuật toán phân phối Poisson tính xG và xác suất trận đấu làm baseline định lượng cho AI, áp dụng hệ số sân nhà (+0.3 xG) cho Mexico, Canada, USA.
-* **Consensus Engine:** Triển khai Multi-Model Consensus Engine gọi song song 2 models AI hàng đầu để lấy tỷ lệ xác suất đồng thuận.
-* **Admin nâng cấp:** Thêm Tab "Quản lý đội tuyển" trong `/admin` và Modal Glassmorphism cho phép chỉnh sửa thủ công (Manual Update).
-* **Đồng bộ lịch thi đấu:** Đồng bộ 48 trận đấu vòng bảng chính thức vào [fixtures.json](file:///d:/Projects/Football_Predict/src/data/fixtures.json), sửa cờ Ivory Coast và khắc phục triệt để lỗi cờ trắng.
-* **Trang thống kê:** Xây dựng trang `/stats` thống kê hiệu suất dự đoán lịch sử của AI và gợi ý kèo ngon BA (Bet Analyst) tự động.
+## License
+
+This project is licensed under the **MIT License** — see the [LICENSE](./LICENSE) file for details.
+
+---
+
+## Changelog
+
+See [CHANGELOG.md](./changelog.md) for the full version history.
