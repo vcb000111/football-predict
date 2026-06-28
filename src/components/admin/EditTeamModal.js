@@ -98,6 +98,65 @@ export default function EditTeamModal({
               </div>
             </div>
 
+            {/* Hàng 3: Chỉ số phạt góc và thẻ phạt */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-[10px] text-gray-400 font-black uppercase">Góc kiếm được</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  name="avg_corners_won"
+                  value={editFormData.avg_corners_won ?? ''}
+                  onChange={onChange}
+                  placeholder="4.5"
+                  min="0"
+                  className="w-full bg-[#0d1527] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-secondary/60 font-mono"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] text-gray-400 font-black uppercase">Góc chịu</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  name="avg_corners_conceded"
+                  value={editFormData.avg_corners_conceded ?? ''}
+                  onChange={onChange}
+                  placeholder="4.5"
+                  min="0"
+                  className="w-full bg-[#0d1527] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-secondary/60 font-mono"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] text-gray-400 font-black uppercase">Thẻ/trận</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  name="avg_cards_received"
+                  value={editFormData.avg_cards_received ?? ''}
+                  onChange={onChange}
+                  placeholder="1.8"
+                  min="0"
+                  className="w-full bg-[#0d1527] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-secondary/60 font-mono"
+                />
+              </div>
+            </div>
+
+            {/* Hàng 4: Phong cách lối chơi */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] text-gray-400 font-black uppercase">Phong cách lối chơi</label>
+              <select
+                name="play_style"
+                value={editFormData.play_style || 'mixed'}
+                onChange={onChange}
+                className="w-full bg-[#0d1527] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-secondary/60"
+              >
+                <option value="mixed">Lối chơi đa dạng</option>
+                <option value="wing_play">Tạt cánh đánh biên</option>
+                <option value="tiki_taka">Kiểm soát bóng ngắn</option>
+                <option value="counter_attack">Phòng ngự phản công</option>
+              </select>
+            </div>
+
             {/* Row 3: Form */}
             <div className="space-y-1.5">
               <label className="text-[10px] text-gray-400 font-black uppercase flex justify-between">

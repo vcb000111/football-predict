@@ -407,6 +407,7 @@ export async function getDB() {
         avg_corners_conceded REAL DEFAULT 4.5,
         avg_cards_received REAL DEFAULT 1.8,
         style_of_play TEXT DEFAULT 'Cân bằng',
+        play_style TEXT DEFAULT 'mixed',
         key_players TEXT,
         tactical_analysis TEXT,
         last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -424,6 +425,9 @@ export async function getDB() {
     } catch (e) {}
     try {
       await localDb.exec(`ALTER TABLE teams ADD COLUMN style_of_play TEXT DEFAULT 'Cân bằng'`);
+    } catch (e) {}
+    try {
+      await localDb.exec(`ALTER TABLE teams ADD COLUMN play_style TEXT DEFAULT 'mixed'`);
     } catch (e) {}
 
     await localDb.exec(`

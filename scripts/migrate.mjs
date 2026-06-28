@@ -221,6 +221,7 @@ async function runMigration() {
       avg_corners_conceded REAL DEFAULT 4.5,
       avg_cards_received REAL DEFAULT 1.8,
       style_of_play TEXT DEFAULT 'Cân bằng',
+      play_style TEXT DEFAULT 'mixed',
       key_players TEXT,
       tactical_analysis TEXT,
       last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -231,7 +232,8 @@ async function runMigration() {
     { name: 'avg_corners_won', type: 'REAL DEFAULT 4.5' },
     { name: 'avg_corners_conceded', type: 'REAL DEFAULT 4.5' },
     { name: 'avg_cards_received', type: 'REAL DEFAULT 1.8' },
-    { name: 'style_of_play', type: 'TEXT DEFAULT \'Cân bằng\'' }
+    { name: 'style_of_play', type: 'TEXT DEFAULT \'Cân bằng\'' },
+    { name: 'play_style', type: 'TEXT DEFAULT \'mixed\'' }
   ];
   for (const col of teamsColumns) {
     try {

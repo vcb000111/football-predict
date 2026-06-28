@@ -53,6 +53,10 @@ export default function AdminConfigPage() {
     recent_form: '',
     avg_goals_scored: '',
     avg_goals_conceded: '',
+    avg_corners_won: '',
+    avg_corners_conceded: '',
+    avg_cards_received: '',
+    play_style: 'mixed',
     key_players: '',
     tactical_analysis: ''
   });
@@ -817,6 +821,10 @@ Chú ý: Chỉ trả về chuỗi JSON thô, không chứa markdown, không có 
       recent_form: team.recent_form ?? '',
       avg_goals_scored: team.avg_goals_scored ?? '',
       avg_goals_conceded: team.avg_goals_conceded ?? '',
+      avg_corners_won: team.avg_corners_won ?? 4.5,
+      avg_corners_conceded: team.avg_corners_conceded ?? 4.5,
+      avg_cards_received: team.avg_cards_received ?? 1.8,
+      play_style: team.play_style || team.style_of_play || 'mixed',
       key_players: team.key_players ?? '',
       tactical_analysis: team.tactical_analysis ?? ''
     });

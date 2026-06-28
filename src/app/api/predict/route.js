@@ -444,8 +444,10 @@ export async function POST(request) {
       avg_goals_conceded: 1.2, 
       avg_corners_won: 4.5,
       avg_corners_conceded: 4.5,
+      avg_cards_received: 1.8,
       asian_handicap_form: "D,D,D,D,D",
       play_style: "mixed",
+      style_of_play: "mixed",
       key_players: "Chưa có thông tin", 
       tactical_analysis: "Đang cập nhật" 
     };
@@ -458,8 +460,10 @@ export async function POST(request) {
       avg_goals_conceded: 1.2, 
       avg_corners_won: 4.5,
       avg_corners_conceded: 4.5,
+      avg_cards_received: 1.8,
       asian_handicap_form: "D,D,D,D,D",
       play_style: "mixed",
+      style_of_play: "mixed",
       key_players: "Chưa có thông tin", 
       tactical_analysis: "Đang cập nhật" 
     };
@@ -474,6 +478,13 @@ export async function POST(request) {
         console.error('Lỗi khi đọc chỉ số đội tuyển từ SQLite:', err);
       }
     }
+
+    homeTeamData.play_style = homeTeamData.play_style || homeTeamData.style_of_play || 'mixed';
+    homeTeamData.style_of_play = homeTeamData.style_of_play || homeTeamData.play_style;
+    homeTeamData.avg_cards_received = Number.isFinite(Number(homeTeamData.avg_cards_received)) ? Number(homeTeamData.avg_cards_received) : 1.8;
+    awayTeamData.play_style = awayTeamData.play_style || awayTeamData.style_of_play || 'mixed';
+    awayTeamData.style_of_play = awayTeamData.style_of_play || awayTeamData.play_style;
+    awayTeamData.avg_cards_received = Number.isFinite(Number(awayTeamData.avg_cards_received)) ? Number(awayTeamData.avg_cards_received) : 1.8;
 
     // --- KHẮC PHỤC RÒ RỈ DỮ LIỆU LỊCH SỬ (LOOK-AHEAD BIAS) KHI BACKTEST / QUÁ KHỨ ---
     // Nếu ở chế độ Backtest hoặc giải đấu thuộc quá khứ (Euro 2024, Premier League/La Liga 2024-2025)
@@ -935,8 +946,8 @@ Lưu ý: Chỉ trả về chuỗi JSON thô, không nằm trong các thẻ code 
       return 'Lối chơi đa dạng (Mixed style)';
     };
 
-    const homeStatsString = `FIFA Rank: #${homeTeamData.fifa_rank}, ELO Rating: ${homeTeamData.elo_rating}. Phong độ gần đây: ${homeTeamData.recent_form}. Phong độ Handicap châu Á (5 trận gần nhất): ${homeTeamData.asian_handicap_form || 'D,D,D,D,D'}. Số bàn thắng ghi được TB: ${homeTeamData.avg_goals_scored}/trận, Bàn thua TB: ${homeTeamData.avg_goals_conceded}/trận. Phạt góc kiếm được TB: ${homeTeamData.avg_corners_won || 4.5}/trận, chịu phạt góc TB: ${homeTeamData.avg_corners_conceded || 4.5}/trận. Lối đá chủ đạo: ${getPlayStyleName(homeTeamData.play_style)}. Ngôi sao: ${homeTeamData.key_players}. Lối chơi chiến thuật: ${homeTeamData.tactical_analysis}.`;
-    const awayStatsString = `FIFA Rank: #${awayTeamData.fifa_rank}, ELO Rating: ${awayTeamData.elo_rating}. Phong độ gần đây: ${awayTeamData.recent_form}. Phong độ Handicap châu Á (5 trận gần nhất): ${awayTeamData.asian_handicap_form || 'D,D,D,D,D'}. Số bàn thắng ghi được TB: ${awayTeamData.avg_goals_scored}/trận, Bàn thua TB: ${awayTeamData.avg_goals_conceded}/trận. Phạt góc kiếm được TB: ${awayTeamData.avg_corners_won || 4.5}/trận, chịu phạt góc TB: ${awayTeamData.avg_corners_conceded || 4.5}/trận. Lối đá chủ đạo: ${getPlayStyleName(awayTeamData.play_style)}. Ngôi sao: ${awayTeamData.key_players}. Lối chơi chiến thuật: ${awayTeamData.tactical_analysis}.`;
+    const homeStatsString = `FIFA Rank: #${homeTeamData.fifa_rank}, ELO Rating: ${homeTeamData.elo_rating}. Phong độ gần đây: ${homeTeamData.recent_form}. Phong độ Handicap châu Á (5 trận gần nhất): ${homeTeamData.asian_handicap_form || 'D,D,D,D,D'}. Số bàn thắng ghi được TB: ${homeTeamData.avg_goals_scored}/trận, Bàn thua TB: ${homeTeamData.avg_goals_conceded}/trận. Phạt góc kiếm được TB: ${homeTeamData.avg_corners_won || 4.5}/trận, chịu phạt góc TB: ${homeTeamData.avg_corners_conceded || 4.5}/trận. Thẻ phạt TB: ${homeTeamData.avg_cards_received || 1.8}/trận. Lối đá chủ đạo: ${getPlayStyleName(homeTeamData.play_style)}. Ngôi sao: ${homeTeamData.key_players}. Lối chơi chiến thuật: ${homeTeamData.tactical_analysis}.`;
+    const awayStatsString = `FIFA Rank: #${awayTeamData.fifa_rank}, ELO Rating: ${awayTeamData.elo_rating}. Phong độ gần đây: ${awayTeamData.recent_form}. Phong độ Handicap châu Á (5 trận gần nhất): ${awayTeamData.asian_handicap_form || 'D,D,D,D,D'}. Số bàn thắng ghi được TB: ${awayTeamData.avg_goals_scored}/trận, Bàn thua TB: ${awayTeamData.avg_goals_conceded}/trận. Phạt góc kiếm được TB: ${awayTeamData.avg_corners_won || 4.5}/trận, chịu phạt góc TB: ${awayTeamData.avg_corners_conceded || 4.5}/trận. Thẻ phạt TB: ${awayTeamData.avg_cards_received || 1.8}/trận. Lối đá chủ đạo: ${getPlayStyleName(awayTeamData.play_style)}. Ngôi sao: ${awayTeamData.key_players}. Lối chơi chiến thuật: ${awayTeamData.tactical_analysis}.`;
 
     const poissonMonteCarloString = `* Số bàn thắng kỳ vọng (xG): Đội nhà ${poissonResult.expectedGoals.home} vs Đội khách ${poissonResult.expectedGoals.away}.
 * Mốc kèo Tài Xỉu khuyến nghị: ${ou_line} bàn.

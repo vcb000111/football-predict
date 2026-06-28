@@ -340,8 +340,8 @@ export function calculateCornersAndCards(homeStats, awayStats, iterations = 1000
   let lambdaAwayCorners = (awayCornersWon + homeCornersConceded) / 2;
 
   // Điều chỉnh theo style thi đấu phạt góc
-  const homeStyle = (homeStats.style_of_play || '').toLowerCase();
-  const awayStyle = (awayStats.style_of_play || '').toLowerCase();
+  const homeStyle = (homeStats.play_style || homeStats.style_of_play || '').toLowerCase();
+  const awayStyle = (awayStats.play_style || awayStats.style_of_play || '').toLowerCase();
 
   if (homeStyle.includes('tạt cánh') || homeStyle.includes('biên') || homeStyle.includes('cánh')) {
     lambdaHomeCorners *= 1.15;

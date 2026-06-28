@@ -52,7 +52,65 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
   const [customTournament, setCustomTournament] = useState('');
   const [customSeason, setCustomSeason] = useState('');
   const [syncPreviewMatches, setSyncPreviewMatches] = useState(null);
+  const [selectedPreviewKeys, setSelectedPreviewKeys] = useState([]);
   const [isImporting, setIsImporting] = useState(false);
+
+  const getPreviewMatchKey = (match, index) => {
+    if (match?.candidateId) return `candidate-${match.candidateId}`;
+    if (match?.id) return `fixture-${match.id}`;
+    return `preview-${index}`;
+  };
+
+  const buildDefaultPreviewSelection = (matches) =>
+    matches
+      .map((match, index) => (match.isValidated !== false ? getPreviewMatchKey(match, index) : null))
+      .filter(Boolean);
+
+  const previewMatchToFixture = (match) => ({
+    id: match.id || (match.matchNumber ? `m${match.matchNumber}` : undefined),
+    homeTeam: match.homeTeam,
+    awayTeam: match.awayTeam,
+    date: match.date,
+    time: match.time,
+    group: match.group,
+    venue: match.venue,
+    tournament: match.tournament,
+    season: match.season,
+    actualHomeScore: null,
+    actualAwayScore: null,
+    actualFirstHalfScore: null,
+    isTest: false
+  });
+
+  const mergeAppliedFixtures = (appliedMatches) => {
+    setLocalFixtures((prev) => {
+      const map = new Map(prev.map((fixture) => [fixture.id, fixture]));
+      appliedMatches.forEach((match) => {
+        const fixture = previewMatchToFixture(match);
+        if (!fixture.id) return;
+        map.set(fixture.id, { ...(map.get(fixture.id) || {}), ...fixture });
+      });
+      return Array.from(map.values());
+    });
+  };
+
+  const removeAppliedPreviewMatches = (appliedMatches) => {
+    const appliedKeys = new Set(appliedMatches.map((match, index) => getPreviewMatchKey(match, index)));
+
+    setSelectedPreviewKeys((prev) => prev.filter((key) => !appliedKeys.has(key)));
+    setSyncPreviewMatches((prev) => {
+      if (!prev) return null;
+      const remaining = prev.filter((match, index) => !appliedKeys.has(getPreviewMatchKey(match, index)));
+      if (remaining.length === 0) {
+        setSelectedPreviewKeys([]);
+        setTimeout(() => {
+          window.location.reload();
+        }, 600);
+        return null;
+      }
+      return remaining;
+    });
+  };
 
   const [quickPredicting, setQuickPredicting] = useState({});
   const [activePredictMenu, setActivePredictMenu] = useState(null);
@@ -416,10 +474,14 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
       const previewMatches = data.candidates || data.newFixtures || [];
       if (previewMatches.length > 0) {
         setSyncPreviewMatches(previewMatches);
+        setSelectedPreviewKeys(buildDefaultPreviewSelection(previewMatches));
         setShowSyncConfigModal(false);
         showToast(data.message || `Quét thành công! Tìm thấy ${previewMatches.length} thay đổi lịch đấu.`, true);
       } else {
-        showToast(data.message || 'Không có thay đổi lịch đấu mới nào được tìm thấy.', true);
+        const message = data.message || 'Lịch đấu đã đồng bộ, không có thay đổi mới.';
+        setShowSyncConfigModal(false);
+        setSyncMessage({ success: true, text: message });
+        showToast(message, true);
       }
     } catch (err) {
       showToast(`Đồng bộ thất bại: ${err.message}`, false);
@@ -449,11 +511,9 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Lỗi khi apply lịch đấu');
 
+        mergeAppliedFixtures(canonicalCandidates);
+        removeAppliedPreviewMatches(canonicalCandidates);
         showToast(data.message || 'Đã apply lịch đấu thành công!', true);
-        setSyncPreviewMatches(null);
-        setTimeout(() => {
-          window.location.reload();
-        }, 1500);
         return;
       }
 
@@ -465,15 +525,12 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Lỗi khi import lịch thi đấu');
 
+      mergeAppliedFixtures(fixturesToImport);
+      removeAppliedPreviewMatches(fixturesToImport);
       showToast(data.message || 'Đã thêm trận đấu thành công!', true);
-      setSyncPreviewMatches(null);
-
-      // Reload trang để đồng bộ hoàn toàn dữ liệu
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
     } catch (err) {
       showToast(`Lỗi import: ${err.message}`, false);
+    } finally {
       setIsImporting(false);
     }
   };
@@ -1879,7 +1936,7 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                 disabled={syncing}
                 className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary hover:to-primary text-white font-bold py-2 px-5 rounded-xl text-xs transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
               >
-                {syncing ? '⌛ Đang quét...' : 'Bắt đầu quét (AI)'}
+                {syncing ? '⌛ Đang quét...' : 'Bắt đầu quét'}
               </button>
             </div>
           </div>
@@ -1889,7 +1946,12 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
       {/* SYNC PREVIEW MODAL */}
       {syncPreviewMatches && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="absolute inset-0" onClick={() => !isImporting && setSyncPreviewMatches(null)}></div>
+          <div className="absolute inset-0" onClick={() => {
+            if (!isImporting) {
+              setSyncPreviewMatches(null);
+              setSelectedPreviewKeys([]);
+            }
+          }}></div>
           <div className="glass-panel border border-card-border/80 rounded-2xl w-full max-w-3xl p-5 relative z-10 shadow-2xl animate-scale-in max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-start border-b border-card-border pb-3 mb-4">
               <div className="text-left">
@@ -1897,7 +1959,10 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                 <p className="text-[10px] text-gray-400 mt-1">Vui lòng rà soát nguồn, confidence và validator trước khi apply vào hệ thống.</p>
               </div>
               <button
-                onClick={() => !isImporting && setSyncPreviewMatches(null)}
+                onClick={() => {
+                  setSyncPreviewMatches(null);
+                  setSelectedPreviewKeys([]);
+                }}
                 disabled={isImporting}
                 className="text-gray-400 hover:text-white font-bold text-base p-1 transition-colors leading-none cursor-pointer disabled:opacity-50"
               >
@@ -1907,15 +1972,67 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
 
             {(() => {
               const hasInvalidPreviewMatches = syncPreviewMatches.some((match) => match.isValidated === false);
+              const selectableMatches = syncPreviewMatches
+                .map((match, index) => ({ match, index, key: getPreviewMatchKey(match, index) }))
+                .filter(({ match }) => match.isValidated !== false);
+              const selectableKeys = selectableMatches.map(({ key }) => key);
+              const allSelectableSelected = selectableKeys.length > 0 && selectableKeys.every((key) => selectedPreviewKeys.includes(key));
+              const selectedPreviewMatches = selectableMatches
+                .filter(({ key }) => selectedPreviewKeys.includes(key))
+                .map(({ match }) => match);
+              const selectedCount = selectedPreviewMatches.length;
+
+              const togglePreviewSelection = (key, checked) => {
+                setSelectedPreviewKeys((prev) => {
+                  if (checked) {
+                    return prev.includes(key) ? prev : [...prev, key];
+                  }
+                  return prev.filter((item) => item !== key);
+                });
+              };
+
+              const toggleSelectAllPreview = (checked) => {
+                setSelectedPreviewKeys(checked ? [...selectableKeys] : []);
+              };
+
               return (
                 <>
+            <div className="flex items-center justify-between rounded-lg border border-card-border/60 bg-card-border/10 px-3 py-2 mb-3">
+              <label className="flex items-center gap-2 cursor-pointer text-[11px] text-gray-300 font-semibold">
+                <input
+                  type="checkbox"
+                  checked={allSelectableSelected}
+                  onChange={(e) => toggleSelectAllPreview(e.target.checked)}
+                  disabled={isImporting || selectableKeys.length === 0}
+                  className="h-4 w-4 rounded border-card-border bg-transparent accent-primary cursor-pointer disabled:opacity-50"
+                />
+                Chọn tất cả ({selectableKeys.length})
+              </label>
+              <span className="text-[10px] text-gray-400 font-bold">
+                Đã chọn: {selectedCount}
+              </span>
+            </div>
+
             {/* Matches list */}
             <div className="space-y-2.5 max-h-[50vh] overflow-y-auto pr-1 text-xs">
               {syncPreviewMatches.length > 0 ? (
                 <div className="divide-y divide-card-border/30">
-                  {syncPreviewMatches.map((match, idx) => (
-                    <div key={idx} className="py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 text-left">
-                      <div className="flex-1">
+                  {syncPreviewMatches.map((match, idx) => {
+                    const matchKey = getPreviewMatchKey(match, idx);
+                    const isSelectable = match.isValidated !== false;
+                    const isSelected = selectedPreviewKeys.includes(matchKey);
+
+                    return (
+                    <div key={matchKey} className="py-2.5 flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-2 sm:space-y-0 text-left">
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          disabled={isImporting || !isSelectable}
+                          onChange={(e) => togglePreviewSelection(matchKey, e.target.checked)}
+                          className="mt-1 h-4 w-4 shrink-0 rounded border-card-border bg-transparent accent-primary cursor-pointer disabled:opacity-50"
+                        />
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2">
                           <span className="bg-primary/15 border border-primary/20 text-primary font-bold text-[9px] px-2 py-0.5 rounded-full uppercase">
                             {match.group}
@@ -1953,18 +2070,10 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
                           </p>
                         )}
                       </div>
-
-                      <div className="sm:ml-4 flex items-center justify-end">
-                        <button
-                          onClick={() => handleImportMatches([match])}
-                          disabled={isImporting || match.isValidated === false}
-                          className="bg-card-border hover:bg-primary/25 border border-card-border hover:border-primary/45 text-gray-200 hover:text-white font-bold py-1 px-3.5 rounded-lg text-[10.5px] transition-all cursor-pointer disabled:opacity-50"
-                        >
-                          {match.candidateId ? 'Apply' : 'Thêm'}
-                        </button>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-6 text-gray-400">
@@ -1981,7 +2090,10 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
 
             <div className="flex space-x-3 pt-3 border-t border-card-border justify-end mt-4">
               <button
-                onClick={() => setSyncPreviewMatches(null)}
+                onClick={() => {
+                  setSyncPreviewMatches(null);
+                  setSelectedPreviewKeys([]);
+                }}
                 disabled={isImporting}
                 className="bg-card-border hover:bg-card-border/85 border border-card-border text-white font-bold py-2 px-5 rounded-xl text-xs transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
               >
@@ -1989,11 +2101,15 @@ export default function HomePageClient({ initialData, isKeyConfigured, historyCo
               </button>
               {syncPreviewMatches.length > 0 && (
                 <button
-                  onClick={() => handleImportMatches(syncPreviewMatches)}
-                  disabled={isImporting || hasInvalidPreviewMatches}
+                  onClick={() => handleImportMatches(selectedPreviewMatches)}
+                  disabled={isImporting || selectedCount === 0}
                   className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary hover:to-primary text-white font-bold py-2 px-5 rounded-xl text-xs transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 flex items-center space-x-1.5"
                 >
-                  {isImporting ? '⌛ Đang apply...' : (syncPreviewMatches.some((match) => match.candidateId) ? 'Apply validated changes' : 'Thêm tất cả')}
+                  {isImporting
+                    ? '⌛ Đang apply...'
+                    : (syncPreviewMatches.some((match) => match.candidateId)
+                      ? `Apply đã chọn (${selectedCount})`
+                      : `Thêm đã chọn (${selectedCount})`)}
                 </button>
               )}
             </div>

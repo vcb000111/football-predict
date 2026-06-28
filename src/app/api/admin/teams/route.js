@@ -27,6 +27,10 @@ export async function POST(request) {
       recent_form, 
       avg_goals_scored, 
       avg_goals_conceded, 
+      avg_corners_won,
+      avg_corners_conceded,
+      avg_cards_received,
+      play_style,
       key_players, 
       tactical_analysis 
     } = await request.json();
@@ -49,6 +53,11 @@ export async function POST(request) {
              recent_form = ?, 
              avg_goals_scored = ?, 
              avg_goals_conceded = ?, 
+             avg_corners_won = ?,
+             avg_corners_conceded = ?,
+             avg_cards_received = ?,
+             play_style = ?,
+             style_of_play = ?,
              key_players = ?, 
              tactical_analysis = ?,
              last_updated = CURRENT_TIMESTAMP
@@ -59,6 +68,11 @@ export async function POST(request) {
           recent_form?.trim(), 
           parseFloat(avg_goals_scored) || 0, 
           parseFloat(avg_goals_conceded) || 0, 
+          parseFloat(avg_corners_won) || 4.5,
+          parseFloat(avg_corners_conceded) || 4.5,
+          parseFloat(avg_cards_received) || 1.8,
+          play_style || 'mixed',
+          play_style || 'mixed',
           key_players?.trim(), 
           tactical_analysis?.trim(), 
           id
@@ -72,6 +86,11 @@ export async function POST(request) {
              recent_form = ?, 
              avg_goals_scored = ?, 
              avg_goals_conceded = ?, 
+             avg_corners_won = ?,
+             avg_corners_conceded = ?,
+             avg_cards_received = ?,
+             play_style = ?,
+             style_of_play = ?,
              key_players = ?, 
              tactical_analysis = ?,
              last_updated = CURRENT_TIMESTAMP
@@ -82,6 +101,11 @@ export async function POST(request) {
           recent_form?.trim(), 
           parseFloat(avg_goals_scored) || 0, 
           parseFloat(avg_goals_conceded) || 0, 
+          parseFloat(avg_corners_won) || 4.5,
+          parseFloat(avg_corners_conceded) || 4.5,
+          parseFloat(avg_cards_received) || 1.8,
+          play_style || 'mixed',
+          play_style || 'mixed',
           key_players?.trim(), 
           tactical_analysis?.trim(), 
           team_name

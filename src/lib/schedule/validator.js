@@ -1,4 +1,4 @@
-import { fixtureIdentity, normalizeTeamName } from '@/lib/schedule/normalizer';
+import { fixtureIdentity, normalizeTeamName } from './normalizer.js';
 
 function canonicalRowToFixture(row) {
   if (!row) return null;

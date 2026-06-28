@@ -20,6 +20,7 @@ Hãy phân tích thông tin trên và trả về kết quả dưới dạng mộ
   "avg_goals_conceded": ${currentData.avg_goals_conceded || 1.2}, // Số thực, số bàn thua trung bình mỗi trận trong 10 trận gần nhất.
   "avg_corners_won": ${currentData.avg_corners_won || 4.5}, // Số thực, số quả phạt góc trung bình kiếm được mỗi trận gần đây.
   "avg_corners_conceded": ${currentData.avg_corners_conceded || 4.5}, // Số thực, số quả phạt góc trung bình phải nhận mỗi trận gần đây.
+  "avg_cards_received": ${currentData.avg_cards_received || 1.8}, // Số thực, số thẻ phạt trung bình phải nhận mỗi trận gần đây.
   "asian_handicap_form": "${currentData.asian_handicap_form || 'D,D,D,D,D'}", // Chuỗi dạng W,D,L thể hiện phong độ thắng kèo Handicap châu Á 5 trận gần nhất.
   "play_style": "${currentData.play_style || 'mixed'}", // Phong cách lối chơi chính, CHỈ chọn một trong bốn nhãn: "wing_play" (tạt cánh), "tiki_taka" (kiểm soát bóng ngắn), "counter_attack" (phòng ngự phản công), "mixed" (lối đá đa dạng).
   "key_players": "${(currentData.key_players || 'Đang cập nhật').replace(/"/g, '\\"')}", // Danh sách cầu thủ ngôi sao nổi bật nhất, cách nhau bởi dấu phẩy.
@@ -65,6 +66,7 @@ Chú ý quan trọng:
           avg_goals_conceded: parseFloat(parsed.avg_goals_conceded) >= 0 ? parseFloat(parsed.avg_goals_conceded) : currentData.avg_goals_conceded || 1.2,
           avg_corners_won: parseFloat(parsed.avg_corners_won) >= 0 ? parseFloat(parsed.avg_corners_won) : currentData.avg_corners_won || 4.5,
           avg_corners_conceded: parseFloat(parsed.avg_corners_conceded) >= 0 ? parseFloat(parsed.avg_corners_conceded) : currentData.avg_corners_conceded || 4.5,
+          avg_cards_received: parseFloat(parsed.avg_cards_received) >= 0 ? parseFloat(parsed.avg_cards_received) : currentData.avg_cards_received || 1.8,
           asian_handicap_form: typeof parsed.asian_handicap_form === 'string' && /^[WwDdLl](,[WwDdLl]){0,4}$/.test(parsed.asian_handicap_form)
             ? parsed.asian_handicap_form.toUpperCase()
             : currentData.asian_handicap_form || 'D,D,D,D,D',
@@ -161,6 +163,7 @@ export async function POST(request) {
             avg_goals_conceded: 1.2,
             avg_corners_won: 4.5,
             avg_corners_conceded: 4.5,
+            avg_cards_received: 1.8,
             asian_handicap_form: "D,D,D,D,D",
             play_style: "mixed",
             key_players: "Chưa có thông tin",
@@ -168,8 +171,8 @@ export async function POST(request) {
           };
           // Insert trước bản ghi rỗng
           await db.run(
-            `INSERT INTO teams (team_name, fifa_rank, elo_rating, recent_form, avg_goals_scored, avg_goals_conceded, key_players, tactical_analysis, avg_corners_won, avg_corners_conceded, asian_handicap_form, play_style)
-             VALUES (?, 50, 1600, 'D,D,D,D,D', 1.2, 1.2, 'Chưa có thông tin', 'Đang cập nhật', 4.5, 4.5, 'D,D,D,D,D', 'mixed')`,
+            `INSERT INTO teams (team_name, fifa_rank, elo_rating, recent_form, avg_goals_scored, avg_goals_conceded, key_players, tactical_analysis, avg_corners_won, avg_corners_conceded, avg_cards_received, asian_handicap_form, play_style, style_of_play)
+             VALUES (?, 50, 1600, 'D,D,D,D,D', 1.2, 1.2, 'Chưa có thông tin', 'Đang cập nhật', 4.5, 4.5, 1.8, 'D,D,D,D,D', 'mixed', 'mixed')`,
             [teamName]
           );
           const newRow = await db.get("SELECT * FROM teams WHERE team_name = ?", [teamName]);
@@ -184,7 +187,7 @@ export async function POST(request) {
         ];
         const isClub = clubs.includes(teamName);
         const teamTypeKeyword = isClub ? 'club' : 'national team';
-        const searchQuery = `"${teamName}" football ${teamTypeKeyword} ELO rating recent form tactical analysis 2026`;
+        const searchQuery = `"${teamName}" football ${teamTypeKeyword} ELO rating recent form tactical analysis average corners cards fouls 2026`;
         const searchResults = await searchInternet(searchQuery);
         const searchContext = searchResults.length > 0 
           ? searchResults.join('\n') 
@@ -211,8 +214,10 @@ export async function POST(request) {
                tactical_analysis = ?,
                avg_corners_won = ?,
                avg_corners_conceded = ?,
+               avg_cards_received = ?,
                asian_handicap_form = ?,
                play_style = ?,
+               style_of_play = ?,
                last_updated = CURRENT_TIMESTAMP
            WHERE team_name = ?`,
           [
@@ -225,7 +230,9 @@ export async function POST(request) {
             extracted.tactical_analysis,
             extracted.avg_corners_won,
             extracted.avg_corners_conceded,
+            extracted.avg_cards_received,
             extracted.asian_handicap_form,
+            extracted.play_style,
             extracted.play_style,
             teamName
           ]

@@ -136,6 +136,20 @@ export default function TeamsTab({
                         <span className="text-xs font-black text-gray-300 font-mono">{team.avg_goals_conceded ?? '0.0'}/trận</span>
                       </div>
                     </div>
+                    <div className="border-t border-white/5 pt-2 col-span-2 grid grid-cols-3 gap-2 text-center">
+                      <div>
+                        <span className="text-[8px] text-gray-500 font-bold uppercase block">Góc thắng</span>
+                        <span className="text-[11px] font-black text-emerald-400 font-mono">{team.avg_corners_won ?? 4.5}</span>
+                      </div>
+                      <div>
+                        <span className="text-[8px] text-gray-500 font-bold uppercase block">Góc chịu</span>
+                        <span className="text-[11px] font-black text-rose-400 font-mono">{team.avg_corners_conceded ?? 4.5}</span>
+                      </div>
+                      <div>
+                        <span className="text-[8px] text-gray-500 font-bold uppercase block">Thẻ</span>
+                        <span className="text-[11px] font-black text-amber-400 font-mono">{team.avg_cards_received ?? 1.8}</span>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Highlights and Tactics */}
