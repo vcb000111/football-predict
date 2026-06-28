@@ -2,6 +2,27 @@
 
 Tất cả những thay đổi nổi bật đối với dự án **FIFA World Cup 2026 AI Predictor** sẽ được ghi nhận tại đây.
 
+## [1.10.0] - 2026-06-28
+
+### Added (Thêm mới)
+* **Nguồn lịch đấu FIFA Calendar API chính thức**: Adapter `src/lib/schedule/sources/fifa.js` gọi trực tiếp `api.fifa.com/api/v3/calendar/matches` để lấy đủ 104 trận World Cup 2026, bao gồm vòng 32 với tên đội thật (thay vì placeholder kiểu "Group A 3rd Place" từ nguồn phụ).
+* **Parser lịch Roadtrips trực tiếp từ HTML**: Bổ sung parse bảng HTML live trên Roadtrips làm nguồn dự phòng (priority 2) khi FIFA API lỗi, vẫn fallback dataset cục bộ nếu cả hai thất bại.
+* **Chọn nhiều trận và apply theo lô trên modal preview sync**: Thêm checkbox từng trận, "Chọn tất cả" và nút "Apply đã chọn (N)" — popup không tự đóng sau mỗi lần apply; chỉ reload khi danh sách preview còn lại rỗng.
+* **Chỉ số phạt góc, thẻ và phong cách lối chơi trên form quản trị đội tuyển**: Mở rộng `EditTeamModal` với các trường `avg_corners_won`, `avg_corners_conceded`, `avg_cards_received`, `play_style` (wing_play / tiki_taka / counter_attack / mixed).
+* **Cột `play_style` trên bảng `teams`**: Migration tự động qua `scripts/migrate.mjs` và `src/lib/db.js`, đồng bộ với trường `style_of_play` hiện có.
+
+### Changed (Thay đổi logic)
+* **Luồng apply sync giữ popup mở**: `handleImportMatches` cập nhật `localFixtures` ngay sau apply, gỡ trận đã apply khỏi preview thay vì đóng modal và reload ngay.
+* **Đồng bộ AI cập nhật stats đội tuyển**: Prompt `/api/admin/teams/ai-update` bổ sung trích xuất `avg_cards_received`, mở rộng truy vấn search với từ khóa corners/cards/fouls, lưu đồng thời `play_style` và `style_of_play`.
+* **API lưu đội tuyển thủ công**: `/api/admin/teams` POST nhận và persist đầy đủ corners, cards, play_style.
+* **Prompt dự đoán AI bổ sung thẻ phạt trung bình**: `/api/predict` đưa `avg_cards_received` vào chuỗi stats gửi LLM; chuẩn hóa fallback `play_style` ↔ `style_of_play`.
+* **Poisson corners dùng `play_style`**: `calculateCornersAndCards` ưu tiên `play_style`, tương thích ngược `style_of_play`.
+* **Thông báo khi sync không có thay đổi**: Hiển thị panel trạng thái thay vì chỉ toast khi lịch đã đồng bộ.
+
+### Fixed (Sửa lỗi)
+* **Vòng 32 sync sai tên đội**: Khắc phục do FIFA adapter trước đó chỉ wrap Roadtrips placeholder — giờ lấy đúng cặp đấu từ FIFA Calendar API.
+* **Apply một trận làm ẩn popup preview**: Popup giữ mở để tiếp tục chọn và apply các trận còn lại.
+
 ## [1.9.3] - 2026-06-16
 
 ### Added (Thêm mới)

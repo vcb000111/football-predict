@@ -108,7 +108,15 @@ After matches conclude, the system automatically fetches real scores from the we
 A floating chatbot with **10 function-calling tools** (live odds scraping, internet search, real-time predictions, ELO lookup, team stats, result updates, and more), multi-session history, image upload (1–10 images via Cloudinary), and an intelligent link reader.
 
 ### ⚙️ Admin Dashboard
-Full control panel for managing AI models (priority ordering, enable/disable), search engine keys, team stats (48 World Cup 2026 teams with manual edit), and a backtesting console with configurable model rotation and cool-down.
+Full control panel for managing AI models (priority ordering, enable/disable), search engine keys, team stats (48 World Cup 2026 teams with manual edit — including corners, cards, and play style), and a backtesting console with configurable model rotation and cool-down.
+
+### 📅 Canonical Schedule Sync (World Cup 2026)
+Official fixture pipeline with cross-source validation:
+* **Primary source:** FIFA Calendar API (`api.fifa.com/api/v3/calendar/matches`) — 104 matches with real knockout bracket team names.
+* **Fallback:** Roadtrips HTML table parser → local seed dataset.
+* **API flow:** `POST /api/fixtures/sync` (preview diff) → `POST /api/fixtures/sync/apply` (batch apply by `candidateIds`).
+* **UI:** Preview modal with per-match checkboxes, select-all, and batch apply without closing until all selected fixtures are applied.
+* **Timezone:** DB stores venue local time (`LocalDate` from FIFA); UI converts to Vietnam time (UTC+7) via `src/lib/timezone.js`.
 
 ---
 
@@ -164,6 +172,11 @@ The database (`worldcup_predictions.db`) and 48 team records are auto-created an
 ---
 
 ## Project Structure
+
+### [2026-06-28] - FIFA Calendar API, apply theo lô và mở rộng chỉ số đội tuyển (v1.10.0)
+* **FIFA Calendar API làm nguồn chính**: `src/lib/schedule/sources/fifa.js` lấy 104 trận World Cup 2026, vòng 32 có tên đội thật; Roadtrips HTML parser làm fallback.
+* **Modal preview sync chọn nhiều trận**: Checkbox + "Chọn tất cả" + "Apply đã chọn (N)"; popup giữ mở sau mỗi lần apply, chỉ reload khi hết danh sách.
+* **Chỉ số đội tuyển mở rộng**: Form admin bổ sung phạt góc, thẻ/trận, phong cách lối chơi (`play_style`); AI update và predict pipeline đồng bộ các trường mới.
 
 ### [2026-06-16] - Tích hợp trang cá nhân Tài khoản, đổi mật khẩu và sửa lỗi di động (v1.9.3)
 * **Tích hợp trang cá nhân /account**: Phát triển trang cá nhân hiển thị chi tiết (username, email, loại tài khoản, ngày tham gia) và form đổi mật khẩu cho người dùng cục bộ.
